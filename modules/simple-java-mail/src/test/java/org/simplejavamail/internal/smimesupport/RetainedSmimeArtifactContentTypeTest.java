@@ -16,6 +16,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import java.io.ByteArrayInputStream;
@@ -32,8 +34,6 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class RetainedSmimeArtifactContentTypeTest {
@@ -60,8 +60,11 @@ class RetainedSmimeArtifactContentTypeTest {
                 ? mail.converter().fromEml(originalEml).withFetchAttachmentData(fetchAttachmentData).toEmail()
                 : mail.converter().fromMimeMessage(source).withFetchAttachmentData(fetchAttachmentData).toEmail();
 
-        assertThat(received.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-        assertThat(received.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(originalEml);
+        assertThat(received.getPlainText()).contains(SIGNED_BODY);
+        assertThat(received.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(received.getAttachments()).isEmpty();
+        if (emlInput) SmimeInspectionAssertions.assertOriginal(received, originalEml);
+        else assertThat(received.getInspection().getOriginalMessage()).isNull();
         assertArtifact(received, mediaType, "signed-data", payload);
         assertArtifact(mail.emailBuilder().copying(received).buildEmail(), mediaType, "signed-data", payload);
         assertArtifact(roundTrip(received), mediaType, "signed-data", payload);
@@ -82,22 +85,26 @@ class RetainedSmimeArtifactContentTypeTest {
             payload = input.readAllBytes();
         }
         final SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
-        final Email received = mail.converter().fromMimeMessage(message(payload,
-                mediaType + "; smime-type=signed-data; name=\"" + ARTIFACT_NAME + "\"")).toEmail();
+        final byte[] originalBytes = serialize(message(payload,
+                mediaType + "; smime-type=signed-data; name=\"" + ARTIFACT_NAME + "\"; x-retained=\"one;two\""));
+        final Email received = mail.converter().fromEml(originalBytes).toEmail();
         final Email forwarding = mail.emailBuilder().startingBlank()
                 .from("sender@example.org").to("reader@example.org")
                 .withPlainText("Ordinary parent")
-                .withAttachment(artifact(received))
+                .withAttachment(received.getInspection().getOriginalMessage())
                 .withAttachment("note.txt", "Ordinary note".getBytes(UTF_8), "text/plain; charset=UTF-8")
                 .buildEmail();
-
         final Email imported = mail.converter().fromMimeMessage(mail.converter().fromEmail(forwarding).toMimeMessage()).toEmail();
-
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(PLAIN);
-        final AttachmentResource clear = imported.getDecryptedAttachments().stream()
-                .filter(attachment -> "signed-email.eml".equals(attachment.getName()))
-                .findFirst().orElseThrow(IllegalStateException::new);
-        assertThat(mail.converter().fromEml(clear.readAllBytes()).toEmail().getPlainText()).contains(SIGNED_BODY);
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(imported.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(imported.getAttachments()).hasSize(2);
+        final AttachmentResource attachedMessage = imported.getAttachments().get(0);
+        assertThat(attachedMessage.readAllBytes()).containsExactly(originalBytes);
+        assertThat(attachedMessage.getEmail()).isNotNull();
+        assertThat(attachedMessage.getEmail().getPlainText()).contains(SIGNED_BODY);
+        assertThat(attachedMessage.getEmail().getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(imported.getInspection().getAttachment(0).getSignatureStatus()).isNotEqualTo(SignatureStatus.VERIFIED);
+        assertThat(attachedMessage.readAllBytes()).containsExactly(originalBytes);
     }
 
     @ParameterizedTest
@@ -127,18 +134,19 @@ class RetainedSmimeArtifactContentTypeTest {
 
     private static void assertArtifact(final Email email, final String mediaType,
             final String smimeType, final byte[] payload) throws Exception {
-        final AttachmentResource retained = artifact(email);
-        final ContentType type = new ContentType(retained.getDataSource().getContentType());
+        assertThat(email.getAttachments()).isEmpty();
+        final String declaration = email.getSourceData().getHeaders().stream()
+                .filter(header -> header.getName().equalsIgnoreCase("Content-Type")).findFirst().orElseThrow().getRawValue();
+        final ContentType type = new ContentType(declaration);
         assertThat(type.getBaseType()).isEqualToIgnoringCase(mediaType);
         assertThat(type.getParameter("smime-type")).isEqualTo(smimeType);
         assertThat(type.getParameter("name")).isEqualTo(ARTIFACT_NAME);
         assertThat(type.getParameter("x-retained")).isEqualTo("one;two");
-        assertThat(retained.readAllBytes()).containsExactly(payload);
-    }
-
-    private static AttachmentResource artifact(final Email email) {
-        return email.getAttachments().stream().filter(attachment -> ARTIFACT_NAME.equals(attachment.getName()))
-                .findFirst().orElseThrow(IllegalStateException::new);
+        if (email.getInspection().getOriginalMessage() != null) {
+            final MimeMessage retained = new MimeMessage(Session.getInstance(new Properties()),
+                    new ByteArrayInputStream(email.getInspection().getOriginalMessage().readAllBytes()));
+            try (InputStream input = retained.getInputStream()) { assertThat(input.readAllBytes()).containsExactly(payload); }
+        }
     }
 
     private static MimeBodyPart opaqueSigned() throws Exception {

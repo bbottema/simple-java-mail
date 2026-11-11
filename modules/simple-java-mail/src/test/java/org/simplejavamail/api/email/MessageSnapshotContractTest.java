@@ -98,19 +98,17 @@ class MessageSnapshotContractTest {
 				.withHeader("X-Route", "first").withHeader("X-Nullable", null)
 				.withAttachment("attachment", new byte[] {1}, "text/plain")
 				.withEmbeddedImage("image", new byte[] {2}, "image/png");
-		builder.withDecryptedAttachments(singletonList(resource()));
+		builder.withAttachment(resource());
 		final Email email = builder.buildEmail();
 
 		builder.clearRecipients().clearReplyTo().clearOverrideReceivers().clearAttachments().clearEmbeddedImages();
 		builder.withHeader("X-Route", "second", true);
-		builder.clearDecryptedAttachments();
 
 		assertThat(email.getRecipients()).containsExactly(recipient);
 		assertThat(email.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly(recipient.getAddress());
 		assertThat(email.getOverrideReceivers()).containsExactly(recipient);
-		assertThat(email.getAttachments()).hasSize(1);
+		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getEmbeddedImages()).hasSize(1);
-		assertThat(email.getDecryptedAttachments()).hasSize(1);
 		assertThat(email.getHeaders().get("X-Route")).containsExactly("first");
 		assertThat(email.getHeaders().get("X-Nullable")).containsExactly((String) null);
 	}
@@ -130,12 +128,12 @@ class MessageSnapshotContractTest {
 				.withRecipients(recipient).withReplyTo(recipient).withOverrideReceivers(recipient)
 				.withHeader("X-Route", "first")
 				.withTemplateOptions(EmailTemplateOptions.builder().dontApplyDefaultValueFor(EmailProperty.SUBJECT).dontApplyOverrideValueFor(EmailProperty.HEADERS).build());
-		builder.withDecryptedAttachments(singletonList(resource()));
+		builder.withAttachment(resource());
 
 		builder.getRecipients().clear();
 		builder.getReplyToRecipients().clear();
 		builder.getOverrideReceivers().clear();
-		builder.getDecryptedAttachments().clear();
+		builder.getAttachments().clear();
 		builder.getHeaders().get("X-Route").clear();
 		builder.getTemplateOptions().toBuilder().getPropertiesNotToApplyDefaultValueFor().clear();
 		builder.getTemplateOptions().toBuilder().getPropertiesNotToApplyOverrideValueFor().clear();
@@ -144,7 +142,7 @@ class MessageSnapshotContractTest {
 		assertThat(email.getRecipients()).containsExactly(recipient);
 		assertThat(email.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly(recipient.getAddress());
 		assertThat(email.getOverrideReceivers()).containsExactly(recipient);
-		assertThat(email.getDecryptedAttachments()).hasSize(1);
+		assertThat(email.getAttachments()).hasSize(1);
 		assertThat(email.getHeaders().get("X-Route")).containsExactly("first");
 		assertThat(email.getPropertiesNotToApplyDefaultValueFor()).containsExactly(EmailProperty.SUBJECT);
 		assertThat(email.getPropertiesNotToApplyOverrideValueFor()).containsExactly(EmailProperty.HEADERS);

@@ -74,7 +74,11 @@ class PublicApiBoundaryTest {
             MailSendProgress.class, MailSendConnectionStep.class, MailSendSubmissionStep.class, MailSubmissionReceipt.class, MailRehearsal.class,
             AsyncQueueSnapshot.class, OutlookMessageData.class, OutlookEmailConversionResult.class, SimpleJavaMailConfig.class,
             DeliveryStatusReport.class, RecipientDeliveryReport.class, EnhancedStatusCode.class, ReportedRecipient.class,
-            ReportedMailServer.class, DeliveryDiagnostic.class);
+            ReportedMailServer.class, DeliveryDiagnostic.class, org.simplejavamail.api.email.EmailInspection.class,
+            org.simplejavamail.api.email.ValueInspection.class, org.simplejavamail.api.email.ProtectionInspection.class,
+            org.simplejavamail.api.email.SignatureInspection.class, org.simplejavamail.api.email.SignatureObservation.class,
+            org.simplejavamail.api.email.DecryptionInspection.class, org.simplejavamail.api.email.ProtectionCheck.class,
+            org.simplejavamail.api.email.ProtectionReason.class);
 
     @Test
     void libraryProducedResultsHaveNoApplicationConstructionSurface() {
@@ -179,6 +183,18 @@ class PublicApiBoundaryTest {
                 "org.simplejavamail.api.email.DeliveryDiagnostic.builder()",
                 "org.simplejavamail.api.email.OpenPgpDetails.builder()",
                 "org.simplejavamail.api.email.OpenPgpSignatureResult.builder()",
+                "org.simplejavamail.api.email.EmailInspection.builder()",
+                "org.simplejavamail.api.email.ValueInspection.builder()",
+                "org.simplejavamail.api.email.ProtectionInspection.builder()",
+                "org.simplejavamail.api.email.SignatureObservation.builder()",
+                "org.simplejavamail.api.email.ProtectionCheck.builder()",
+                "((org.simplejavamail.api.email.Email) null).getOriginalSmimeDetails()",
+                "((org.simplejavamail.api.email.Email) null).getOriginalOpenPgpDetails()",
+                "((org.simplejavamail.api.email.Email) null).getSmimeSignedEmail()",
+                "((org.simplejavamail.api.email.Email) null).getDecryptedAttachments()",
+                "((org.simplejavamail.api.email.OriginalSmimeDetails) null)",
+                "((org.simplejavamail.api.email.OriginalOpenPgpDetails) null)",
+                "((org.simplejavamail.api.email.OpenPgpSignatureResult) null)",
                 "new org.simplejavamail.api.mailer.MailSendMeasurement(null, null, false)",
                 "new org.simplejavamail.api.mailer.MailSubmissionReceipt(null, null, null)",
                 "new org.simplejavamail.api.outlook.OutlookMessageData()",
@@ -230,7 +246,9 @@ class PublicApiBoundaryTest {
                 "api/mailer/config/ConnectionPoolConfig.java", "api/mailer/config/AsyncExecutionConfig.java", "api/mailer/config/SocksProxyConfig.java",
                 "api/mailer/config/SendingLimitsConfig.java", "api/mailer/config/ConnectionConfig.java", "api/mailer/config/TlsConfig.java",
                 "api/mailer/config/ValidationConfig.java", "api/email/config/ImageResolutionConfig.java", "api/email/config/ContentEncodingConfig.java",
-                "api/email/config/EmailTemplateOptions.java", "api/email/config/SmtpDeliveryOptions.java")) {
+                "api/email/config/EmailTemplateOptions.java", "api/email/config/SmtpDeliveryOptions.java",
+                "api/email/ApprovedSigners.java", "api/email/ProtectionRequirements.java",
+                "api/email/ReplyOptions.java", "api/email/ForwardOptions.java")) {
             final String source = Files.readString(Path.of("src/main/java/org/simplejavamail", relativePath));
             assertThat(source).as(relativePath).doesNotContain("import lombok.Builder", "@Builder");
             final Matcher builderDeclaration = Pattern.compile("public static (?:final )?class \\w*Builder\\b").matcher(source);

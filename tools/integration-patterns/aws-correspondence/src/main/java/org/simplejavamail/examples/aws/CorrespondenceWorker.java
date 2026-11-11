@@ -474,7 +474,7 @@ public final class CorrespondenceWorker implements AutoCloseable {
             String id = request.parameters().get("id");
             byte[] bytes = objects.getObjectAsBytes(get -> get.bucket(bucket).key("archive/" + id + ".eml")).asByteArray();
             var parsed = ProtectedContent.readProtected(bytes);
-            return Map.of("sha256", ProtectedContent.sha256(bytes), "verification", parsed.getOriginalSmimeDetails().getVerificationStatus().name(),
+            return Map.of("sha256", ProtectedContent.sha256(bytes), "verification", parsed.getInspection().getPlainText().getSignatureStatus().name(),
                     "readable", parsed.getPlainText() != null);
         });
         server.route("/queue-evidence", request -> {

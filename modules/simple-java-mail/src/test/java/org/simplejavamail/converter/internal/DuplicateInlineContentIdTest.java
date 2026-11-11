@@ -14,6 +14,9 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceHeader;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import testutil.ConfigLoaderTestHelper;
@@ -83,13 +86,55 @@ class DuplicateInlineContentIdTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void referencedDuplicateKeepsTheExistingSelectedResource(final boolean eager) {
-        final Email imported = mail.converter().fromEml(message("<img src=\"cid:" + CID + "\">", true))
+    void ambiguousReferencedIdRetainsBothSourceOccurrences(final boolean eager) {
+        final String html = "<img src=\"cid:" + CID + "\">";
+        final byte[] eml = message(html, true).getBytes(UTF_8);
+        final Email imported = mail.converter().fromEml(eml)
                 .withFetchAttachmentData(eager).toEmail();
 
-        assertThat(imported.getAttachments()).extracting(AttachmentResource::getName).containsExactly("middle.bin");
-        assertThat(imported.getEmbeddedImages()).extracting(AttachmentResource::getName).containsExactly("second.png");
-        assertThat(imported.getEmbeddedImages().get(0).readAllBytes()).containsExactly(2);
+        assertAmbiguousResources(imported, html);
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(eml);
+        final EmailSourcePart first = (EmailSourcePart) imported.getInspection().getAttachment(0).getSources().get(0);
+        final EmailSourcePart second = (EmailSourcePart) imported.getInspection().getAttachment(2).getSources().get(0);
+        assertThat(first.getLocation()).isNotEqualTo(second.getLocation());
+        for (final EmailSourcePart part : new EmailSourcePart[] {first, second}) {
+            assertThat(part.getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-ID"))
+                    .extracting(EmailSourceHeader::getRawValue).containsExactly("<" + CID + ">");
+        }
+        assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_NOT_REPRESENTED);
+            assertThat(problem.getSourceValue()).isEqualTo(CID);
+            assertThat(problem.getLocation()).isEqualTo(first.getLocation());
+            assertThat(problem.getSources()).contains(first);
+        });
+        if (eager) {
+            assertOriginalCandidate(imported, 0, 1);
+            assertOriginalCandidate(imported, 2, 2);
+        } else {
+            assertThat(imported.getInspection().getOriginalAttachment(0)).isNull();
+            assertThat(imported.getInspection().getOriginalAttachment(2)).isNull();
+        }
+
+        assertAmbiguousResources(mail.converter().fromEml(mail.converter().fromEmail(imported).toEmlBytes()).toEmail(), html);
+    }
+
+    private static void assertAmbiguousResources(final Email email, final String html) {
+        assertThat(email.getHTMLText()).isEqualTo(html);
+        assertThat(email.getEmbeddedImages()).isEmpty();
+        assertThat(email.getAttachments()).extracting(AttachmentResource::getName)
+                .containsExactly("first.png", "middle.bin", "second.png");
+        assertThat(email.getAttachments()).extracting(AttachmentResource::getContentId).containsOnlyNulls();
+        assertThat(email.getAttachments().get(0).readAllBytes()).containsExactly(1);
+        assertThat(email.getAttachments().get(1).readAllBytes()).containsExactly(3);
+        assertThat(email.getAttachments().get(2).readAllBytes()).containsExactly(2);
+    }
+
+    private static void assertOriginalCandidate(final Email email, final int index, final int payload) {
+        final AttachmentResource original = email.getInspection().getOriginalAttachment(index);
+        assertThat(original.getName()).isEqualTo(email.getAttachments().get(index).getName());
+        assertThat(original.getContentId()).isEqualTo(CID);
+        assertThat(original.getContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64);
+        assertThat(original.readAllBytes()).containsExactly(payload);
     }
 
     @ParameterizedTest

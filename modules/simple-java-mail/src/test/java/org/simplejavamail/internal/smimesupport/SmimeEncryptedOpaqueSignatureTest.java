@@ -18,14 +18,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
-import org.simplejavamail.api.internal.outlooksupport.model.OutlookSmime.OutlookSmimeApplicationSmime;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.internal.smimesupport.builder.SmimeParseResultBuilder;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -40,94 +35,162 @@ import java.security.cert.X509Certificate;
 import java.util.List;
 import java.util.Properties;
 import java.util.stream.Stream;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED_ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.ERROR;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.INVALID;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static org.simplejavamail.api.email.SignatureVerification.VERIFIED;
+import static org.simplejavamail.api.email.SignatureVerification.INVALID;
+import static org.simplejavamail.api.email.SignatureVerification.UNVERIFIED;
 
 class SmimeEncryptedOpaqueSignatureTest {
-
     private static final String ORIGINAL_BODY = "Original opaque body";
     private static final String TAMPERED_BODY = "Tampered opaque body";
 
     @ParameterizedTest
     @MethodSource("opaqueCases")
-    void outerFactsRetainTheOpaqueSignatureAfterDecryption(final String mediaType,
-            final OriginalSmimeDetails.VerificationStatus signatureStatus, final boolean mergeContent) throws Exception {
+    void openedBodyRetainsEachOpaqueSignatureAfterDecryptionAndCopy(final String mediaType,
+            final SignatureVerification signatureStatus) throws Exception {
         final byte[] source = encrypted(opaqueSigned(mediaType, signatureStatus));
         final BorrowedInput input = new BorrowedInput(source);
-        final EmailPopulatingBuilder builder = SimpleJavaMail.fromDefaults().converter().fromEml(input)
-                .withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder();
-        if (!mergeContent) {
-            builder.notMergingSingleSMIMESignedAttachment();
-        }
-        final Email email = builder.buildEmail();
-
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(input)
+                .withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
         assertThat(input.closed).isFalse();
         assertFacts(email, signatureStatus, source);
         assertFacts(SimpleJavaMail.fromDefaults().emailBuilder().copying(email).buildEmail(), signatureStatus, source);
         assertFacts(roundTrip(email), signatureStatus, source);
-        assertThat(email.getSmimeSignedEmail().getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signatureStatus);
-        final String content = signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY;
-        assertThat(email.getSmimeSignedEmail().getPlainText()).contains(content);
-        assertThat(email.getPlainText()).contains(content);
-        final byte[] returnedBytes = email.getOriginalSmimeDetails().getOriginalProtectedMessage();
-        returnedBytes[0] ^= 1;
-        assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-
-        final Email staticImport = EmailConverter.emlToEmail(new ByteArrayInputStream(source), loadPkcs12KeyStore());
-        assertFacts(staticImport, signatureStatus, source);
+        assertThat(email.getPlainText()).contains(signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
+        final byte[] returned = email.getInspection().getOriginalMessage().readAllBytes();
+        returned[0] ^= 1;
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
+        assertFacts(EmailConverter.emlToEmail(new ByteArrayInputStream(source), loadPkcs12KeyStore()), signatureStatus, source);
     }
 
     private static Stream<Arguments> opaqueCases() {
         return Stream.of("application/pkcs7-mime", "application/x-pkcs7-mime", "Application/PKCS7-Mime")
-                .flatMap(type -> Stream.of(VALID, INVALID, ERROR)
-                        .flatMap(status -> Stream.of(true, false).map(merge -> Arguments.of(type, status, merge))));
+                .flatMap(type -> Stream.of(VERIFIED, INVALID, UNVERIFIED).map(status -> Arguments.of(type, status)));
     }
 
     @ParameterizedTest
     @MethodSource("detachedProblemCases")
-    void retainedDetachedOutlookSignaturesKeepTheirActualVerificationProblem(
-            final OriginalSmimeDetails.VerificationStatus signatureStatus, final boolean mergeContent) throws Exception {
-        final byte[] message = outlookMessage(encrypted(detachedSigned(signatureStatus)));
-        final EmailPopulatingBuilder builder = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(new ByteArrayInputStream(message))
-                .withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder();
-        if (!mergeContent) {
-            builder.notMergingSingleSMIMESignedAttachment();
-        }
-        final Email email = builder.buildEmail();
-
-        assertFacts(email, signatureStatus, null);
-        assertThat(email.getSmimeSignedEmail().getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signatureStatus);
-        final AttachmentResource retained = email.getDecryptedAttachments().stream()
-                .filter(attachment -> "signed-email.eml".equals(attachment.getName())).findFirst().orElseThrow();
-        final byte[] retainedBytes = retained.readAllBytes();
-        final MimeMessage signedEntity = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(retainedBytes));
-        assertThat(signedEntity.isMimeType("multipart/signed")).isTrue();
-        final Email reimported = EmailConverter.emlToEmail(new ByteArrayInputStream(retainedBytes));
-        assertThat(reimported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signatureStatus);
-        assertThat(reimported.getPlainText()).contains(signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
-        assertThat(reimported.getAttachments()).extracting("name").contains("smime.p7s");
+    void nativeDetachedSignaturesKeepTheirActualProblemAndProtectedBytes(final SignatureVerification status) throws Exception {
+        final MimeBodyPart signed = detachedSigned(status);
+        final byte[] signedBytes = serialized(signed);
+        final byte[] encrypted = encrypted(signed);
+        final byte[] nativeInput = outlookMessage(encrypted);
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(new ByteArrayInputStream(nativeInput))
+                .withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+        assertFacts(email, status, nativeInput);
+        final Session session = Session.getInstance(new Properties());
+        final var opened = new SMIMESupport().createRuntime(4).openIncomingLayer(session,
+                new MimeMessage(session, new ByteArrayInputStream(encrypted)), loadPkcs12KeyStore());
+        assertThat(opened.getOpenedEntity().isMimeType("multipart/signed")).isTrue();
+        assertThat(serialized(opened.getOpenedEntity())).containsExactly(signedBytes);
+        final Email reimported = EmailConverter.emlToEmail(new ByteArrayInputStream(signedBytes));
+        assertThat(reimported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.valueOf(status.name()));
+        assertThat(reimported.getPlainText()).contains(status == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
+        assertThat(reimported.getAttachments()).isEmpty();
     }
 
     private static Stream<Arguments> detachedProblemCases() {
-        return Stream.of(INVALID, ERROR).flatMap(status -> Stream.of(true, false).map(merge -> Arguments.of(status, merge)));
+        return Stream.of(INVALID, UNVERIFIED).map(Arguments::of);
     }
 
-    private static MimeBodyPart detachedSigned(final OriginalSmimeDetails.VerificationStatus expected) throws Exception {
+    @ParameterizedTest
+    @MethodSource("opaqueCases")
+    void nativeEnvelopeRetainsItsReadableOpaqueSignatureAndActualMsgOriginal(final String mediaType,
+            final SignatureVerification status) throws Exception {
+        final byte[] input = outlookMessage(encrypted(opaqueSigned(mediaType, status)));
+        final BorrowedInput borrowed = new BorrowedInput(input);
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(borrowed)
+                .withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+        assertThat(borrowed.closed).isFalse();
+        assertFacts(email, status, input);
+        assertFacts(SimpleJavaMail.fromDefaults().emailBuilder().copying(email).buildEmail(), status, input);
+        assertFacts(roundTrip(email), status, input);
+        assertThat(email.getInspection().getOriginalMessage().getDataSource().getContentType()).isEqualTo("application/vnd.ms-outlook");
+        assertFacts(EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(input), loadPkcs12KeyStore()), status, input);
+    }
+
+    @ParameterizedTest
+    @MethodSource("independentAttachmentCases")
+    void independentSignedEncryptedFileDoesNotSupplyItsParentsProtection(final String mediaType,
+            final SignatureVerification status) throws Exception {
+        final MimeBodyPart protectedFile = new MimeBodyPart(new ByteArrayInputStream(encrypted(opaqueSigned(mediaType, status))));
+        protectedFile.setFileName("independent.p7m");
+        final MimeBodyPart body = new MimeBodyPart(); body.setText("Plain parent body", "UTF-8");
+        final MimeBodyPart note = new MimeBodyPart(); note.setText("Unrelated note", "UTF-8"); note.setFileName("note.txt");
+        final MimeMultipart content = new MimeMultipart();
+        content.addBodyPart(body); content.addBodyPart(protectedFile); content.addBodyPart(note);
+        final MimeMessage parent = new MimeMessage(Session.getInstance(new Properties()));
+        parent.setFrom("sender@example.org"); parent.setContent(content); parent.saveChanges();
+        final Email email = EmailConverter.mimeMessageToEmail(parent, loadPkcs12KeyStore());
+        assertThat(email.getPlainText()).contains("Plain parent body");
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(email.getInspection().getPlainText().getSignatures()).isEmpty();
+        assertThat(email.getAttachments()).extracting(AttachmentResource::getName).containsExactly("independent.p7m", "note.txt");
+        assertThat(email.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.valueOf(status.name()));
+        assertThat(email.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(email.getAttachments().get(0).readAllData(ISO_8859_1)).contains(status == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
+        assertThat(email.getInspection().getOriginalAttachment(0)).isNotNull();
+        assertThat(email.getAttachments().get(0).getEmail()).isNull();
+    }
+
+    private static Stream<Arguments> independentAttachmentCases() {
+        return Stream.of("application/pkcs7-mime", "application/x-pkcs7-mime")
+                .flatMap(type -> Stream.of(VERIFIED, INVALID, UNVERIFIED).map(status -> Arguments.of(type, status)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("independentAttachmentCases")
+    void additionalProtectedFilesCannotSupplyTheNativeOwningEnvelopesSignature(final String mediaType,
+            final SignatureVerification status) throws Exception {
+        final MimeBodyPart body = new MimeBodyPart(); body.setText("Unsigned owning envelope", "UTF-8");
+        final MimeBodyPart independent = new MimeBodyPart(new ByteArrayInputStream(encrypted(opaqueSigned(mediaType, status))));
+        independent.setFileName("independent.p7m");
+        final MimeMultipart mixed = new MimeMultipart(); mixed.addBodyPart(body); mixed.addBodyPart(independent);
+        final MimeBodyPart owning = new MimeBodyPart(); owning.setContent(mixed);
+        final byte[] nativeInput = outlookMessage(encrypted(owning));
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(new ByteArrayInputStream(nativeInput))
+                .withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+        assertThat(email.getPlainText()).contains("Unsigned owning envelope");
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(email.getInspection().getPlainText().getSignatures()).isEmpty();
+        assertThat(email.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.valueOf(status.name()));
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(nativeInput);
+    }
+
+    private static void assertFacts(final Email email, final SignatureVerification expected, final byte[] original) {
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.valueOf(expected.name()));
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(email.getInspection().getSmime().getSignatures()).singleElement().satisfies(signature -> {
+            assertThat(signature.getStatus()).isEqualTo(expected);
+            if (expected == VERIFIED) assertThat(signature.getFailureReason()).isNull();
+            else assertThat(signature.getFailureReason()).isNotEmpty();
+        });
+        assertThat(email.getInspection().getSmime().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+        assertThat(email.getInspection().getOriginalMessage()).isNotNull();
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(original);
+    }
+
+    private static byte[] serialized(final MimeBodyPart part) throws Exception {
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream(); part.writeTo(bytes); return bytes.toByteArray();
+    }
+
+    private static MimeBodyPart detachedSigned(final SignatureVerification expected) throws Exception {
         final Pkcs12Config keys = loadPkcs12KeyStore();
         final KeyStore store = store(keys);
         final X509Certificate certificate = (X509Certificate) store.getCertificate(keys.getKeyAlias());
         final SMIMESignedGenerator generator = new SMIMESignedGenerator();
-        if (expected != ERROR) {
+        if (expected != UNVERIFIED) {
             generator.addCertificates(new JcaCertStore(List.of(certificate)));
         }
         generator.addSignerInfoGenerator(new JcaSimpleSignerInfoGeneratorBuilder().setProvider(SmimeCryptoSupport.BOUNCY_CASTLE)
@@ -152,122 +215,13 @@ class SmimeEncryptedOpaqueSignatureTest {
                 ? encoded.replace(ORIGINAL_BODY, TAMPERED_BODY) : encoded).getBytes(ISO_8859_1)));
     }
 
-    @ParameterizedTest
-    @MethodSource("opaqueCases")
-    void outlookEnvelopeRetainsItsDecryptedOpaqueSignatureFacts(final String mediaType,
-            final OriginalSmimeDetails.VerificationStatus signatureStatus, final boolean mergeContent) throws Exception {
-        final byte[] message = outlookMessage(encrypted(opaqueSigned(mediaType, signatureStatus)));
-        final BorrowedInput input = new BorrowedInput(message);
-        final EmailPopulatingBuilder builder = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(input)
-                .withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder();
-        if (!mergeContent) {
-            builder.notMergingSingleSMIMESignedAttachment();
-        }
-        final Email email = builder.buildEmail();
-
-        assertThat(input.closed).isFalse();
-        assertFacts(email, signatureStatus, null);
-        assertFacts(SimpleJavaMail.fromDefaults().emailBuilder().copying(email).buildEmail(), signatureStatus, null);
-        assertFacts(roundTrip(email), signatureStatus, null);
-        final String content = signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY;
-        assertThat(email.getSmimeSignedEmail().getPlainText()).contains(content);
-        if (mergeContent) {
-            assertThat(email.getPlainText()).contains(content);
-        }
-        assertFacts(EmailConverter.outlookMsgToEmail(new ByteArrayInputStream(message), loadPkcs12KeyStore()), signatureStatus, null);
-    }
-
-    @ParameterizedTest
-    @MethodSource("independentAttachmentCases")
-    void independentSignedEncryptedAttachmentsDoNotChangeTheirPlainParent(final String mediaType,
-            final OriginalSmimeDetails.VerificationStatus signatureStatus) throws Exception {
-        final MimeBodyPart protectedFile = new MimeBodyPart(new ByteArrayInputStream(encrypted(opaqueSigned(mediaType, signatureStatus))));
-        protectedFile.setFileName("independent.p7m");
-        final MimeBodyPart body = new MimeBodyPart();
-        body.setText("Plain parent body", "UTF-8");
-        final MimeBodyPart note = new MimeBodyPart();
-        note.setText("Unrelated note", "UTF-8");
-        note.setFileName("note.txt");
-        final MimeMultipart content = new MimeMultipart();
-        content.addBodyPart(body);
-        content.addBodyPart(protectedFile);
-        content.addBodyPart(note);
-        final MimeMessage parent = new MimeMessage(Session.getInstance(new Properties()));
-        parent.setFrom("sender@example.org");
-        parent.setContent(content);
-        parent.saveChanges();
-
-        final Email email = EmailConverter.mimeMessageToEmail(parent, loadPkcs12KeyStore());
-
-        assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-        assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).isNull();
-        assertThat(email.getPlainText()).contains("Plain parent body");
-        assertThat(email.getDecryptedAttachments()).extracting("name").containsExactly("signed-email.eml", "note.txt");
-        final Email independentlySigned = EmailConverter.emlToEmail(
-                new ByteArrayInputStream(email.getDecryptedAttachments().get(0).readAllBytes()));
-        assertThat(independentlySigned.getPlainText()).contains(signatureStatus == INVALID ? TAMPERED_BODY : ORIGINAL_BODY);
-    }
-
-    private static Stream<Arguments> independentAttachmentCases() {
-        return Stream.of("application/pkcs7-mime", "application/x-pkcs7-mime")
-                .flatMap(type -> Stream.of(VALID, INVALID, ERROR).map(status -> Arguments.of(type, status)));
-    }
-
-    @ParameterizedTest
-    @MethodSource("independentAttachmentCases")
-    void additionalProtectedFilesCannotSupplyAnOutlookEnvelopeSignature(final String mediaType,
-            final OriginalSmimeDetails.VerificationStatus signatureStatus) throws Exception {
-        final MimeBodyPart body = new MimeBodyPart();
-        body.setText("Unsigned owning envelope", "UTF-8");
-        final MimeMultipart content = new MimeMultipart();
-        content.addBodyPart(body);
-        final MimeBodyPart owningEntity = new MimeBodyPart();
-        owningEntity.setContent(content);
-        final AttachmentResource envelope = encryptedAttachment(owningEntity, "smime.p7m");
-        final AttachmentResource independent = encryptedAttachment(opaqueSigned(mediaType, signatureStatus), "independent.p7m");
-        final OutlookSmimeApplicationSmime declaration = mock(OutlookSmimeApplicationSmime.class);
-        when(declaration.getSmimeMime()).thenReturn("application/pkcs7-mime");
-        when(declaration.getSmimeType()).thenReturn("enveloped-data");
-        final OutlookMessage outlook = mock(OutlookMessage.class);
-        when(outlook.getSmimeMime()).thenReturn(declaration);
-
-        final SmimeParseResultBuilder parsed = ((SMIMESupport) new SMIMESupport().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY))
-                .decryptAttachments(List.of(envelope, independent), outlook, loadPkcs12KeyStore());
-
-        assertThat(parsed.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.ENCRYPTED);
-        assertThat(parsed.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-        assertThat(parsed.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(parsed.getSmimeSignedOrEncryptedEmail()).isNull();
-    }
-
-    private static void assertFacts(final Email email, final OriginalSmimeDetails.VerificationStatus expected,
-            final byte[] source) {
-        final OriginalSmimeDetails details = email.getOriginalSmimeDetails();
-        assertThat(details.getSmimeMode()).isEqualTo(SIGNED_ENCRYPTED);
-        assertThat(details.getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(details.getVerificationStatus()).isEqualTo(expected);
-        assertThat(details.getSmimeSignatureValid()).isEqualTo(expected == VALID);
-        if (source == null) {
-            assertThat(details.getOriginalProtectedMessage()).isNull();
-        } else {
-            assertThat(details.getOriginalProtectedMessage()).containsExactly(source);
-        }
-        if (expected == VALID) {
-            assertThat(details.getFailureReason()).isNull();
-        } else {
-            assertThat(details.getFailureReason()).isNotEmpty();
-        }
-    }
-
     private static MimeBodyPart opaqueSigned(final String mediaType,
-            final OriginalSmimeDetails.VerificationStatus expected) throws Exception {
+            final SignatureVerification expected) throws Exception {
         final Pkcs12Config keys = loadPkcs12KeyStore();
         final KeyStore store = store(keys);
         final X509Certificate certificate = (X509Certificate) store.getCertificate(keys.getKeyAlias());
         final SMIMESignedGenerator generator = new SMIMESignedGenerator();
-        if (expected != ERROR) {
+        if (expected != UNVERIFIED) {
             generator.addCertificates(new JcaCertStore(List.of(certificate)));
         }
         generator.addSignerInfoGenerator(new JcaSimpleSignerInfoGeneratorBuilder()

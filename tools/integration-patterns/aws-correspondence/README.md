@@ -31,6 +31,10 @@ The worker's inline send-result observer records submission work, not final deli
 while marking the operation held. If recording that result itself fails, the sticky `SENDING` guard requires reconciliation rather than replay.
 SES JSON is separate from `Email.getDeliveryStatusReport()`.
 
+`/archive-proof` reports signature coverage for the selected readable plain-text body, not a whole-message trusted Boolean. A readable body and
+mathematically verified signature do not establish partner approval or a known transport outcome. The
+[protected-partners example](../protected-partners/README.md) adds an explicit approved-document process-or-hold policy.
+
 ## Actual cloud lane
 
 Requirements: AWS CLI v2 with a named profile, Docker, Python 3.11+ and an isolated environment containing `cloud/requirements.txt`. The scripts use that

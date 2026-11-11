@@ -5,6 +5,50 @@
 - Target: 10.0.0
 - Attachment access revision: Accepted 21 October 2026; implemented and reviewed for unreleased 10.0.0 under [#821](https://github.com/bbottema/simple-java-mail/issues/821).
 
+## Selected values, originals and helper requirements (accepted 10 November 2026)
+
+The received-Email continuation of [#961](https://github.com/bbottema/simple-java-mail/issues/961) supersedes legacy retained-inner
+merging with [logical selection](0040-retained-protected-content-merging.md#one-logical-readable-email-accepted-10-november-2026).
+An unchanged copy preserves selected field/resource associations, immutable observations, complete captured originals and Problems.
+An explicit replacement, even with equal content, becomes caller-supplied with unknown incoming protection. Clearing removes the current
+association, not historical input. Resource occurrence edits must not match by filename, equality/hash or payload reads. Preserve the
+existing selective represented-content equality purpose without comparing entire evidence graphs or reading content to compare evidence.
+
+Completion retains the submitted draft's source/Problems/original history and unchanged selected associations too. Defaults/overrides
+replacements become caller-supplied with unknown incoming protection; templates cannot donate history or consent. This explicitly
+supersedes the blanket history-reset statements in this record's earlier completion clarification. Retained input verification never
+attests to newly generated MIME. The [dated completion amendment](0037-repeatable-email-completion.md#preserve-helper-requirements-without-inheriting-consent-accepted-10-november-2026)
+keeps historical evidence separate from outgoing policy and typed source-result projection.
+
+Complete captured originals share safely owned storage across copies; distinct decoded representations can need distinct storage.
+Supported snapshots preserve these core-owned facts and already materialized child views without parser/provider/ancestor references.
+Missing facts in older snapshots remain uncaptured/unknown. Source getters do not freeze borrowed resources, and ordinary later reads keep
+their existing failure/stream ownership. A parsed child can be edited independently; the parent payload changes only by explicit replacement.
+
+Helper-derived confidentiality requirements and draft consent are separate internal draft state. Ordinary copies/snapshots preserve them.
+Replacing text or resetting incoming facts cannot waive a requirement; explicitly clearing a reused component removes that contribution,
+and clearing all such components can remove the derived requirement. A remaining HTML quote or confidential header still counts. A new
+reply/forward operation makes its own safe-default/options decision rather than inheriting unrelated earlier consent. Conversion-local
+permission affects only its conversion object and never the source draft or its later send.
+
+### Selective equality with readable headers (clarified 10 November 2026)
+
+The richer header read view does not add a second comparison of typed fields. Compare authored addresses, Message-ID, sent date and
+notification choices through their existing typed comparands. In particular, visible and Reply-To recipient occurrence matching remains
+order-insensitive even though the readable To/Cc/Bcc/Reply-To field strings preserve order. Additional semantic/authored headers, including
+threading, and custom header values remain comparable with their per-name occurrence order; compare names case-insensitively.
+
+MIME structure and received delivery/authentication history are not additional header comparands. This deliberately removes raw
+Return-Path/authentication/obsolete-signature distinctions that could participate through the former additional-header map; the represented
+Bounce-To value still participates normally. Unknown or malformed typed source text remains readable without adding a second raw-value
+comparand. Standalone `name`, `filename` and `size` custom fields are not MIME producer headers and remain ordinary comparable choices.
+
+The removed flattened incoming S/MIME/OpenPGP details are not replaced with comparison of their new inspection graphs or retained originals.
+These are explicit target consequences of the coherent received-Email model, rather than a new general content or sending-equivalence
+comparison. Outgoing signing/encryption choices and the established metadata-only resource/occurrence rules retain their comparands.
+Core and reconstructed output share one finite header-role classification; output still applies its own explicit-authoring/typed-emission
+rules. The historical parser recovery/exclusion classification remains a separate read concern.
+
 ### Parser-opened content streams (accepted 22 October 2026)
 
 Eager MIME attachment extraction and calendar-stream interpretation own each stream they acquire while producing the converted value. Close those streams on success and failure. The later [best-effort recovery decision in ADR 0041](0041-email-source-inspection-and-problems.md#best-effort-recovery-and-outgoing-content) distinguishes recovered component observations from failures that still throw; conversion exceptions preserve original causes and suppressed close failures. A close failure after a complete read does not discard the acquired content. Borrowing the DataSource does not transfer ownership of a separately acquired stream to the application. Lazy extraction and caller-supplied top-level EML streams retain their existing contracts. [#828](https://github.com/bbottema/simple-java-mail/issues/828) tracks the original ownership decision; #961 owns the later recovery contract.
@@ -98,6 +142,11 @@ Ordinary copies/serialization keep immutable origins and original header occurre
 They share selectively retained original content too; a source element does not borrow a live DataSource/parser callback or an ancestral Email.
 Changing a copy's Message-ID or supplying replacement normal content never rewrites captured sources or Problems. Source getters only read
 captured data, while whole-Email serialization keeps its separate normal-resource capture rule. Output completion starts its own history.
+
+That final completion-reset statement is historical and superseded by the
+[10 November amendment](#selected-values-originals-and-helper-requirements-accepted-10-november-2026): submitted history and unchanged
+current associations now survive completion, while template replacements acquire caller-supplied/unknown current facts. The source graph
+and its current protection observations are core-owned; whole-Email optional-module portability remains a separate boundary.
 
 Optional import limits in [ADR 0042](0042-optional-import-limits.md) preserve this ownership boundary. An import can retain its acquired
 prefix as incomplete evidence when a configured bound stops reading; no partial attachment becomes complete normal content. Its allowance

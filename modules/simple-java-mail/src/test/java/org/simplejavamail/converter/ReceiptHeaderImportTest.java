@@ -10,7 +10,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import testutil.ConfigLoaderTestHelper;
@@ -51,8 +51,10 @@ class ReceiptHeaderImportTest {
 				.containsExactly("Return@EXAMPLE.ORG", "backup@example.org", "Return@EXAMPLE.ORG");
 		assertThat(email.getUseDispositionNotificationTo()).isTrue();
 		assertThat(email.getUseReturnReceiptTo()).isTrue();
-		assertThat(email.getHeaders().keySet()).noneMatch(name -> name.equalsIgnoreCase("Disposition-Notification-To")
-				|| name.equalsIgnoreCase("Return-Receipt-To"));
+		assertThat(email.getHeaders().get("disposition-notification-to")).hasSize(2)
+				.anySatisfy(value -> assertThat(value).contains("First@EXAMPLE.ORG", "second@example.org"));
+		assertThat(email.getHeaders().get("RETURN-RECEIPT-TO")).hasSize(2)
+				.anySatisfy(value -> assertThat(value).contains("Return@EXAMPLE.ORG", "backup@example.org"));
 		assertThat(email.getHeaders().get("X-Custom-Case")).containsExactly("unchanged");
 		assertThat(email.getPlainText()).isEqualTo("Readable body");
 		assertThat(email.getAttachments().get(0).readAllBytes()).isEqualTo("payload".getBytes(UTF_8));
@@ -127,8 +129,8 @@ class ReceiptHeaderImportTest {
 		final byte[] source = EmailConverter.mimeMessageToEMLByteArray(signed);
 		final Email email = MAIL.converter().fromEml(source).toEmail();
 		assertParentDestinations(email);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).isEqualTo(source);
+		assertThat(email.getInspection().getSmime().getSignatures()).extracting("status").containsOnly(SignatureVerification.VERIFIED);
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(source);
 	}
 
 	private static String parentSource() {

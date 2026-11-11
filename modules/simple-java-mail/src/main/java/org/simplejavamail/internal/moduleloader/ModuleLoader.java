@@ -22,6 +22,7 @@ public class ModuleLoader {
 	private static final boolean SMIME_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.smimesupport.SMIMESupport");
 	private static final boolean DKIM_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.dkimsupport.DKIMSigner");
 	private static final boolean OPENPGP_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.openpgpsupport.OpenPgpSupport");
+	private static final boolean OUTLOOK_SUPPORT_CLASS_AVAILABLE = MiscUtil.classAvailable("org.simplejavamail.internal.outlooksupport.converter.OutlookEmailConverter");
 
 	private static final ConcurrentMap<Class<?>, Object> LOADED_MODULES = new ConcurrentHashMap<>();
 
@@ -118,6 +119,12 @@ public class ModuleLoader {
 						MiscUtil.classAvailable("org.simplejavamail.internal.openpgpsupport.OpenPgpSupport")) ||
 						OPENPGP_SUPPORT_CLASS_AVAILABLE);
 	}
+
+    public static boolean outlookModuleAvailable() {
+        return !FORCED_DISABLED_MODULES.contains(OutlookModule.class)
+                && ((FORCED_RECHECK_MODULES.contains(OutlookModule.class)
+                && MiscUtil.classAvailable("org.simplejavamail.internal.outlooksupport.converter.OutlookEmailConverter")) || OUTLOOK_SUPPORT_CLASS_AVAILABLE);
+    }
 
 	private static <T> T loadModule(Class<T> moduleClass, String moduleName, String moduleImplClassName, String moduleHome) {
 		return moduleClass.cast(LOADED_MODULES.computeIfAbsent(moduleClass,

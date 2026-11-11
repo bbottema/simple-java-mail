@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.clisupport;
 
 import org.simplejavamail.api.email.EmailStartingBuilder;
+import org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder;
 import org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
 import org.simplejavamail.api.internal.clisupport.CliExactEmailConfigurationBuilder;
@@ -15,6 +16,7 @@ import org.simplejavamail.api.mailer.MailerRegularBuilder;
 public final class CliBuilderApi {
 	private static final Class<?>[] ROOTS = {
 			EmailStartingBuilder.class,
+			CliEmailHelperBuilder.class,
 			CliEmailConfigurationBuilder.class,
 			CliEmailRecipientBuilder.class,
 			CliExactEmailConfigurationBuilder.class,

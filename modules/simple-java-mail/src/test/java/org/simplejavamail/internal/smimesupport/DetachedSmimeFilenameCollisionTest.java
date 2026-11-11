@@ -16,6 +16,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import java.io.ByteArrayInputStream;
@@ -32,9 +34,6 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.ERROR;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.INVALID;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class DetachedSmimeFilenameCollisionTest {
@@ -52,8 +51,10 @@ class DetachedSmimeFilenameCollisionTest {
 
         final Email email = importEmail(fixture.wire, eager, eml);
 
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-        assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(fixture.wire);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(email.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        if (eml) SmimeInspectionAssertions.assertOriginal(email, fixture.wire);
+        else assertThat(email.getInspection().getOriginalMessage()).isNull();
         assertThat(email.getPlainText()).contains(BODY);
         assertAttachments(email, fileName, fileType, FILE_BYTES, fixture.signature);
         assertAttachments(SimpleJavaMail.fromDefaults().emailBuilder().copying(email).buildEmail(),
@@ -85,7 +86,9 @@ class DetachedSmimeFilenameCollisionTest {
         final Email email = importEmail(bytes(changed), true, true);
 
         // Changing the signed file invalidates the signature but does not merge its two source occurrences.
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(INVALID);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+        assertThat(email.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+        SmimeInspectionAssertions.assertFileOccurrenceDistinctFromEnvelope(email, 0, SIGNATURE_NAME);
         assertAttachments(email, SIGNATURE_NAME, SIGNATURE_TYPE, fixture.signature, fixture.signature);
     }
 
@@ -102,7 +105,9 @@ class DetachedSmimeFilenameCollisionTest {
 
         final Email email = importEmail(bytes(changed), false, true);
 
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(ERROR);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(email.getInspection().getSmime().getSignatures()).isEmpty();
+        assertThat(email.getInspection().getSmime().isInspectionComplete()).isFalse();
         assertThat(email.getPlainText()).contains(BODY);
         assertAttachments(email, SIGNATURE_NAME, "application/octet-stream", FILE_BYTES, malformedSignature);
     }
@@ -110,11 +115,17 @@ class DetachedSmimeFilenameCollisionTest {
     private static void assertAttachments(final Email email, final String fileName, final String fileType,
             final byte[] fileBytes, final byte[] signatureBytes) throws Exception {
         final List<AttachmentResource> attachments = email.getAttachments();
-        assertThat(attachments).extracting(AttachmentResource::getName).containsExactly(fileName, SIGNATURE_NAME);
+        assertThat(attachments).extracting(AttachmentResource::getName).containsExactly(fileName);
         assertThat(new ContentType(attachments.get(0).getDataSource().getContentType()).getBaseType()).isEqualTo(fileType);
         assertThat(attachments.get(0).readAllBytes()).containsExactly(fileBytes);
-        assertThat(new ContentType(attachments.get(1).getDataSource().getContentType()).getBaseType()).isEqualTo(SIGNATURE_TYPE);
-        assertThat(attachments.get(1).readAllBytes()).containsExactly(signatureBytes);
+        if (email.getInspection().getOriginalMessage() != null) {
+            final MimeMessage original = message(email.getInspection().getOriginalMessage().readAllBytes());
+            if (original.isMimeType("multipart/signed")) {
+                try (InputStream signature = ((MimeMultipart) original.getContent()).getBodyPart(1).getInputStream()) {
+                    assertThat(signature.readAllBytes()).containsExactly(signatureBytes);
+                }
+            }
+        }
     }
 
     private static Email importEmail(final byte[] wire, final boolean eager, final boolean eml) throws Exception {

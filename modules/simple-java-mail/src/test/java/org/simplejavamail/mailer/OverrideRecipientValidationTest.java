@@ -22,6 +22,7 @@ import testutil.retry.RetryProviderTransport;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -134,30 +135,36 @@ class OverrideRecipientValidationTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"To", "Cc", "Bcc"})
-    void rawRecipientHeadersKeepTheirExpertEscapeFromMailboxValidation(final String header) throws Exception {
+    void genericRecipientHeadersUseTheConfiguredMailboxValidator(final String header) throws Exception {
         final List<String> inspected = new ArrayList<>();
         final Email email = message().withHeader(header, "outside@example.org").buildEmail();
         try (Mailer mailer = offline().withValidationConfig(internalOnly(false, inspected)).buildMailer()) {
-            assertThat(mailer.rehearse(email).getEnvelopeRecipients()).containsExactly("visible@internal.test", "outside@example.org");
-            assertThat(inspected).doesNotContain("outside@example.org");
+            assertThatThrownBy(() -> mailer.rehearse(email)).isInstanceOf(MailInvalidAddressException.class)
+                    .hasMessageContaining("Invalid " + header.toUpperCase(Locale.ROOT) + " address")
+                    .hasMessageContaining("outside@example.org");
+            assertThat(inspected).contains("outside@example.org");
         }
     }
 
     @Test
-    void rawRecipientHeadersStillReceiveGeneralInjectionScanning() throws Exception {
+    void genericRecipientHeadersReceiveInjectionScanningWithoutAMailboxValidator() throws Exception {
         final Email email = message().withHeader("Cc", "outside@example.org\r\nX-Injected: yes").buildEmail();
-        try (Mailer mailer = offline().withValidationConfig(internalOnly(false, new ArrayList<>())).buildMailer()) {
+        try (Mailer mailer = offline().withValidationConfig(ValidationConfig.builder().clearEmailValidator().build()).buildMailer()) {
             assertThatThrownBy(() -> mailer.rehearse(email)).isInstanceOf(MailSuspiciousCRLFValueException.class);
         }
     }
 
     @Test
-    void rawRecipientHeadersStillCannotBypassMandatoryConfigurationLocks() throws Exception {
+    void genericBccStillIncludesTheLockedArchiveWhenDeliveryIsOverridden() throws Exception {
         final SimpleJavaMail locked = SimpleJavaMail.withConfig(ConfigLoader.builder().withMap("archive policy", Map.of(
                 "simplejavamail.locked.defaults.bcc.address", "archive@internal.test")).load());
         try (Mailer mailer = locked.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
-            assertThatThrownBy(() -> mailer.rehearse(message().withHeader("Bcc", "outside@example.org").buildEmail()))
-                    .hasMessageContaining("locked.defaults.bcc.address");
+            final Email email = message().withHeader("Bcc", "outside@example.org")
+                    .withOverrideReceivers(recipient("delivery@internal.test")).buildEmail();
+            final MailRehearsal rehearsal = mailer.rehearse(email);
+            assertThat(rehearsal.getEffectiveEmail().getBccRecipients()).extracting(Recipient::getAddress)
+                    .containsExactly("outside@example.org", "archive@internal.test");
+            assertThat(rehearsal.getEnvelopeRecipients()).containsExactly("delivery@internal.test", "archive@internal.test");
         }
     }
 

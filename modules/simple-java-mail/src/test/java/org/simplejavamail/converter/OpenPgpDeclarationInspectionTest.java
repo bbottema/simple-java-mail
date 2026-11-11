@@ -13,7 +13,9 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourceHeader;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
+import org.simplejavamail.api.email.ProtectionInspection;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.ByteArrayInputStream;
@@ -56,7 +58,7 @@ class OpenPgpDeclarationInspectionTest {
                             final byte[] source = source(type);
                             final Email received = read(source, route);
 
-                            assertUnknown(received.getOriginalOpenPgpDetails());
+                            assertUnknown(received.getInspection().getOpenPgp());
                             assertThat(received.getSubject()).isEqualTo("Readable subject");
                             assertThat(received.getSourceData().getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-Type"))
                                     .extracting(EmailSourceHeader::getRawValue).containsExactly(type);
@@ -92,7 +94,7 @@ class OpenPgpDeclarationInspectionTest {
             final Email received = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(supplied)
                     .withFetchAttachmentData(false).toEmail();
 
-            assertUnknown(received.getOriginalOpenPgpDetails());
+            assertUnknown(received.getInspection().getOpenPgp());
             assertThat(received.getPlainText()).isEqualTo("Readable neighboring body");
             assertThat(serializations).as("an unestablished envelope needs no protected-byte snapshot").hasValue(0);
         }));
@@ -102,14 +104,14 @@ class OpenPgpDeclarationInspectionTest {
         final byte[] source = contradictorySource(type);
         final Email received = read(source, route);
 
-        assertUnknown(received.getOriginalOpenPgpDetails());
+        assertUnknown(received.getInspection().getOpenPgp());
         assertThat(received.getSubject()).isEqualTo("Readable subject");
         assertThat(received.getPlainText()).isEqualTo("Readable neighboring body");
         assertThat(received.getSourceData().getHeaders()).extracting(EmailSourceHeader::getRawValue).contains(type);
         assertThat(received.getProblems()).noneMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED
                 || problem.getCode() == EmailProblem.Code.SIGNATURE_INVALID);
-        assertUnknown(SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail().getOriginalOpenPgpDetails());
-        assertUnknown(roundTrip(received).getOriginalOpenPgpDetails());
+        assertUnknown(SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail().getInspection().getOpenPgp());
+        assertUnknown(roundTrip(received).getInspection().getOpenPgp());
         if (route.equals("exact")) {
             assertThat(SimpleJavaMail.fromDefaults().converter().fromEmail(received).toEmlBytes()).containsExactly(source);
         }
@@ -133,7 +135,9 @@ class OpenPgpDeclarationInspectionTest {
 
         final Email received = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(supplied).toEmail();
 
-        assertThat(received.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.SIGNED);
+        // The provider classifies this as signed; it cannot establish decryption or a valid signature from the incomplete fixture.
+        assertThat(received.getInspection().getOpenPgp().getDecryptions()).isEmpty();
+        assertThat(received.getInspection().getOpenPgp().isInspectionComplete()).isFalse();
     }
 
     @Test
@@ -147,7 +151,7 @@ class OpenPgpDeclarationInspectionTest {
 
         final Email received = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(supplied).toEmail();
 
-        assertUnknown(received.getOriginalOpenPgpDetails());
+        assertUnknown(received.getInspection().getOpenPgp());
         assertThat(received.getPlainText()).isEqualTo("Readable neighboring body");
         assertThat(received.getSubject()).isEqualTo("Readable subject");
     }
@@ -158,8 +162,8 @@ class OpenPgpDeclarationInspectionTest {
         final Email copied = SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail();
         final Email restored = roundTrip(copied);
 
-        assertUnknown(copied.getOriginalOpenPgpDetails());
-        assertUnknown(restored.getOriginalOpenPgpDetails());
+        assertUnknown(copied.getInspection().getOpenPgp());
+        assertUnknown(restored.getInspection().getOpenPgp());
         assertThat(restored.getSourceData().getHeaders()).extracting(EmailSourceHeader::getRawValue)
                 .contains("not-a-content-type");
         assertThat(restored.getProblems()).hasSize(received.getProblems().size());
@@ -170,9 +174,10 @@ class OpenPgpDeclarationInspectionTest {
         return Stream.of("text/plain; charset=UTF-8", null).map(type -> DynamicTest.dynamicTest(String.valueOf(type), () -> {
             final Email received = read(source(type), "fluent-eml");
 
-            assertThat(received.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.PLAIN);
-            assertThat(received.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.NOT_PRESENT);
-            assertThat(received.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.NOT_ENCRYPTED);
+            assertThat(received.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+            assertThat(received.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
+            assertThat(received.getInspection().getOpenPgp().getSignatures()).isEmpty();
+            assertThat(received.getInspection().getOpenPgp().getDecryptions()).isEmpty();
             assertThat(received.getPlainText()).isEqualTo("Ordinary content\r\n");
         }));
     }
@@ -183,7 +188,7 @@ class OpenPgpDeclarationInspectionTest {
 
         final Email received = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(supplied).toEmail();
 
-        assertUnknown(received.getOriginalOpenPgpDetails());
+        assertUnknown(received.getInspection().getOpenPgp());
         assertThat(received.getPlainText()).isEqualTo("Ordinary content\r\n");
     }
 
@@ -249,12 +254,12 @@ class OpenPgpDeclarationInspectionTest {
             for (String type : new String[] {"not-a-content-type", "text/plain; =broken"}) {
                 for (String route : new String[] {"fluent-eml", "static-eml", "fluent-mime", "static-mime", "exact"}) {
                     final Email received = read(source(type), route);
-                    assertUnknown(received.getOriginalOpenPgpDetails());
+                    assertUnknown(received.getInspection().getOpenPgp());
                     assertThat(received.getSubject()).isEqualTo("Readable subject");
                     assertThat(received.getSourceData().getHeaders()).extracting(EmailSourceHeader::getRawValue).contains(type);
                     assertThat(received.getProblems()).noneMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED);
-                    assertUnknown(SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail().getOriginalOpenPgpDetails());
-                    assertUnknown(roundTrip(received).getOriginalOpenPgpDetails());
+                    assertUnknown(SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail().getInspection().getOpenPgp());
+                    assertUnknown(roundTrip(received).getInspection().getOpenPgp());
                     if (route.equals("exact")) {
                         assertThat(SimpleJavaMail.fromDefaults().converter().fromEmail(received).toEmlBytes()).containsExactly(source(type));
                     }
@@ -262,15 +267,15 @@ class OpenPgpDeclarationInspectionTest {
             }
             final Email readable = SimpleJavaMail.fromDefaults().converter()
                     .fromMimeMessage(classificationFailure(new MessagingException("Classification unavailable"))).toEmail();
-            assertUnknown(readable.getOriginalOpenPgpDetails());
+            assertUnknown(readable.getInspection().getOpenPgp());
             assertThat(readable.getPlainText()).isEqualTo("Ordinary content\r\n");
             final MessagingException interrupted = new MessagingException("Classification interrupted", new InterruptedIOException("stopped"));
             final MimeMessage interruptedSource = classificationFailure(interrupted);
             assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().fromMimeMessage(interruptedSource).toEmail())
                     .isInstanceOf(CancellationException.class).hasCauseReference(interrupted);
             assertThat(Thread.currentThread().isInterrupted()).isFalse();
-            assertThat(read(source(null), "fluent-eml").getOriginalOpenPgpDetails().getSignatureStatus())
-                    .isEqualTo(OriginalOpenPgpDetails.SignatureStatus.NOT_PRESENT);
+            assertThat(read(source(null), "fluent-eml").getInspection().getPlainText().getSignatureStatus())
+                    .isEqualTo(SignatureStatus.UNSIGNED);
             System.out.println("DECLARATIONS PRESERVED WITHOUT OPENPGP");
         }
     }
@@ -329,9 +334,9 @@ class OpenPgpDeclarationInspectionTest {
                 + "--crossed--\r\n").getBytes(UTF_8);
     }
 
-    private static void assertUnknown(final OriginalOpenPgpDetails details) {
-        assertThat(details.getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.UNKNOWN);
-        assertThat(details.getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.UNKNOWN);
-        assertThat(details.getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.UNKNOWN);
+    private static void assertUnknown(final ProtectionInspection details) {
+        assertThat(details.isInspectionComplete()).isFalse();
+        assertThat(details.getSignatures()).isEmpty();
+        assertThat(details.getDecryptions()).isEmpty();
     }
 }

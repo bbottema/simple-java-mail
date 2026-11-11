@@ -28,12 +28,12 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.FAILED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.NOT_SIGNED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
+import static org.simplejavamail.api.email.DecryptionStatus.DECRYPTED;
+import static org.simplejavamail.api.email.DecryptionStatus.FAILED;
+import static org.simplejavamail.api.email.DecryptionStatus.UNAVAILABLE;
+import static org.simplejavamail.api.email.SignatureStatus.UNSIGNED;
+import static org.simplejavamail.api.email.SignatureStatus.VERIFIED;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.*;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class SmimeHeaderSeparatorTest {
@@ -67,11 +67,12 @@ class SmimeHeaderSeparatorTest {
 
         final Email imported = route.read(incoming);
 
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signed ? VALID : NOT_SIGNED);
-        assertThat(imported.getOriginalSmimeDetails().getFailureReason()).isNull();
+        assertDecryptionObservation(imported, DECRYPTED);
+        assertThat(imported.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(org.simplejavamail.api.email.EncryptionStatus.DECRYPTED);
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(signed ? VERIFIED : UNSIGNED);
+        assertThat(imported.getInspection().getSmime().getSignatures()).allSatisfy(signature -> assertThat(signature.getFailureReason()).isNull());
         assertThat(imported.getPlainText()).contains(signed ? "For testing purposes" : "Readable encrypted content");
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+        assertOriginal(imported, incoming);
     }
 
     private static Stream<Arguments> encryptedImports() {
@@ -84,9 +85,8 @@ class SmimeHeaderSeparatorTest {
         final byte[] incoming = LineEndings.LF_OUTER.apply(signedEncrypted);
         final Email imported = SimpleJavaMail.fromDefaults().converter().fromEml(incoming).toEmail();
 
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(KEY_MISSING);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+        assertUnopenedFamily(imported, UNAVAILABLE);
+        assertOriginal(imported, incoming);
     }
 
     @Test
@@ -96,9 +96,8 @@ class SmimeHeaderSeparatorTest {
                 + "Content-Transfer-Encoding: base64\n\nAQID\r\n").getBytes(ISO_8859_1);
         final Email imported = ImportRoute.FLUENT_BYTES.read(incoming);
 
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(FAILED);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+        assertUnopenedFamily(imported, FAILED);
+        assertOriginal(imported, incoming);
     }
 
     @Test

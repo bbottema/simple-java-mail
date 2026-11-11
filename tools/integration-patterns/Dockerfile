@@ -13,11 +13,16 @@ RUN --mount=type=cache,target=/root/.m2,sharing=locked SJM_VERSION=$(mvn -q help
 # Synthetic demo identity only; never use this generated key or password outside the isolated examples.
 RUN keytool -genkeypair -alias partner -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Local Demo,EMAILADDRESS=sender@example.test" \
     -storetype PKCS12 -keystore /build/partner.p12 -storepass local-demo-only -keypass local-demo-only
+RUN keytool -exportcert -rfc -alias partner -keystore /build/partner.p12 -storepass local-demo-only -file /build/partner.crt && \
+    keytool -genkeypair -alias partner -keyalg RSA -keysize 2048 -validity 30 -dname "CN=Unapproved Local Demo,EMAILADDRESS=other@example.test" \
+    -storetype PKCS12 -keystore /build/unapproved-partner.p12 -storepass local-demo-only -keypass local-demo-only
 
 FROM eclipse-temurin:21.0.8_9-jre-jammy@sha256:db1689535962d757a5adabf57387584ed543d38c0b9d1fe870123ea362ad73b0
 RUN mkdir -p /data/archive /opt/demo && chown -R 10001:10001 /data /opt/demo
 WORKDIR /opt/demo
 COPY --from=build /build/application.jar application.jar
 COPY --from=build --chown=10001:10001 /build/partner.p12 partner.p12
+COPY --from=build --chown=10001:10001 /build/partner.crt partner.crt
+COPY --from=build --chown=10001:10001 /build/unapproved-partner.p12 unapproved-partner.p12
 USER 10001:10001
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=65", "-jar", "application.jar"]

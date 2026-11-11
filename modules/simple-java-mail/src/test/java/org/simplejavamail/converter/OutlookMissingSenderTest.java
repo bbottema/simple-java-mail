@@ -63,7 +63,8 @@ class OutlookMissingSenderTest {
                     assertThat(property.getName()).isEqualTo("0x0042");
                     assertThat(property.getValue()).isEqualTo("Alessandro Gasparini");
                 });
-                assertThat(email.getOriginalSmimeDetails().getSmimeSignedBy()).isEqualTo("shatzing5@outlook.com");
+                assertThat(email.getInspection().getSmime().getSignatures()).anySatisfy(signature ->
+                        assertThat(signature.getSignerName()).contains("shatzing5@outlook.com"));
             }
             if (fixture.startsWith("chinese")) {
                 assertThat(email.getSourceData().getProperties()).extracting(EmailSourceProperty::getValue).contains("haozl@Ctrip.com");

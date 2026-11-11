@@ -122,12 +122,6 @@ public class EmailAssert extends AbstractAssert<EmailAssert, Email> {
 		return this;
 	}
 
-	public EmailAssert hasNoDecryptedAttachments() {
-		isNotNull();
-		Assertions.assertThat(actual.getDecryptedAttachments()).as("decryptedAttachments").isEmpty();
-		return this;
-	}
-
 	public EmailAssert hasOnlyEmbeddedImages(final Collection<? extends AttachmentResource> embeddedImages) {
 		isNotNull();
 		Assertions.assertThat(actual.getEmbeddedImages()).as("embeddedImages").containsOnlyElementsOf(embeddedImages);
@@ -182,12 +176,4 @@ public class EmailAssert extends AbstractAssert<EmailAssert, Email> {
 		return this;
 	}
 
-	public EmailAssert hasOriginalSmimeDetails(final OriginalSmimeDetails originalSmimeDetails) {
-		isNotNull();
-		Assertions.assertThat(actual.getOriginalSmimeDetails()).as("originalSmimeDetails")
-				.usingRecursiveComparison()
-				.ignoringFields("verificationStatus", "decryptionStatus", "failureReason", "originalProtectedMessage")
-				.isEqualTo(originalSmimeDetails);
-		return this;
-	}
 }

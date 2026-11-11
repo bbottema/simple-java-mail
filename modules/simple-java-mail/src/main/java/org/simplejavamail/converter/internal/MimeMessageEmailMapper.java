@@ -49,14 +49,6 @@ class MimeMessageEmailMapper {
 			builder.withReplyTo(parsedRecipients(parsed.getReplyToAddresses()));
 		}
 
-		for (val headerEntry : parsed.getHeaders().entrySet()) {
-			if (!HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(headerEntry.getKey())) {
-				for (Object headerValue : headerEntry.getValue()) {
-					builder.withHeader(headerEntry.getKey(), headerValue);
-				}
-			}
-		}
-
 		if (!parsed.getDispositionNotificationToRecipients().isEmpty()) {
 			builder.withDispositionNotificationTo(parsedRecipients(parsed.getDispositionNotificationToRecipients()));
 		}
@@ -81,7 +73,7 @@ class MimeMessageEmailMapper {
 		for (final InternetAddress bcc : parsed.getBccAddresses()) {
 			builder.withRecipients(new Recipient(bcc.getPersonal(), bcc.getAddress(), BCC, null));
 		}
-		builder.withSubject(parsed.getSubject() != null ? parsed.getSubject() : "");
+		builder.withSubject(parsed.getSubject());
 		builder.withPlainText(parsed.getPlainContent());
 		final ContentTransferEncoding plainTextContentTransferEncoding = toContentTransferEncoding(parsed.getPlainTextContentTransferEncoding());
 		if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, plainTextContentTransferEncoding)) {
@@ -95,7 +87,7 @@ class MimeMessageEmailMapper {
 		}
 
 		if (parsed.getCalendarMethod() != null) {
-			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod().toUpperCase(Locale.ROOT)), verifyNonnullOrEmpty(parsed.getCalendarContent()));
+			builder.withCalendarText(CalendarMethod.valueOf(parsed.getCalendarMethod().toUpperCase(Locale.ROOT)), java.util.Objects.requireNonNull(parsed.getCalendarContent(), "calendar content"));
 			final ContentTransferEncoding calendarTextContentTransferEncoding = toContentTransferEncoding(parsed.getCalendarTextContentTransferEncoding());
 			if (isBodyPartContentTransferEncodingOverride(contentTransferEncoding, calendarTextContentTransferEncoding)) {
 				((InternalEmailPopulatingBuilder) builder).withCalendarTextContentTransferEncoding(calendarTextContentTransferEncoding);
@@ -114,10 +106,26 @@ class MimeMessageEmailMapper {
 		for (final MimeDataSource attachment : parsed.getAttachmentList()) {
 			final ContentTransferEncoding encoding = !valueNullOrEmpty(attachment.getContentTransferEncoding())
 					? ContentTransferEncoding.byEncoder(attachment.getContentTransferEncoding()) : null;
-			builder.withAttachment(AttachmentResource.builder().withName(attachment.getName()).withDataSource(attachment.getDataSource()).withDescription(attachment.getContentDescription()).withContentTransferEncoding(encoding).withContentId(userProvidedContentId(attachment)).build());
+			builder.withAttachment(AttachmentResource.builder().withName(attachment.getName()).withDataSource(attachment.getDataSource()).withDescription(attachment.getContentDescription()).withContentTransferEncoding(encoding)
+                    .withContentId(parsed.hasConflictingContentId(attachment) ? null : userProvidedContentId(attachment)).build());
 		}
+        final java.util.Map<String, java.util.Collection<String>> receivedHeaders = new java.util.TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        parsed.getHeaders().forEach((name, values) -> {
+            final java.util.List<String> captured = new java.util.ArrayList<>();
+            values.forEach(value -> captured.add(value == null ? null : String.valueOf(value)));
+            receivedHeaders.put(name, captured);
+        });
+        retainSelectedHeaders((InternalEmailPopulatingBuilder) builder, receivedHeaders);
 		return builder;
 	}
+
+    static void retainSelectedHeaders(final InternalEmailPopulatingBuilder builder, final Map<String, ? extends java.util.Collection<String>> headers) {
+        builder.retainReceivedHeaders(headers);
+        final java.util.Set<String> groups = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        if (Boolean.TRUE.equals(builder.getUseDispositionNotificationTo()) && headers.containsKey("Disposition-Notification-To")) groups.add("Disposition-Notification-To");
+        if (Boolean.TRUE.equals(builder.getUseReturnReceiptTo()) && headers.containsKey("Return-Receipt-To")) groups.add("Return-Receipt-To");
+        builder.retainCapturedReceiptGroups(groups);
+    }
 
 	private static java.util.List<Recipient> parsedRecipients(final java.util.List<InternetAddress> addresses) {
 		final java.util.List<Recipient> recipients = new java.util.ArrayList<>();

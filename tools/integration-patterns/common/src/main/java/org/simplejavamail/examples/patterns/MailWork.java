@@ -4,6 +4,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
+import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.Mailer;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,15 @@ public class MailWork {
     }
 
     public void deliver(String id, SmimeSigningConfig signing) {
+        deliver(id, signing, null, false);
+    }
+
+    /** The partner example adds one required document before applying whole-content signing and encryption. */
+    public void deliverPartnerDocument(String id, SmimeSigningConfig signing, SmimeEncryptionConfig encryption) {
+        deliver(id, signing, encryption, true);
+    }
+
+    private void deliver(String id, SmimeSigningConfig signing, SmimeEncryptionConfig encryption, boolean partnerDocument) {
         if (!jobs.beginSubmission(id)) {
             return;
         }
@@ -35,7 +45,7 @@ public class MailWork {
         // Commit the guard before preparing or submitting anything. A crash must not make an uncertain send look untouched.
         final Email email;
         try {
-            email = prepareEmail(id, jobs.get(id), signing);
+            email = prepareEmail(id, jobs.get(id), signing, encryption, partnerDocument);
         } catch (RuntimeException preparationFailure) {
             jobs.recordPreparationFailure(id);
             return;
@@ -55,7 +65,8 @@ public class MailWork {
         }
     }
 
-    private Email prepareEmail(String id, Map<String, Object> intent, SmimeSigningConfig signing) {
+    private Email prepareEmail(String id, Map<String, Object> intent, SmimeSigningConfig signing,
+            SmimeEncryptionConfig encryption, boolean partnerDocument) {
         EmailPopulatingBuilder builder = mail.emailBuilder()
                 .startingBlank()
                 .from("sender@example.test")
@@ -80,6 +91,12 @@ public class MailWork {
         }
         if (signing != null) {
             builder.signWithSmime(signing);
+        }
+        if (partnerDocument) {
+            builder.withAttachment("partner-order.txt", "order=local-demo\namount=42\n".getBytes(java.nio.charset.StandardCharsets.UTF_8), "text/plain");
+        }
+        if (encryption != null) {
+            builder.encryptWithSmime(encryption);
         }
         return builder.buildEmail();
     }

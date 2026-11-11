@@ -24,6 +24,10 @@ They are not a production management API. Producers select approved workload/sce
 The scenario holds a bulk backlog while urgent mail completes, checks that two instances share the same application allowance, drives A→B→A connection
 recovery, verifies/decrypts protected mail and compares retained/captured bytes, then injects a visible result-archive failure.
 
+The archive proof's `verification` value describes the selected plain-text body's signature status, alongside independent byte identity and readability.
+It does not declare every field trusted or settle delivery. For an application-owned approved-document decision, follow the
+[protected-partners example](../protected-partners/README.md).
+
 ## Try the evidence boundary
 
 Inspect `/jobs`, `/attempts` and `/events` after the scenario. Protected urgent and bulk jobs should both have matching archived/captured bytes; the injected result-write failure should have an attention event. Neither failed evidence storage nor an uncertain SMTP result permits another send. This is the useful contrast: SMTP success and successful result storage are different facts.

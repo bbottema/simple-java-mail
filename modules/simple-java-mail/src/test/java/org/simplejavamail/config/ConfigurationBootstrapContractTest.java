@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.junitpioneer.jupiter.SetSystemProperty;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
+import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.IRecipientBuilder;
@@ -52,7 +53,10 @@ class ConfigurationBootstrapContractTest {
         final ConfiguredEmailConverter converter = (ConfiguredEmailConverter) invoke(factory, SimpleJavaMail.class.getMethod("converter"));
         final byte[] eml = "From: sender@example.test\r\nTo: receiver@example.test\r\n\r\nbody\r\n".getBytes(StandardCharsets.US_ASCII);
         final EmailPopulatingBuilder imported = converter.fromEml(eml).toEmailBuilder();
-        assertThat(imported.buildEmail().getSubject()).isEmpty();
+        final Email received = imported.buildEmail();
+        assertThat(received.getSubject()).isNull();
+        assertThat(received.getInspection().getSubject().getAvailability())
+                .isEqualTo(org.simplejavamail.api.email.ValueAvailability.ABSENT);
         assertThat(imported.clearSubject().buildEmailCompletedWithDefaultsAndOverrides().getSubject()).isEqualTo("factory subject");
         final IRecipientBuilder recipientBuilder = (IRecipientBuilder) invoke(factory, SimpleJavaMail.class.getMethod("recipientBuilder"));
         final Recipient recipient = recipientBuilder.withAddress("receiver@example.test").build();

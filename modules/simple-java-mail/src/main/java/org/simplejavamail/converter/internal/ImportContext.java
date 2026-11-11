@@ -15,16 +15,18 @@ import org.jetbrains.annotations.ApiStatus;
 public final class ImportContext {
     final long maximumInputBytes;
     final ImportTraversal traversal;
+    final boolean rawSource;
     private final Materialization materialization;
 
-    private ImportContext(final long maximumInputBytes, final ImportTraversal traversal) {
-        this(maximumInputBytes, traversal, new Materialization());
+    private ImportContext(final long maximumInputBytes, final ImportTraversal traversal, final boolean rawSource) {
+        this(maximumInputBytes, traversal, new Materialization(), rawSource);
     }
 
-    private ImportContext(final long maximumInputBytes, final ImportTraversal traversal, final Materialization materialization) {
+    private ImportContext(final long maximumInputBytes, final ImportTraversal traversal, final Materialization materialization, final boolean rawSource) {
         this.maximumInputBytes = maximumInputBytes;
         this.traversal = traversal;
         this.materialization = materialization;
+        this.rawSource = rawSource;
     }
 
     /** CLI message arguments become native MIME before builder import; reject unsupported raw caps before reading those files. */
@@ -46,7 +48,7 @@ public final class ImportContext {
                     + "or select only part/depth limits by setting maximumInputBytes to zero (subject to factory locks).");
         }
         return new ImportContext(selected.getMaximumInputBytes(),
-                ImportTraversal.start(selected.getMaximumPartCount(), selected.getMaximumNestingDepth()));
+                ImportTraversal.start(selected.getMaximumPartCount(), selected.getMaximumNestingDepth()), rawSource);
     }
 
     private static <T> T resolve(final SimpleJavaMailConfig config, final ConfigKey<T> key, final T supplied, final T fallback) {
@@ -57,10 +59,12 @@ public final class ImportContext {
     }
 
     /** Extracted content already belongs to the accepted raw source; only its shared traversal allowance continues. */
-    ImportContext at(final ImportTraversal scope) { return new ImportContext(0, scope, materialization); }
+    ImportContext at(final ImportTraversal scope) { return new ImportContext(0, scope, materialization, false); }
+
+    ImportContext rawAt(final ImportTraversal scope) { return new ImportContext(0, scope, materialization, true); }
 
     /** A retained representation shares the operation's allowance but reports what this actual parse materialized. */
-    ImportContext newRepresentation() { return new ImportContext(0, traversal); }
+    ImportContext newRepresentation() { return new ImportContext(0, traversal, false); }
 
     void noteProjection(final boolean readableBody, final boolean limitStop) {
         materialization.readableBody |= readableBody;

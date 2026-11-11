@@ -2,10 +2,31 @@
 
 - Status: Accepted
 - Decision date: 2026-10-21
-- Source/problem history: [ADR 0041](0041-email-source-inspection-and-problems.md) keeps captured evidence and inherited observations unchanged through copying and later setters; completed outgoing Email starts its own history. Historical Problems are not a send gate.
+- Source/problem history: The [10 November amendment below](#preserve-helper-requirements-without-inheriting-consent-accepted-10-november-2026) retains the submitted draft's captured history and unchanged current-value associations through completion. Historical Problems are not a send gate.
 - Target: 10.0.0
 - Implementation: Implemented and reviewed locally for unreleased 10.0.0; [#768](https://github.com/bbottema/simple-java-mail/issues/768) tracks delivery and verification.
 - Supersedes: Unconditional additive collection concatenation in [ADR 0002](0002-email-defaults-and-overrides.md). Other value-shape, ownership and lock rules remain applicable.
+
+## Preserve helper requirements without inheriting consent (accepted 10 November 2026)
+
+The received-Email continuation of [#961](https://github.com/bbottema/simple-java-mail/issues/961) adds helper-derived confidentiality
+state distinct from incoming verification/history and ordinary template configuration. Governance preserves the submitted draft's derived
+requirements and its deliberate draft permission while resolving outgoing values and mandatory protection. Defaults/overrides templates
+cannot supply disclosure consent or erase a requirement merely by changing current-field inspection to unknown. Explicit removal of a
+reused component follows [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#selected-values-originals-and-helper-requirements-accepted-10-november-2026).
+
+Completion also retains the submitted draft's immutable source data, Problems, complete original input and historical protection evidence.
+Unchanged selected fields keep their associations. A field replaced by defaults/overrides becomes caller-supplied with unknown incoming
+protection; a template cannot donate its received evidence to that value. This supersedes the earlier blanket source-history/result reset
+described below and in ADR 0002. Retained historical verification is evidence about input, not a verification verdict over newly produced
+MIME. Completion performs no reinspection, crypto or extra content reads to preserve these facts. Received typed report projection keeps
+its separate owner; retaining source history does not make every source-specific result outgoing configuration.
+
+Assess the complete finalized output after actual outgoing settings/locks apply. A suitable outer encryption layer can cover an interpreted
+forward; permission never disables configured/mandatory encryption. Normal completion remains eligible for later governance and keeps
+its existing collection/suppression/lock semantics. Source/history does not become a general send gate, and a narrower conversion-only
+permission is neither imported from templates nor stored back on the source Email. Earlier collection, suppression and resource-identity
+decisions remain unchanged.
 
 ## Role-less visible occurrences (accepted 22 October 2026)
 

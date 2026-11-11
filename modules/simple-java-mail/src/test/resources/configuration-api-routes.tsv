@@ -1,5 +1,23 @@
 # Frozen public setup routes: declaring type, method, erased parameter types, return type, and resolution owner.
 # New or changed overloads require an explicit inventory update and suitable behavioral coverage.
+org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion#allowUnencryptedContent():org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion	CONVERTER_CONTENT_PERMISSION
+org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion#clearUnencryptedContentPermission():org.simplejavamail.api.converter.ConfiguredEmailConverter$EmailConversion	CONVERTER_CONTENT_PERMISSION
+org.simplejavamail.api.email.ReplyOptions$Builder#withQuotingTemplate(java.lang.String):org.simplejavamail.api.email.ReplyOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ReplyOptions$Builder#resetQuotingTemplate():org.simplejavamail.api.email.ReplyOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ReplyOptions$Builder#withUnencryptedContentAllowed(boolean):org.simplejavamail.api.email.ReplyOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ReplyOptions$Builder#resetUnencryptedContentAllowed():org.simplejavamail.api.email.ReplyOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ForwardOptions$Builder#withUnencryptedContentAllowed(boolean):org.simplejavamail.api.email.ForwardOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ForwardOptions$Builder#resetUnencryptedContentAllowed():org.simplejavamail.api.email.ForwardOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ApprovedSigners$Builder#addSmimeCertificate(java.security.cert.X509Certificate):org.simplejavamail.api.email.ApprovedSigners$Builder	APPROVED_SIGNERS
+org.simplejavamail.api.email.ApprovedSigners$Builder#addOpenPgpSigningKeyFingerprint(java.lang.String):org.simplejavamail.api.email.ApprovedSigners$Builder	APPROVED_SIGNERS
+org.simplejavamail.api.email.ApprovedSigners$Builder#clearSmimeCertificates():org.simplejavamail.api.email.ApprovedSigners$Builder	APPROVED_SIGNERS
+org.simplejavamail.api.email.ApprovedSigners$Builder#clearOpenPgpSigningKeyFingerprints():org.simplejavamail.api.email.ApprovedSigners$Builder	APPROVED_SIGNERS
+org.simplejavamail.api.email.ProtectionRequirements$Builder#requireVerifiedSignatureFrom(org.simplejavamail.api.email.ApprovedSigners):org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
+org.simplejavamail.api.email.ProtectionRequirements$Builder#requireDecryptedContent():org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
+org.simplejavamail.api.email.ProtectionRequirements$Builder#requireAllSignaturesVerified():org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
+org.simplejavamail.api.email.ProtectionRequirements$Builder#clearVerifiedSignatureRequirement():org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
+org.simplejavamail.api.email.ProtectionRequirements$Builder#clearDecryptedContentRequirement():org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
+org.simplejavamail.api.email.ProtectionRequirements$Builder#clearAllSignaturesVerifiedRequirement():org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
 org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#resetMaximumInputBytes():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
 org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#resetMaximumNestingDepth():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
 org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder#resetMaximumPartCount():org.simplejavamail.api.converter.config.ImportLimitsConfig$Builder	CONVERTER_IMPORT_LIMITS
@@ -60,7 +78,6 @@ org.simplejavamail.api.email.EmailPopulatingBuilder#clearPlainText():org.simplej
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearRecipients():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_RECIPIENT_COLLECTION
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearReplyTo():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_RECIPIENT_COLLECTION
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearReturnReceiptTo():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_DELIVERY
-org.simplejavamail.api.email.EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearSentDate():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearSmime():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_ATOMIC_POLICY
 org.simplejavamail.api.email.EmailPopulatingBuilder#clearSmimeEncryption():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_ATOMIC_POLICY
@@ -76,7 +93,6 @@ org.simplejavamail.api.email.EmailPopulatingBuilder#from(java.lang.String):org.s
 org.simplejavamail.api.email.EmailPopulatingBuilder#from(java.lang.String,jakarta.mail.internet.InternetAddress):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#from(java.lang.String,java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#from(org.simplejavamail.api.email.Recipient):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
-org.simplejavamail.api.email.EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment():org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
 org.simplejavamail.api.email.EmailPopulatingBuilder#prependHTMLText(java.io.File):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#prependHTMLText(java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE
 org.simplejavamail.api.email.EmailPopulatingBuilder#prependHTMLText(java.nio.file.Path):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_TEMPLATE

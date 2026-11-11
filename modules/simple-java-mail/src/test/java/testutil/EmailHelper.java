@@ -22,7 +22,6 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import org.simplejavamail.api.mailer.config.OAuth2AccessTokenProvider;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.recipient.internal.RecipientsBuilderImpl;
 
 import java.io.InputStream;
@@ -130,12 +129,9 @@ public class EmailHelper {
 				.withEmbeddedImage("thumbsup", Base64.getDecoder().decode(base64StringOfThumbsupImage), "image/png")
 				// attachment name tests when producing MimeMessage ->
 				.withAttachment("fixedNameWithoutFileExtensionForNamedAttachment", namedAttachment) // this should be overridden by appending file extension
-				.withEmbeddedImage("fixedNameWithoutFileExtensionForNamedEmbeddedImage", namedEmbeddedImage)) // this should not be overridden
-				.withDecryptedAttachments(builder.getAttachments());
+				.withEmbeddedImage("fixedNameWithoutFileExtensionForNamedEmbeddedImage", namedEmbeddedImage)); // this should not be overridden
 
-		if (useSmimeDetailsImplFromSmimeModule) {
-			internalBuilder.withOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
-		}
+		// Composed fixtures have no received source/protection evidence. Their outgoing S/MIME choices are tested separately.
 
 		return internalBuilder;
 	}

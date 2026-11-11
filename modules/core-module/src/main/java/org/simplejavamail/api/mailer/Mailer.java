@@ -344,6 +344,9 @@ public interface Mailer extends AutoCloseable {
 	 * configured S/MIME, OpenPGP and DKIM processing also runs and the final encoded size is checked. When it is {@code false}, the returned bytes and
 	 * encoded size describe the unsecured base MIME message and the configured maximum size is not enforced. All other snapshot fields remain available.
 	 * Exact email is never transformed in either mode; the flag controls only validation of its supplied byte length against the configured maximum.
+	 * Automatically reused confidential reply/forward content retains its output safeguard in either mode. Without deliberate helper permission,
+	 * unsecured base output is refused. A helper-required draft with encryption configured must use secured rehearsal even when disclosure permission
+	 * was supplied: that permission does not authorize skipping configured encryption.
 	 * Neither mode invokes transport-mode logging or a custom mailer.
 	 * Both use this Mailer's configuration, without selecting or validating a future cluster/failover route.
 	 * Both remain available during and after sending-resource shutdown, with the lifetime and retained MIME settings described by

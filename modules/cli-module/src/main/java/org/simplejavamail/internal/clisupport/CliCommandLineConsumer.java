@@ -9,6 +9,7 @@ import org.simplejavamail.api.internal.clisupport.model.CliDeclaredOptionSpec;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedCommand;
 import org.simplejavamail.api.internal.clisupport.model.CliReceivedOptionData;
 import org.simplejavamail.api.internal.clisupport.CliEmailRecipientBuilder;
+import org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -117,8 +118,9 @@ class CliCommandLineConsumer {
 		}
 		try {
             if (targetType == MimeMessage.class && factory != null) {
-                final boolean importsMime = owner.getDeclaringClass() == EmailStartingBuilder.class
-                        && (owner.getName().startsWith("replying") || owner.getName().equals("copying"));
+                final boolean importsMime = (owner.getDeclaringClass() == EmailStartingBuilder.class
+                        && (owner.getName().startsWith("replying") || owner.getName().equals("copying")))
+                        || owner.getDeclaringClass() == CliEmailHelperBuilder.class;
                 return new MessageFilePathToMimeMessageFunction(factory, importsMime).convertValue(stringValue);
             }
 			// Parse at the declared numeric width; generic conversion can coerce booleans or narrow numbers.

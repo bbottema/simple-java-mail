@@ -6,6 +6,21 @@
 - Implementation status: Implemented; module-cache concurrency fix inherited from 9.3.3
 - Input-boundary clarification: Accepted, 2026-10-16; the typed OpenTelemetry adapter is implemented and reviewed under #762 for unreleased 10.0.0.
 
+## Captured protection facts and pure checks (accepted 10 November 2026)
+
+The received-Email continuation of [#961](https://github.com/bbottema/simple-java-mail/issues/961) keeps field/family inspection,
+individual observations, signer identifiers and application requirements in core reading/value contracts. Evaluating an immutable
+`ProtectionRequirements` against one `ValueInspection` requires neither optional crypto modules nor content reads, key loading or network
+trust discovery. Optional modules capture their actual results through internal contracts; public facts contain core-owned identifiers
+and bytes rather than provider objects or private keys. JDK X.509 certificates can initialize explicitly approved public signing keys;
+OpenPGP approval names the full actual signing-key fingerprint, including an explicitly approved signing subkey.
+
+Requested incoming cryptography still activates its owning module and keeps configuration/cancellation failures at that boundary.
+Ordinary recognition without a requested unavailable capability remains best effort with honest unknown/unavailable facts. Additional
+same-message layers and materialized children share the original import allowance and factory-owned S/MIME key runtime/capacity; they
+do not establish a process-global cache. Read-only evidence and explicit operation consent introduce no global property/lock/Spring schema.
+This does not complete the separate whole-Email optional-module snapshot-portability work.
+
 ## Context
 
 The library supports uses with very different dependencies: ordinary SMTP sending, Outlook conversion, authenticated SOCKS, pooling, DKIM, S/MIME, and OpenPGP. Making every implementation mandatory would impose their dependencies on applications that never use those features. Merely marking Maven dependencies optional is insufficient if ordinary code still references their implementation classes.

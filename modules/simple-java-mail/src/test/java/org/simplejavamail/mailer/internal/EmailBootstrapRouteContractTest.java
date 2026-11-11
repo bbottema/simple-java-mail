@@ -11,6 +11,8 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.ReplyOptions;
+import org.simplejavamail.api.email.ForwardOptions;
 import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerGenericBuilder;
@@ -84,7 +86,7 @@ class EmailBootstrapRouteContractTest {
         final String name = method.getName();
         final EmailPopulatingBuilder sourceBuilder = fixture.mail.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
                 .withSubject("Source").withPlainText("Body").withHTMLText("<p>Body</p>").fixingMessageId("<source@example.org>").fixingSentDate(Instant.ofEpochSecond(1));
-        final Email source = sourceBuilder.buildEmail();
+        final Email source = fixture.mail.converter().fromEml(fixture.mail.converter().fromEmail(sourceBuilder.buildEmail()).toEmlBytes()).toEmail();
         final MimeMessage mime = fixture.mail.converter().fromEmail(source).toMimeMessage();
         final EmailContractTestSupport.BorrowedInput stream = new EmailContractTestSupport.BorrowedInput(EML);
         final Path path = Files.write(directory.resolve("source.eml"), EML);
@@ -93,7 +95,9 @@ class EmailBootstrapRouteContractTest {
             final Class<?> type = method.getParameterTypes()[i];
             args[i] = type == Email.class ? source : type == EmailPopulatingBuilder.class ? sourceBuilder : type == MimeMessage.class ? mime
                     : type == byte[].class ? EML.clone() : type == InputStream.class ? stream : type == Path.class ? path
-                    : type == boolean.class ? true : "<section>%s</section>";
+                    : type == boolean.class ? true : type == ReplyOptions.class
+                    ? ReplyOptions.builder().withQuotingTemplate("<section>%s</section>").withUnencryptedContentAllowed(true).build()
+                    : type == ForwardOptions.class ? ForwardOptions.allowUnencryptedContent() : "<section>%s</section>";
         }
         final Object selected = invoke(fixture.mail.emailBuilder(), method, args);
         if (selected instanceof ExactEmailBuilder) {
@@ -106,7 +110,12 @@ class EmailBootstrapRouteContractTest {
             final Email result = ((EmailPopulatingBuilder) selected).buildEmail();
             if (name.equals("startingBlank")) { assertThat(result.getSubject()).isNull(); assertThat(result.getRecipients()).isEmpty(); }
             else if (name.equals("copying")) { assertThat(result.getSubject()).isEqualTo("Source"); assertThat(result.getPlainText()).contains("Body"); }
-            else if (name.equals("forwarding")) {
+            else if (name.equals("forwardingOriginal")) {
+                assertThat(result.getSubject()).contains("Source");
+                assertThat(result.getAttachments()).hasSize(1);
+                assertThat(result.getAttachments().get(0).readAllBytes()).containsExactly(source.getInspection().getOriginalMessage().readAllBytes());
+                record("rule", "email.original-forwarding");
+            } else if (name.equals("forwarding")) {
                 assertThat(result.getSubject()).contains("Source"); assertThat(result.getEmailToForward()).isNotNull();
                 assertThat(result.getEmailToForward().getSubject()).isEqualTo("Source");
                 if (method.getParameterTypes()[0] == MimeMessage.class) { assertThat(result.getEmailToForward()).isSameAs(mime); }
@@ -115,7 +124,7 @@ class EmailBootstrapRouteContractTest {
                 assertThat(result.getSubject()).contains("Source").isNotEqualTo("Source");
                 assertThat(result.getPlainText()).contains("Body");
                 assertThat(result.getRecipients()).extracting(Recipient::getAddress).contains("sender@example.org");
-                if (Arrays.asList(method.getParameterTypes()).contains(String.class)) {
+                if (Arrays.asList(method.getParameterTypes()).contains(String.class) || Arrays.asList(method.getParameterTypes()).contains(ReplyOptions.class)) {
                     assertThat(result.getHTMLText()).contains("<section>", "Body");
                 }
             }

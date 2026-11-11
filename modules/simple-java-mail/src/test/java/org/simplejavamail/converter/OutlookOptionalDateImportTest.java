@@ -68,7 +68,7 @@ class OutlookOptionalDateImportTest {
         }
 
         Date sourceDate() { return header || creation ? Date.from(SOURCE_DATE) : null; }
-        Date sentDate() { return clientSubmit ? Date.from(SUBMIT_DATE) : sourceDate(); }
+        Date sentDate() { return clientSubmit ? Date.from(SUBMIT_DATE) : header ? Date.from(SOURCE_DATE) : null; }
     }
 
     @TempDir Path directory;

@@ -11,7 +11,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 
@@ -28,83 +32,76 @@ import java.util.stream.Stream;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.NOT_SIGNED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.*;
 
 class NestedSmimeEncryptionInspectionTest {
 
-    @ParameterizedTest(name = "inner type={0}, signed={1}, EML={2}, merge={3}")
+    @ParameterizedTest(name = "inner type={0}, signed={1}, EML={2}")
     @MethodSource("nestedInputs")
-    void unopenedInnerCiphertextKeepsSignatureUnknown(final String innerType, final boolean signed,
-            final boolean eml, final boolean merge) throws Exception {
+    void eachSameMessageEnvelopeIsOpenedWithoutInventingASeparateEmail(final String innerType, final boolean signed,
+            final boolean eml) throws Exception {
         final byte[] inner = encrypted(content(signed));
         final MimeBodyPart nested = new MimeBodyPart(new ByteArrayInputStream(inner));
         final ContentType type = new ContentType(nested.getContentType());
         type.setSubType(innerType.substring(innerType.indexOf('/') + 1));
         nested.setHeader("Content-Type", type.toString());
         final byte[] source = encrypted(nested);
-
         final SimpleJavaMail mail = SimpleJavaMail.fromDefaults();
-        final EmailPopulatingBuilder builder = eml
-                ? mail.converter().fromEml(source).withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder()
-                : mail.converter().fromMimeMessage(message(source)).withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder();
-        if (!merge) {
-            builder.notMergingSingleSMIMESignedAttachment();
-        }
-        final Email email = builder.buildEmail();
+        final Email email = eml
+                ? mail.converter().fromEml(source).withSmimeDecryption(loadPkcs12KeyStore()).toEmail()
+                : mail.converter().fromMimeMessage(message(source)).withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
 
-        assertOuterFacts(email, source);
-        assertOuterFacts(mail.emailBuilder().copying(email).buildEmail(), source);
-        assertOuterFacts(serializedCopy(email), source);
-        final OriginalSmimeDetails unopened = email.getSmimeSignedEmail().getOriginalSmimeDetails();
-        assertThat(unopened.getSmimeMode()).isEqualTo(ENCRYPTED);
-        assertThat(unopened.getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertThat(unopened.getDecryptionStatus()).isEqualTo(KEY_MISSING);
-
-        // The unopened layer can hide either signed or unsigned content; opening it establishes that separate fact.
+        assertOpenedLayers(email, signed, eml ? source : null);
+        assertOpenedLayers(mail.emailBuilder().copying(email).buildEmail(), signed, eml ? source : null);
+        assertOpenedLayers(serializedCopy(email), signed, eml ? source : null);
         final Email openedInner = mail.converter().fromEml(inner).withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
-        assertThat(openedInner.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(openedInner.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(signed ? VALID : NOT_SIGNED);
+        assertPlainProtection(openedInner, signed ? SignatureStatus.VERIFIED : SignatureStatus.UNSIGNED, EncryptionStatus.DECRYPTED);
+        assertThat(openedInner.getInspection().getSmime().getDecryptions()).hasSize(1);
     }
 
     private static Stream<Arguments> nestedInputs() {
         return Stream.of("application/pkcs7-mime", "application/x-pkcs7-mime").flatMap(type ->
-                Stream.of(false, true).flatMap(signed -> Stream.of(false, true).flatMap(eml ->
-                        Stream.of(false, true).map(merge -> Arguments.of(type, signed, eml, merge)))));
+                Stream.of(false, true).flatMap(signed -> Stream.of(false, true).map(eml -> Arguments.of(type, signed, eml))));
     }
 
     @Test
-    void staticConversionsRetainUnknownVerificationAfterOuterDecryption() throws Exception {
+    void staticConversionsOpenBothLayersAndKeepOriginalOnlyForRawInput() throws Exception {
         final byte[] source = encrypted(new MimeBodyPart(new ByteArrayInputStream(encrypted(content(true)))));
-
-        assertOuterFacts(EmailConverter.emlToEmail(new ByteArrayInputStream(source), loadPkcs12KeyStore()), source);
-        assertOuterFacts(EmailConverter.mimeMessageToEmail(message(source), loadPkcs12KeyStore()), source);
+        assertOpenedLayers(EmailConverter.emlToEmail(new ByteArrayInputStream(source), loadPkcs12KeyStore()), true, source);
+        assertOpenedLayers(EmailConverter.mimeMessageToEmail(message(source), loadPkcs12KeyStore()), true, null);
     }
 
     @Test
-    void missingOuterKeyStillReportsMissingKeyAndUnknownVerification() throws Exception {
+    void sharedPartAllowanceStopsAnInnerLayerWithoutCallingItUnsigned() throws Exception {
+        final byte[] source = encrypted(new MimeBodyPart(new ByteArrayInputStream(encrypted(content(true)))));
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(source)
+                .withSmimeDecryption(loadPkcs12KeyStore())
+                .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(2).build()).toEmail();
+        assertThat(email.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED);
+        assertThat(email.getInspection().getSmime().isInspectionComplete()).isFalse();
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(email.getInspection().getSmime().getDecryptions()).noneSatisfy(attempt ->
+                assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED));
+        assertOriginal(email, source);
+    }
+
+    @Test
+    void missingOuterKeyKeepsUnknownInnerSignatureAndCompleteInput() throws Exception {
         final byte[] source = encrypted(new MimeBodyPart(new ByteArrayInputStream(encrypted(content(true)))));
         final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(source).toEmail();
-
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(KEY_MISSING);
-        assertThat(email.getOriginalSmimeDetails().getSmimeSignatureValid()).isNull();
-        assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertUnopenedFamily(email, DecryptionStatus.UNAVAILABLE);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertOriginal(email, source);
     }
 
-    private static void assertOuterFacts(final Email email, final byte[] source) {
-        final OriginalSmimeDetails details = email.getOriginalSmimeDetails();
-        assertThat(details.getSmimeMode()).isEqualTo(ENCRYPTED);
-        assertThat(details.getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(details.getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertThat(details.getSmimeSignatureValid()).isNull();
-        assertThat(details.getFailureReason()).isNull();
-        assertThat(details.getOriginalProtectedMessage()).containsExactly(source);
+    private static void assertOpenedLayers(final Email email, final boolean signed, final byte[] original) {
+        assertPlainProtection(email, signed ? SignatureStatus.VERIFIED : SignatureStatus.UNSIGNED, EncryptionStatus.DECRYPTED);
+        assertThat(email.getPlainText()).contains(signed ? "For testing purposes" : "Unsigned content inside both encrypted envelopes");
+        assertThat(email.getInspection().getSmime().getDecryptions()).hasSize(2)
+                .allSatisfy(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+        if (original == null) assertThat(email.getInspection().getOriginalMessage()).isNull();
+        else assertOriginal(email, original);
     }
 
     private static MimeBodyPart content(final boolean signed) throws Exception {

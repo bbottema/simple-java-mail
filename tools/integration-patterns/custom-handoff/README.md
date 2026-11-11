@@ -40,6 +40,11 @@ The composed-message example omits the outer Bcc header at serialization, like S
 must instead preserve its authoritative representation and establish a compatible hidden-envelope contract.
 The receiving application verifies/decrypts the synthetic protected message and writes encrypted storage before confirming acceptance.
 
+The receiver checks its required plain-text body through `ProtectionRequirements`, with full verified signature coverage from the explicitly
+approved local signing key, decryption and its deliberate all-signatures requirement. The synthetic certificate is application configuration;
+availability of the receive key or a claimed From address cannot approve a sender. That selected-body rule does not assert coverage of every
+unselected field. See the [protected-partners receiving workflow](../protected-partners/README.md) for one exact attachment decision.
+
 The scenario checks duplicate input and hidden-envelope recipients. HTTPS additionally rejects a package and loses confirmation after successful storage.
 Neither is silently retried. SJM's successful callback receipt still has UNKNOWN SMTP acceptance; a failed callback may have no receipt. Gateway storage,
 broker publication, consumer processing, SMTP acceptance and delivery are different facts.

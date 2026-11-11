@@ -42,7 +42,7 @@ services:
     depends_on:
       app: { condition: service_healthy }
     volumes: ["../fixture:/fixture:ro"]
-    environment: { EXPECT_EVENT: "PROTECTED_ARCHIVED" }
+    environment: { EXPECT_EVENT: "PROTECTED_ARCHIVED", PARTNER_DOCUMENT_SCENARIOS: "true" }
     entrypoint: ["python", "/fixture/scenario.py"]
     command: ["all"]
 volumes:

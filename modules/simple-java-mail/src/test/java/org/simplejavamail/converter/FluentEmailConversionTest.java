@@ -26,8 +26,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter.EmlConversion;
@@ -35,14 +33,11 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
-import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
-import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.internal.moduleloader.ModuleLoader;
-import org.simplejavamail.internal.modules.SMIMEModule;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.mailer.internal.EmailGovernanceImpl;
 
@@ -50,12 +45,6 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class FluentEmailConversionTest {
 
@@ -218,12 +207,10 @@ class FluentEmailConversionTest {
 		final Email fromOutlook = converter.fromOutlookMsg(fixtures.resolve("S_MIME test message encrypted.msg"))
 				.withSmimeDecryption(keys).toEmail();
 		for (final Email result : new Email[] {fromEml, fromMime, fromOutlook}) {
-			assertThat(result.getOriginalSmimeDetails().getDecryptionStatus())
-					.isEqualTo(org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+			assertThat(result.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
 			assertThat(result.getPlainText()).contains("For testing purposes");
 		}
-		assertThat(fromOutlook.getOriginalSmimeDetails().getSmimeMode())
-				.isEqualTo(org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED);
+		assertThat(fromOutlook.getInspection().getSmime().getDecryptions()).extracting("status").contains(DecryptionStatus.DECRYPTED);
 	}
 
 	@Test
@@ -261,10 +248,11 @@ class FluentEmailConversionTest {
 
 	@ParameterizedTest
 	@ValueSource(booleans = {false, true})
-	void nestedDecryptedAttachmentStreamsAreClosedAfterConversion(final boolean preprocessing) throws Exception {
+	void nestedMessageAttachmentStreamsAreClosedAfterBothImportRoutes(final boolean fluent) throws Exception {
 		final NestedAttachmentSource source = new NestedAttachmentSource(null);
-		final Email result = convertNestedAttachment(source, preprocessing);
-		assertThat(result.getSmimeSignedEmail().getSubject()).isEqualTo("Source");
+		final Email result = convertNestedAttachment(source, fluent);
+		assertThat(result.getAttachments()).hasSize(1);
+		assertThat(result.getAttachments().get(0).getEmail().getSubject()).isEqualTo("Source");
 		assertThat(source.opened).isEqualTo(1);
 		assertThat(source.closed).isEqualTo(1);
 	}
@@ -272,9 +260,9 @@ class FluentEmailConversionTest {
 	@ParameterizedTest
 	@CsvSource({"false, OPEN", "true, OPEN", "false, READ", "true, READ", "false, CLOSE", "true, CLOSE",
 			"false, READ_AND_CLOSE", "true, READ_AND_CLOSE"})
-	void nestedAttachmentIoFailuresRetainEvidenceAndReadableNeighbors(final boolean preprocessing, final AttachmentFailure failurePoint) throws Exception {
+	void nestedAttachmentIoFailuresRetainEvidenceAndReadableNeighbors(final boolean fluent, final AttachmentFailure failurePoint) throws Exception {
 		final NestedAttachmentSource source = new NestedAttachmentSource(failurePoint);
-		final Email inspected = convertNestedAttachment(source, preprocessing);
+		final Email inspected = convertNestedAttachment(source, fluent);
 		assertThat(inspected.getPlainText()).contains("Hello");
 		assertThat(inspected.getProblems()).anySatisfy(problem -> {
 			assertThat(problem.getCode()).isEqualTo(failurePoint == AttachmentFailure.CLOSE
@@ -353,39 +341,20 @@ class FluentEmailConversionTest {
 				.hasMessageNotContaining("reset the Session");
 	}
 
-	private Email convertNestedAttachment(final NestedAttachmentSource source, final boolean preprocessing) throws Exception {
+	private Email convertNestedAttachment(final NestedAttachmentSource source, final boolean fluent) throws Exception {
 		final MimeMessage original = new MimeMessage(JakartaMailImplementation.createSession(new Properties()), new ByteArrayInputStream(EML));
-		final AttachmentResource attachment = AttachmentResource.builder().withName("signed-email.eml").withDataSource(source).build();
-		final SMIMEModule smime = mock(SMIMEModule.class);
-		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder()
-				.smimeMode(org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN).build();
-		final SmimeParseResult plain = mock(SmimeParseResult.class);
-		when(plain.getOriginalSmimeDetails()).thenReturn(details);
-		when(plain.getDecryptedAttachments()).thenReturn(Collections.emptyList());
-		when(plain.getDecryptedAttachmentResults()).thenReturn(Collections.emptyList());
-		when(smime.decryptAttachments(anyList(), any(MimeMessage.class), isNull())).thenReturn(plain);
-		if (preprocessing) {
-			final SmimePreprocessingResult result = mock(SmimePreprocessingResult.class);
-			when(result.isRecognized()).thenReturn(true);
-			when(result.getEffectiveMimeMessage()).thenReturn(original);
-			when(result.getDetails()).thenReturn(details);
-			when(result.getProtectedAttachments()).thenReturn(Collections.emptyList());
-			when(result.getDecryptedArtifacts()).thenReturn(Collections.singletonList(attachment));
-			when(smime.processIncoming(any(Session.class), same(original), isNull())).thenReturn(result);
-		} else {
-			final SmimeParseResult result = mock(SmimeParseResult.class);
-			when(result.getOriginalSmimeDetails()).thenReturn(details);
-			when(result.getDecryptedAttachments()).thenReturn(Collections.singletonList(attachment));
-			when(result.getSmimeSignedOrEncryptedEmail()).thenReturn(attachment);
-			when(result.getDecryptedAttachmentResults()).thenReturn(Collections.emptyList());
-			when(smime.decryptAttachments(anyList(), same(original), isNull())).thenReturn(result);
-		}
-		try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
-			modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
-			modules.when(ModuleLoader::smimeModuleAvailable).thenReturn(true);
-			modules.when(ModuleLoader::loadSmimeModule).thenReturn(smime);
-			return converter.fromMimeMessage(original).toEmail();
-		}
+		final MimeMultipart mixed = new MimeMultipart("mixed");
+		final MimeBodyPart body = new MimeBodyPart();
+		body.setText("Hello", "UTF-8");
+		mixed.addBodyPart(body);
+		final MimeBodyPart attachment = new MimeBodyPart();
+		attachment.setDataHandler(new DataHandler(source));
+		attachment.setDisposition("attachment");
+		attachment.setFileName("signed-email.eml");
+		mixed.addBodyPart(attachment);
+		original.setContent(mixed);
+		return fluent ? converter.fromMimeMessage(original).withFetchAttachmentData(true).toEmail()
+				: EmailConverter.mimeMessageToEmail(original, null, true);
 	}
 
 	private enum AttachmentFailure { OPEN, READ, CLOSE, READ_AND_CLOSE }

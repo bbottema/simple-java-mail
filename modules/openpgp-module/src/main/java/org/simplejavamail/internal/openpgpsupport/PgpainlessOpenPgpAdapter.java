@@ -16,8 +16,8 @@ import org.pgpainless.algorithm.PublicKeyAlgorithm;
 import org.pgpainless.algorithm.SymmetricKeyAlgorithm;
 import org.pgpainless.decryption_verification.ConsumerOptions;
 import org.pgpainless.decryption_verification.DecryptionStream;
-import org.pgpainless.decryption_verification.MessageInspector;
 import org.pgpainless.decryption_verification.MessageMetadata;
+import org.pgpainless.decryption_verification.MessageInspector;
 import org.pgpainless.decryption_verification.SignatureVerification;
 import org.pgpainless.encryption_signing.EncryptionOptions;
 import org.pgpainless.encryption_signing.EncryptionStream;
@@ -29,15 +29,14 @@ import org.pgpainless.key.parsing.KeyRingReader;
 import org.pgpainless.key.protection.SecretKeyRingProtector;
 import org.pgpainless.key.protection.passphrase_provider.SecretKeyPassphraseProvider;
 import org.pgpainless.util.Passphrase;
-import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
-import org.simplejavamail.internal.email.OpenPgpSignatureResultImpl;
-import org.simplejavamail.api.email.OpenPgpSignatureResult;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
+import org.simplejavamail.api.email.ProtectionFamily;
+import org.simplejavamail.api.email.SignatureObservation;
+import org.simplejavamail.internal.email.SignatureObservationImpl;
+import org.simplejavamail.internal.email.SigningKeyFingerprint;
+import org.simplejavamail.internal.util.InterruptedIoGuard;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -57,6 +56,204 @@ import java.util.Locale;
 final class PgpainlessOpenPgpAdapter {
 
     private final PGPainless pgpainless = new PGPainless();
+
+    /** Captures one detached packet set without retaining a provider object or a flattened message verdict. */
+    LayerSignatures verifyLayerSignatures(final byte[] content, final byte[] signatureBytes,
+            @Nullable final OpenPgpReceiveConfig receiveConfig) throws IOException, PGPException {
+        final VerificationKeys keys = configuredVerificationKeys(receiveConfig);
+        final SignaturePacketReader.Packets packets = SignaturePacketReader.read(signatureBytes);
+        final List<SignatureObservation> signatures = new ArrayList<>();
+        for (PGPSignature signature : packets.signatures) signatures.add(verifyLayerSignature(content, signature, keys));
+        return new LayerSignatures(signatures, packets.complete, packets.failureReason);
+    }
+
+    private SignatureObservation verifyLayerSignature(final byte[] content, final PGPSignature signature,
+            final VerificationKeys keys) throws IOException, PGPException {
+        try {
+            final ConsumerOptions options = ConsumerOptions.get(pgpainless)
+                    .addVerificationOfDetachedSignature(signature).forceNonOpenPgpData();
+            keys.apply(options);
+            final DecryptionStream stream = pgpainless.processMessage().onInputStream(new ByteArrayInputStream(content)).withOptions(options);
+            try (DecryptionStream closing = stream) { consumeForVerification(closing); }
+            final MessageMetadata metadata = stream.getMetadata();
+            if (!metadata.getVerifiedDetachedSignatures().isEmpty()) {
+                final SignatureVerification valid = metadata.getVerifiedDetachedSignatures().get(0);
+                return observation(valid.getSignature(), org.simplejavamail.api.email.SignatureVerification.VERIFIED, valid.getSigningKey(), null);
+            }
+            if (!metadata.getRejectedDetachedSignatures().isEmpty()) return rejectedObservation(metadata.getRejectedDetachedSignatures().get(0));
+            return observation(signature, org.simplejavamail.api.email.SignatureVerification.UNVERIFIED, null, "No result was available for the OpenPGP signature");
+        } catch (IOException | PGPException unavailableVerification) {
+            InterruptedIoGuard.rethrowIfInterrupted(unavailableVerification);
+            return observation(signature, org.simplejavamail.api.email.SignatureVerification.UNVERIFIED, null,
+                    "Unable to verify OpenPGP signature: " + unavailableVerification.getClass().getSimpleName());
+        }
+    }
+
+    LayerDecryption decryptLayer(final byte[] encryptedBytes, @Nullable final OpenPgpReceiveConfig receiveConfig)
+            throws IOException, PGPException {
+        final List<String> recipientKeyIds = new ArrayList<>();
+        for (Long recipient : new MessageInspector(pgpainless)
+                .determineEncryptionInfoForMessage(new ByteArrayInputStream(encryptedBytes)).getKeyIds()) {
+            recipientKeyIds.add(keyId(recipient));
+        }
+        final VerificationKeys verificationKeys = configuredVerificationKeys(receiveConfig);
+        final ConsumerOptions options = ConsumerOptions.get(pgpainless);
+        verificationKeys.apply(options);
+        final List<Passphrase> passphrases = new ArrayList<>();
+        try {
+            if (receiveConfig == null || receiveConfig.getDecryptionKeyRings().isEmpty()) return LayerDecryption.keyMissing(recipientKeyIds);
+            for (OpenPgpReceiveConfig.SecretKeyRing configured : receiveConfig.getDecryptionKeyRings()) {
+                final OpenPGPKey key;
+                try {
+                    key = pgpainless.readKey().parseKey(configured.getKeyRing());
+                } catch (IOException configurationFailure) {
+                    InterruptedIoGuard.rethrowIfInterrupted(configurationFailure);
+                    throw new IllegalArgumentException("Unable to load the configured OpenPGP decryption key", configurationFailure);
+                }
+                options.addDecryptionKey(key, decryptionKeyProtector(receiveConfig, configured, passphrases));
+            }
+            return readEncryptedLayer(encryptedBytes, options, recipientKeyIds);
+        } finally {
+            clearPassphrases(passphrases);
+        }
+    }
+
+    private LayerDecryption readEncryptedLayer(final byte[] encryptedBytes, final ConsumerOptions options, final List<String> recipientKeyIds)
+            throws IOException, PGPException {
+        try {
+            final DecryptionStream stream = pgpainless.processMessage().onInputStream(new ByteArrayInputStream(encryptedBytes)).withOptions(options);
+            final byte[] clear = readCompleteEncryptedContent(stream);
+            final MessageMetadata metadata = stream.getMetadata();
+            if (!metadata.isEncrypted()) throw new PGPException("OpenPGP/MIME payload contains no encrypted data");
+            final List<SignatureObservation> signatures = new ArrayList<>();
+            for (SignatureVerification signature : metadata.getVerifiedInlineSignatures()) {
+                signatures.add(observation(signature.getSignature(), org.simplejavamail.api.email.SignatureVerification.VERIFIED, signature.getSigningKey(), null));
+            }
+            for (SignatureVerification.Failure signature : metadata.getRejectedInlineSignatures()) signatures.add(rejectedObservation(signature));
+            return LayerDecryption.builder().clearContent(clear).signatures(signatures)
+                    .algorithm(symmetricAlgorithmName(metadata.getEncryptionMechanism())).recipientKeyIds(recipientKeyIds)
+                    .status(org.simplejavamail.api.email.DecryptionStatus.DECRYPTED).inspectionComplete(true).build();
+        } catch (IOException | PGPException failure) {
+            PassphraseProviderFailure.rethrowIfPresent(failure);
+            InterruptedIoGuard.rethrowIfInterrupted(failure);
+            if (findFailure(failure, org.pgpainless.exception.WrongPassphraseException.class) != null
+                    || findFailure(failure, org.pgpainless.exception.MissingPassphraseException.class) != null) {
+                throw new IllegalArgumentException("The configured OpenPGP decryption key could not be unlocked", failure);
+            }
+            if (findFailure(failure, MissingDecryptionMethodException.class) != null) return LayerDecryption.keyMissing(recipientKeyIds);
+            final MalformedOpenPGPSignatureException malformed = findFailure(failure, MalformedOpenPGPSignatureException.class);
+            if (malformed != null) {
+                if (findFailure(failure, ModificationDetectionException.class) != null) {
+                    return LayerDecryption.builder().recipientKeyIds(recipientKeyIds)
+                            .status(org.simplejavamail.api.email.DecryptionStatus.FAILED)
+                            .failureReason("The OpenPGP ciphertext integrity could not be established").processingFailure(failure).build();
+                }
+                final List<SignatureObservation> observations = new ArrayList<>();
+                if (malformed.getSignature() instanceof OpenPGPDocumentSignature) {
+                    final PGPSignature packet = malformed.getSignature().getSignature();
+                    observations.add(observation(packet, org.simplejavamail.api.email.SignatureVerification.UNVERIFIED, null,
+                            "A recognized OpenPGP signature could not be processed before decryption completed"));
+                }
+                return LayerDecryption.builder().recipientKeyIds(recipientKeyIds).signatures(observations)
+                        .status(org.simplejavamail.api.email.DecryptionStatus.UNAVAILABLE)
+                        .failureReason("OpenPGP decryption could not be completed while reading its signatures").processingFailure(failure).build();
+            }
+            throw failure;
+        }
+    }
+
+    private static byte[] readCompleteEncryptedContent(final DecryptionStream stream) throws IOException, PGPException {
+        try (DecryptionStream closing = stream) {
+            return closing.readAllBytes();
+        } catch (RuntimeException nativeWrapper) {
+            PassphraseProviderFailure.rethrowIfPresent(nativeWrapper);
+            InterruptedIoGuard.rethrowIfInterrupted(nativeWrapper);
+            // Native InputStream.read wraps these checked packet failures; unrelated runtime defects keep their identity.
+            if (findFailure(nativeWrapper, MalformedOpenPGPSignatureException.class) != null
+                    || findFailure(nativeWrapper, ModificationDetectionException.class) != null) {
+                throw new PGPException("Unable to complete OpenPGP packet processing", nativeWrapper);
+            }
+            throw nativeWrapper;
+        }
+    }
+
+    private VerificationKeys configuredVerificationKeys(@Nullable final OpenPgpReceiveConfig config) {
+        final VerificationKeys result = new VerificationKeys();
+        if (config != null) {
+            for (byte[] encoded : config.getVerificationKeyRings()) {
+                try {
+                    result.certificates.add(pgpainless.readKey().parseCertificate(encoded));
+                } catch (IOException configurationFailure) {
+                    InterruptedIoGuard.rethrowIfInterrupted(configurationFailure);
+                    throw new IllegalArgumentException("Unable to load the configured OpenPGP verification key", configurationFailure);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static SignatureObservation rejectedObservation(final SignatureVerification.Failure failure) {
+        final boolean keyMissing = failure.getSigningKey() == null;
+        return observation(failure.getSignature(), keyMissing ? org.simplejavamail.api.email.SignatureVerification.UNVERIFIED : org.simplejavamail.api.email.SignatureVerification.INVALID,
+                failure.getSigningKey(), keyMissing ? "No verification key matched the OpenPGP signer"
+                        : "The OpenPGP signature did not satisfy verification");
+    }
+
+
+    private static SignatureObservation observation(final PGPSignature signature, final org.simplejavamail.api.email.SignatureVerification status,
+            @Nullable final org.pgpainless.key.SubkeyIdentifier signingKey, @Nullable final String reason) {
+        final long id = signature.getKeyID() != 0 ? signature.getKeyID()
+                : signingKey == null ? 0 : signingKey.getComponentKeyIdentifier().getKeyId();
+        return SignatureObservationImpl.builder().family(ProtectionFamily.OPENPGP)
+                .status(status).signerKeyId(id == 0 ? null : keyId(id))
+                .signingKeyFingerprint(signingKey == null ? null
+                        : SigningKeyFingerprint.forOpenPgp(signingKey.getComponentKeyFingerprint().toString()))
+                .signatureAlgorithm(publicKeyAlgorithmName(signature.getKeyAlgorithm()))
+                .hashAlgorithm(hashAlgorithmName(signature.getHashAlgorithm())).failureReason(reason).build();
+    }
+
+    static final class LayerSignatures {
+        final List<SignatureObservation> signatures;
+        final boolean complete;
+        @Nullable final String failureReason;
+
+        private LayerSignatures(final List<SignatureObservation> signatures, final boolean complete, @Nullable final String failureReason) {
+            this.signatures = signatures;
+            this.complete = complete;
+            this.failureReason = failureReason;
+        }
+    }
+
+    static final class LayerDecryption {
+        @Nullable final byte[] clearContent;
+        final List<SignatureObservation> signatures;
+        @Nullable final String algorithm;
+        final List<String> recipientKeyIds;
+        final org.simplejavamail.api.email.DecryptionStatus status;
+        final boolean inspectionComplete;
+        @Nullable final String failureReason;
+        @Nullable final Throwable processingFailure;
+
+        @lombok.Builder
+        private LayerDecryption(@Nullable final byte[] clearContent, final List<SignatureObservation> signatures,
+                @Nullable final String algorithm, final List<String> recipientKeyIds,
+                final org.simplejavamail.api.email.DecryptionStatus status, final boolean inspectionComplete,
+                @Nullable final String failureReason, @Nullable final Throwable processingFailure) {
+            this.clearContent = clearContent;
+            this.signatures = signatures == null ? List.of() : List.copyOf(signatures);
+            this.algorithm = algorithm;
+            this.recipientKeyIds = recipientKeyIds == null ? List.of() : List.copyOf(recipientKeyIds);
+            this.status = java.util.Objects.requireNonNull(status, "status");
+            this.inspectionComplete = inspectionComplete;
+            this.failureReason = failureReason;
+            this.processingFailure = processingFailure;
+        }
+
+        private static LayerDecryption keyMissing(final List<String> recipientKeyIds) {
+            return builder().recipientKeyIds(recipientKeyIds).status(org.simplejavamail.api.email.DecryptionStatus.UNAVAILABLE)
+                    .failureReason("No configured key matched an OpenPGP recipient").build();
+        }
+    }
 
     byte[] createDetachedSignature(final byte[] content, final OpenPgpSigningConfig signingConfig)
             throws IOException, PGPException {
@@ -106,116 +303,6 @@ final class PgpainlessOpenPgpAdapter {
         return encryptedContent.toByteArray();
     }
 
-    OpenPgpDetailsImpl verifyDetachedSignatures(final byte[] content, final byte[] encodedSignature,
-            @Nullable final OpenPgpReceiveConfig receiveConfig, final byte[] originalProtectedMessage)
-            throws IOException, PGPException {
-        final SignaturePacketReader.Packets packets = SignaturePacketReader.read(encodedSignature);
-        final VerificationKeys keys = verificationKeys(receiveConfig);
-        final List<OpenPgpSignatureResult> results = new ArrayList<>();
-        for (PGPSignature signature : packets.signatures) results.add(verifyDetached(content, signature, keys));
-        return signatureDetails(results, packets.complete, packets.failureReason, keys)
-                .openPgpMode(OpenPgpMode.SIGNED).decryptionStatus(DecryptionStatus.NOT_ENCRYPTED)
-                .originalProtectedMessage(originalProtectedMessage).build();
-    }
-
-    private OpenPgpSignatureResult verifyDetached(final byte[] content, final PGPSignature signature, final VerificationKeys keys) {
-        try {
-            final ConsumerOptions options = ConsumerOptions.get(pgpainless).addVerificationOfDetachedSignature(signature).forceNonOpenPgpData();
-            keys.apply(options);
-            final DecryptionStream stream = pgpainless.processMessage().onInputStream(new ByteArrayInputStream(content)).withOptions(options);
-            try (DecryptionStream closing = stream) { consumeForVerification(closing); }
-            final MessageMetadata metadata = stream.getMetadata();
-            if (!metadata.getVerifiedDetachedSignatures().isEmpty()) return valid(metadata.getVerifiedDetachedSignatures().get(0));
-            if (!metadata.getRejectedDetachedSignatures().isEmpty()) return rejected(metadata.getRejectedDetachedSignatures().get(0), keys.failed);
-        } catch (Exception failure) {
-            return result(signature, SignatureStatus.ERROR, null, "Unable to process the OpenPGP signature");
-        }
-        return result(signature, SignatureStatus.ERROR, null, "No result was available for the OpenPGP signature");
-    }
-
-    DecryptionResult decrypt(final byte[] encryptedContent, @Nullable final OpenPgpReceiveConfig receiveConfig)
-            throws IOException, PGPException {
-        final MessageInspector.EncryptionInfo encryptionInfo = new MessageInspector(pgpainless)
-                .determineEncryptionInfoForMessage(new ByteArrayInputStream(encryptedContent));
-        final List<String> recipientKeyIds = formatKeyIds(encryptionInfo.getKeyIds());
-        if (receiveConfig == null || receiveConfig.getDecryptionKeyRings().isEmpty()) {
-            return DecryptionResult.keyMissing(recipientKeyIds);
-        }
-
-        final ConsumerOptions decryptionOptions = ConsumerOptions.get(pgpainless);
-        final VerificationKeys verificationKeys = verificationKeys(receiveConfig);
-        verificationKeys.apply(decryptionOptions);
-        final List<Passphrase> passphrasesToClear = new ArrayList<>();
-        try {
-            for (OpenPgpReceiveConfig.SecretKeyRing configuredRing : receiveConfig.getDecryptionKeyRings()) {
-                final OpenPGPKey keyRing = pgpainless.readKey().parseKey(configuredRing.getKeyRing());
-                decryptionOptions.addDecryptionKey(keyRing,
-                        decryptionKeyProtector(receiveConfig, configuredRing, passphrasesToClear));
-            }
-            return readEncryptedMessage(encryptedContent, decryptionOptions, verificationKeys, recipientKeyIds);
-        } catch (MissingDecryptionMethodException e) {
-            PassphraseProviderFailure.rethrowIfPresent(e);
-            return DecryptionResult.keyMissing(recipientKeyIds);
-        } finally {
-            clearPassphrases(passphrasesToClear);
-        }
-    }
-
-    private DecryptionResult readEncryptedMessage(final byte[] encryptedContent, final ConsumerOptions decryptionOptions,
-            final VerificationKeys verificationKeys, final List<String> recipientKeyIds) throws IOException, PGPException {
-        try {
-            final DecryptionStream decryptionStream = pgpainless.processMessage()
-                    .onInputStream(new ByteArrayInputStream(encryptedContent))
-                    .withOptions(decryptionOptions);
-            final byte[] clearContent;
-            try (DecryptionStream closingDecryptionStream = decryptionStream) {
-                clearContent = closingDecryptionStream.readAllBytes();
-            }
-            // Successful packet processing alone does not establish encryption; literal and signed-only input also closes normally.
-            final MessageMetadata metadata = decryptionStream.getMetadata();
-            if (!metadata.isEncrypted()) {
-                throw new PGPException("OpenPGP/MIME encrypted payload contains no encrypted data");
-            }
-            // Successful close and an encrypted layer establish decryption and integrity; rejected signatures remain independent facts.
-            final List<OpenPgpSignatureResult> signatures = new ArrayList<>();
-            for (SignatureVerification signature : metadata.getVerifiedInlineSignatures()) signatures.add(valid(signature));
-            for (SignatureVerification.Failure signature : metadata.getRejectedInlineSignatures()) signatures.add(rejected(signature, verificationKeys.failed));
-            final OpenPgpDetailsImpl details = signatureDetails(signatures, true, null, verificationKeys)
-                    .openPgpMode(signatures.isEmpty() ? OpenPgpMode.ENCRYPTED : OpenPgpMode.SIGNED_ENCRYPTED)
-                    .decryptionStatus(DecryptionStatus.DECRYPTED)
-                    .encryptionAlgorithm(symmetricAlgorithmName(metadata.getEncryptionMechanism())).recipientKeyIds(recipientKeyIds).build();
-            return DecryptionResult.decrypted(clearContent, details);
-        } catch (IOException | PGPException | RuntimeException failure) {
-            PassphraseProviderFailure.rethrowIfPresent(failure);
-            final OpenPgpDetailsImpl interrupted = signatureProcessingFailure(failure, recipientKeyIds);
-            if (interrupted != null) return new DecryptionResult(null, interrupted);
-            throw failure;
-        }
-    }
-
-    /** Translates only established native failure types; incomplete close never authorizes emitting decrypted data. */
-    @Nullable
-    private static OpenPgpDetailsImpl signatureProcessingFailure(final Throwable failure, final List<String> recipientKeyIds) {
-        if (findFailure(failure, ModificationDetectionException.class) != null) return null;
-        final MalformedOpenPGPSignatureException malformed = findFailure(failure, MalformedOpenPGPSignatureException.class);
-        if (malformed == null || !(malformed.getSignature() instanceof OpenPGPDocumentSignature)) return null;
-        final String reason = "Unable to process signatures before OpenPGP decryption completed";
-        final List<OpenPgpSignatureResult> known = new ArrayList<>();
-        {
-            final var represented = malformed.getSignature();
-            final PGPSignature packet = represented.getSignature();
-            final var issuer = represented.getIssuer();
-            final byte[] fingerprint = issuer == null ? null : issuer.getKeyIdentifier().getFingerprint();
-            final long id = packet.getKeyID() != 0 ? packet.getKeyID() : issuer == null ? 0 : issuer.getKeyIdentifier().getKeyId();
-            known.add(new OpenPgpSignatureResultImpl(SignatureStatus.ERROR, id == 0 ? null : keyId(id),
-                    fingerprint == null ? null : hexadecimal(fingerprint), publicKeyAlgorithmName(packet.getKeyAlgorithm()),
-                    hashAlgorithmName(packet.getHashAlgorithm()), reason));
-        }
-        return OpenPgpDetailsImpl.builder().openPgpMode(OpenPgpMode.SIGNED_ENCRYPTED).signatureStatus(SignatureStatus.ERROR)
-                .signatureInspectionComplete(false).signatures(known).decryptionStatus(DecryptionStatus.UNKNOWN)
-                .recipientKeyIds(recipientKeyIds).failureReason(reason).build();
-    }
-
     private static <T extends Throwable> T findFailure(final Throwable failure, final Class<T> type) {
         final ArrayDeque<Throwable> pending = new ArrayDeque<>();
         final Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
@@ -230,56 +317,8 @@ final class PgpainlessOpenPgpAdapter {
         return null;
     }
 
-    private static String hexadecimal(final byte[] bytes) {
-        final StringBuilder text = new StringBuilder(bytes.length * 2);
-        for (byte value : bytes) text.append(String.format(Locale.ROOT, "%02X", value & 0xff));
-        return text.toString();
-    }
-
-    private VerificationKeys verificationKeys(@Nullable final OpenPgpReceiveConfig config) {
-        final VerificationKeys result = new VerificationKeys();
-        if (config != null) {
-            for (byte[] encoded : config.getVerificationKeyRings()) {
-                try { result.certificates.add(pgpainless.readKey().parseCertificate(encoded)); }
-                catch (Exception failure) { result.failed = true; }
-            }
-        }
-        return result;
-    }
-
-    private static OpenPgpDetailsImpl.OpenPgpDetailsImplBuilder signatureDetails(final List<OpenPgpSignatureResult> results,
-            final boolean complete, @Nullable final String failure, final VerificationKeys keys) {
-        final boolean keyFailure = keys.failed && !results.isEmpty();
-        return OpenPgpDetailsImpl.builder().signatures(results).signatureInspectionComplete(complete && !keyFailure)
-                .signatureStatus(failure != null || keyFailure ? SignatureStatus.ERROR : SignatureStatus.NOT_PRESENT)
-                .failureReason(failure != null ? failure : keyFailure ? "Unable to read configured OpenPGP verification keys" : null);
-    }
-
-    private static OpenPgpSignatureResult valid(final SignatureVerification verification) {
-        return result(verification.getSignature(), SignatureStatus.VALID, verification.getSigningKey(), null);
-    }
-
-    private static OpenPgpSignatureResult rejected(final SignatureVerification.Failure failure, final boolean keyFailure) {
-        final boolean missing = failure.getSigningKey() == null;
-        final SignatureStatus status = missing ? keyFailure ? SignatureStatus.ERROR : SignatureStatus.KEY_MISSING : SignatureStatus.INVALID;
-        final String reason = missing ? keyFailure ? "Unable to read configured OpenPGP verification keys"
-                : "No verification key matched OpenPGP signer " + keyId(failure.getSignature().getKeyID())
-                : "OpenPGP signature or signing key did not satisfy verification policy";
-        return result(failure.getSignature(), status, failure.getSigningKey(), reason);
-    }
-
-    private static OpenPgpSignatureResult result(final PGPSignature signature, final SignatureStatus status,
-            @Nullable final org.pgpainless.key.SubkeyIdentifier signingKey, @Nullable final String reason) {
-        final long id = signature.getKeyID() != 0 ? signature.getKeyID()
-                : signingKey == null ? 0 : signingKey.getComponentKeyIdentifier().getKeyId();
-        return new OpenPgpSignatureResultImpl(status, id == 0 ? null : keyId(id),
-                signingKey == null ? null : signingKey.getComponentKeyFingerprint().toString(),
-                publicKeyAlgorithmName(signature.getKeyAlgorithm()), hashAlgorithmName(signature.getHashAlgorithm()), reason);
-    }
-
     private static final class VerificationKeys {
         private final List<OpenPGPCertificate> certificates = new ArrayList<>();
-        private boolean failed;
         private void apply(final ConsumerOptions options) { for (OpenPGPCertificate certificate : certificates) options.addVerificationCert(certificate); }
     }
 
@@ -406,39 +445,8 @@ final class PgpainlessOpenPgpAdapter {
         return algorithm == PublicKeyAlgorithm.RSA_GENERAL ? "RSA" : algorithm.name();
     }
 
-    private static List<String> formatKeyIds(final List<Long> recipientKeyIds) {
-        final List<String> formattedKeyIds = new ArrayList<>();
-        for (Long recipientKeyId : recipientKeyIds) {
-            formattedKeyIds.add(keyId(recipientKeyId));
-        }
-        return formattedKeyIds;
-    }
-
     private static String keyId(final long keyId) {
         return String.format(Locale.ROOT, "%016X", keyId);
     }
 
-    static final class DecryptionResult {
-        @Nullable final byte[] clearContent;
-        final OpenPgpDetailsImpl details;
-
-        private DecryptionResult(@Nullable final byte[] clearContent, final OpenPgpDetailsImpl details) {
-            this.clearContent = clearContent;
-            this.details = details;
-        }
-
-        private static DecryptionResult keyMissing(final List<String> recipientKeyIds) {
-            return new DecryptionResult(null, OpenPgpDetailsImpl.builder().openPgpMode(OpenPgpMode.ENCRYPTED)
-                    .signatureStatus(SignatureStatus.UNKNOWN).decryptionStatus(DecryptionStatus.KEY_MISSING)
-                    .recipientKeyIds(recipientKeyIds).failureReason("No decryption key matched an OpenPGP recipient").build());
-        }
-
-        private static DecryptionResult decrypted(final byte[] clearContent, final OpenPgpDetailsImpl details) {
-            return new DecryptionResult(clearContent, details);
-        }
-
-        boolean isDecrypted() {
-            return clearContent != null;
-        }
-    }
 }

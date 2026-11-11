@@ -9,10 +9,7 @@ import org.junit.jupiter.api.TestFactory;
 import org.mockito.MockedStatic;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
-import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
-import org.simplejavamail.api.internal.protectionsupport.model.InboundProtectionResult;
-import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
+import org.simplejavamail.api.email.ProtectionInspection;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 
 import java.io.ByteArrayInputStream;
@@ -25,7 +22,6 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamClass;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
@@ -63,12 +59,16 @@ class OpenPgpUnavailableInspectionTest {
 							assertThat(readEmail(runtime, email, "getPlainText")).isEqualTo("Plain content");
 						} else {
 							assertUnknown(runtime, details, protection);
-							assertThat((byte[]) read(runtime, details, "getOriginalProtectedMessage")).containsExactly(original);
+							if (source.equals("eml")) assertThat(original(runtime, email)).containsExactly(original);
+							else assertThat(original(runtime, email)).as("a MIME object has no captured original file").isNull();
 							if (protection.equals("signed")) {
 								assertThat(readEmail(runtime, email, "getPlainText")).isEqualTo("Héllo from OpenPGP.js");
 								assertThat(attachment(runtime, email, "proof.txt")).isEqualTo("independent fixture");
 							} else {
-								assertThat(attachment(runtime, email, "encrypted.asc")).contains("-----BEGIN PGP MESSAGE-----");
+								assertThat((List<?>) readEmail(runtime, email, "getAttachments")).isEmpty();
+								if (source.equals("mime")) {
+									assertThat(capturedContentContains(runtime, email, "-----BEGIN PGP MESSAGE-----")).isTrue();
+								}
 							}
 						}
 					}
@@ -119,15 +119,15 @@ class OpenPgpUnavailableInspectionTest {
 	}
 
 	@TestFactory
-	Stream<DynamicTest> unavailableInputFactsSurviveCopyAndSerializationButNotOutgoingCompletion() {
+	Stream<DynamicTest> unavailableInputFactsSurviveCopySerializationAndOutgoingCompletion() {
 		return Stream.of("signed", "encrypted").map(protection -> DynamicTest.dynamicTest(protection, () -> {
 			final byte[] original = source(protection);
 			try (WithoutOpenPgp runtime = runtime()) {
 				final Object email = importMail(runtime, "eml", true, original, false, false);
 				final Object details = details(runtime, email);
-				final byte[] firstRead = (byte[]) read(runtime, details, "getOriginalProtectedMessage");
+				final byte[] firstRead = original(runtime, email);
 				firstRead[0] ^= 1;
-				assertThat((byte[]) read(runtime, details, "getOriginalProtectedMessage")).containsExactly(original);
+				assertThat(original(runtime, email)).containsExactly(original);
 
 				final Class<?> factoryType = runtime.loadClass("org.simplejavamail.api.SimpleJavaMail");
 				final Object factory = factoryType.getMethod("fromDefaults").invoke(null);
@@ -137,13 +137,14 @@ class OpenPgpUnavailableInspectionTest {
 				final Class<?> builderType = runtime.loadClass("org.simplejavamail.api.email.EmailPopulatingBuilder");
 				final Object copied = builderType.getMethod("buildEmail").invoke(builder);
 				assertUnknown(runtime, details(runtime, copied), protection);
-				assertThat((byte[]) read(runtime, details(runtime, copied), "getOriginalProtectedMessage")).containsExactly(original);
+				assertThat(original(runtime, copied)).containsExactly(original);
 				final Object restored = roundTrip(runtime, copied);
 				assertUnknown(runtime, details(runtime, restored), protection);
-				assertThat((byte[]) read(runtime, details(runtime, restored), "getOriginalProtectedMessage")).containsExactly(original);
+				assertThat(original(runtime, restored)).containsExactly(original);
 
 				final Object completed = builderType.getMethod("buildEmailCompletedWithDefaultsAndOverrides").invoke(builder);
-				assertPlain(runtime, details(runtime, completed));
+				assertUnknown(runtime, details(runtime, completed), protection);
+				assertThat(original(runtime, completed)).containsExactly(original);
 			}
 		}));
 	}
@@ -154,7 +155,7 @@ class OpenPgpUnavailableInspectionTest {
 			modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
 			final Email email = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(new ClassificationFailureMessage()).toEmail();
 			assertThat(email.getPlainText()).isEqualTo("Plain content");
-			assertUnclassified(email.getOriginalOpenPgpDetails());
+			assertUnclassified(email.getInspection().getOpenPgp());
 		}
 	}
 
@@ -163,21 +164,16 @@ class OpenPgpUnavailableInspectionTest {
 		try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
 			modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
 			final MimeMessage source = new ClassificationFailureMessage();
-			final Method preprocess = ConfiguredEmailConverterImpl.class.getDeclaredMethod(
-					"preprocessOpenPgp", MimeMessage.class, OpenPgpReceiveConfig.class);
-			preprocess.setAccessible(true);
-			final InboundProtectionResult<?> result = (InboundProtectionResult<?>) preprocess.invoke(null, source, null);
-			assertThat(result.isRecognized()).isFalse();
-			assertThat(result.getEffectiveMimeMessage()).isSameAs(source);
-			assertUnclassified((OriginalOpenPgpDetails) result.getDetails());
+			final Email inspected = SimpleJavaMail.fromDefaults().converter().fromMimeMessage(source).toEmail();
+			assertUnclassified(inspected.getInspection().getOpenPgp());
+			assertThat(inspected.getPlainText()).isEqualTo("Plain content");
 		}
 	}
 
-	private static void assertUnclassified(final OriginalOpenPgpDetails details) {
-		assertThat(details.getOpenPgpMode().name()).isEqualTo("UNKNOWN");
-		assertThat(details.getSignatureStatus().name()).isEqualTo("UNKNOWN");
-		assertThat(details.getDecryptionStatus().name()).isEqualTo("UNKNOWN");
-		assertThat(details.getFailureReason()).contains("OpenPGP");
+	private static void assertUnclassified(final ProtectionInspection details) {
+		assertThat(details.isInspectionComplete()).isFalse();
+		assertThat(details.getSignatures()).isEmpty();
+		assertThat(details.getDecryptions()).isEmpty();
 	}
 
 	private static void assertModuleAbsent(final WithoutOpenPgp runtime) throws Exception {
@@ -187,22 +183,39 @@ class OpenPgpUnavailableInspectionTest {
 				.isInstanceOf(ClassNotFoundException.class);
 	}
 
-	private static void assertPlain(final WithoutOpenPgp runtime, final Object details) throws Exception {
-		assertThat(read(runtime, details, "getOpenPgpMode").toString()).isEqualTo("PLAIN");
-		assertThat(read(runtime, details, "getSignatureStatus").toString()).isEqualTo("NOT_PRESENT");
-		assertThat(read(runtime, details, "getDecryptionStatus").toString()).isEqualTo("NOT_ENCRYPTED");
-		assertThat(read(runtime, details, "getOriginalProtectedMessage")).isNull();
+	private static void assertPlain(final WithoutOpenPgp runtime, final Object family) throws Exception {
+		assertThat(read(runtime, family, "isInspectionComplete")).isEqualTo(true);
+		assertThat((List<?>) read(runtime, family, "getSignatures")).isEmpty();
+		assertThat((List<?>) read(runtime, family, "getDecryptions")).isEmpty();
 	}
 
-	private static void assertUnknown(final WithoutOpenPgp runtime, final Object details, final String protection) throws Exception {
-		assertThat(read(runtime, details, "getOpenPgpMode").toString()).isEqualTo(protection.equals("signed") ? "SIGNED" : "ENCRYPTED");
-		assertThat(read(runtime, details, "getSignatureStatus").toString()).isEqualTo("UNKNOWN");
-		assertThat(read(runtime, details, "getDecryptionStatus").toString()).isEqualTo(protection.equals("signed") ? "NOT_ENCRYPTED" : "UNKNOWN");
-		assertThat(read(runtime, details, "getFailureReason").toString()).contains("openpgp-module is not available");
+	private static void assertUnknown(final WithoutOpenPgp runtime, final Object family, final String protection) throws Exception {
+		final List<?> signatures = (List<?>) read(runtime, family, "getSignatures");
+		final List<?> decryptions = (List<?>) read(runtime, family, "getDecryptions");
+		assertThat(read(runtime, family, "isInspectionComplete")).isEqualTo(false);
+		// A declaration identifies an envelope, not its actual signer count or a completed signature observation.
+		assertThat(signatures).isEmpty();
+		if (protection.equals("signed")) {
+			assertThat(decryptions).isEmpty();
+		} else {
+			assertThat(decryptions).isNotEmpty();
+			for (Object decryption : decryptions) {
+				assertThat(runtime.loadClass("org.simplejavamail.api.email.DecryptionInspection")
+						.getMethod("getStatus").invoke(decryption).toString()).isEqualTo("UNAVAILABLE");
+			}
+		}
 	}
 
 	private static Object details(final WithoutOpenPgp runtime, final Object email) throws Exception {
-		return readEmail(runtime, email, "getOriginalOpenPgpDetails");
+		return runtime.loadClass("org.simplejavamail.api.email.EmailInspection").getMethod("getOpenPgp")
+				.invoke(readEmail(runtime, email, "getInspection"));
+	}
+
+	private static byte[] original(final WithoutOpenPgp runtime, final Object email) throws Exception {
+		final Object resource = runtime.loadClass("org.simplejavamail.api.email.EmailInspection").getMethod("getOriginalMessage")
+				.invoke(readEmail(runtime, email, "getInspection"));
+		return resource == null ? null : (byte[]) runtime.loadClass("org.simplejavamail.api.email.AttachmentResource")
+				.getMethod("readAllBytes").invoke(resource);
 	}
 
 	private static Object readEmail(final WithoutOpenPgp runtime, final Object email, final String getter) throws Exception {
@@ -210,7 +223,31 @@ class OpenPgpUnavailableInspectionTest {
 	}
 
 	private static Object read(final WithoutOpenPgp runtime, final Object details, final String getter) throws Exception {
-		return runtime.loadClass("org.simplejavamail.api.email.OriginalOpenPgpDetails").getMethod(getter).invoke(details);
+		return runtime.loadClass("org.simplejavamail.api.email.ProtectionInspection").getMethod(getter).invoke(details);
+	}
+
+	private static boolean capturedContentContains(final WithoutOpenPgp runtime, final Object email, final String text) throws Exception {
+		final Object source = readEmail(runtime, email, "getSourceData");
+		final List<?> roots = (List<?>) runtime.loadClass("org.simplejavamail.api.email.EmailSourceData").getMethod("getParts").invoke(source);
+		for (Object part : roots) if (partContentContains(runtime, part, text)) return true;
+		return false;
+	}
+
+	private static boolean partContentContains(final WithoutOpenPgp runtime, final Object part, final String text) throws Exception {
+		final Class<?> partType = runtime.loadClass("org.simplejavamail.api.email.EmailSourcePart");
+		final Object content = partType.getMethod("getContent").invoke(part);
+		if (content != null) {
+			final Class<?> contentType = runtime.loadClass("org.simplejavamail.api.email.EmailSourceContent");
+			final byte[] bytes = (byte[]) contentType.getMethod("readAllBytes").invoke(content);
+			if (new String(bytes, UTF_8).contains(text)) {
+				assertThat(contentType.getMethod("isFullyCaptured").invoke(content)).isEqualTo(true);
+				return true;
+			}
+		}
+		for (Object child : (List<?>) partType.getMethod("getChildren").invoke(part)) {
+			if (partContentContains(runtime, child, text)) return true;
+		}
+		return false;
 	}
 
 	private static String attachment(final WithoutOpenPgp runtime, final Object email, final String name) throws Exception {

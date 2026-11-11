@@ -4,7 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
@@ -162,12 +163,12 @@ class CliSmimeCacheCapacityTest {
                 .withPlainText("CLI additional signing key")
                 .signWithSmime(SmimeSigningConfig.builder().pkcs12Config(keys).build()).buildEmail();
         final Email inspected = factory.converter().fromEml(mailer.rehearse(outgoing).getEmlBytes()).toEmail();
-        assertThat(inspected.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(inspected.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
     }
 
     private static void decrypt(final SimpleJavaMail factory, final byte[] encrypted, final Pkcs12Config keys) {
         final Email incoming = factory.converter().fromEml(encrypted).withSmimeDecryption(keys).toEmail();
-        assertThat(incoming.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+        assertThat(incoming.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
         assertThat(incoming.getPlainText()).contains("CLI decrypted content");
     }
 

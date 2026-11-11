@@ -90,13 +90,17 @@ class LockedEmailConfigurationTest {
 	}
 
 	@Test
-	void rawHeadersCannotReplaceLockedBuilderFields() throws Exception {
+	void genericBccUsesTheTypedAuthorityAndCannotBypassAnArchiveLock() throws Exception {
 		try (Mailer mailer = locked(Map.of("defaults.bcc.address", "archive@example.org")).mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
-			final Email input = ordinary.emailBuilder().startingBlank().withHeader("bCC", "elsewhere@example.org").buildEmail();
-			assertThatThrownBy(() -> mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(input))
-					.hasMessageContaining("withHeader(\"Bcc\", ...)").hasMessageContaining("locked.defaults.bcc.address")
-					.hasMessageContaining("could bypass this factory's locked Email setting").hasMessageContaining("remove this lock")
-					.hasMessageNotContaining("elsewhere@example.org");
+			final Email input = ordinary.emailBuilder().startingBlank().from("sender@example.org").to("visible@example.org")
+					.withHeader("bCC", "elsewhere@example.org").buildEmail();
+			assertThat(input.getBccRecipients()).extracting(Recipient::getAddress).containsExactly("elsewhere@example.org");
+			final Email prepared = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(input);
+			assertThat(prepared.getBccRecipients()).extracting(Recipient::getAddress)
+					.containsExactly("elsewhere@example.org", "archive@example.org");
+			assertThat(mailer.rehearse(input).getEnvelopeRecipients())
+					.containsExactly("visible@example.org", "elsewhere@example.org", "archive@example.org");
+			assertThat(input.getBccRecipients()).extracting(Recipient::getAddress).containsExactly("elsewhere@example.org");
 		}
 	}
 

@@ -81,4 +81,25 @@ public interface OutlookMessageData extends Serializable {
 
 	@Nullable
 	String getPropertyListing();
+
+	/**
+	 * Returns native HTML exposed by the Outlook reader, without RTF fallback. This describes the native MSG input,
+	 * independently of protected content selection or later Email edits. Empty remains empty; null means unavailable
+	 * or uncaptured, including older snapshots. Missing native HTML does not establish an originally plain-text message.
+	 *
+	 * @return Captured native HTML, or null. Performs no I/O or conversion.
+	 */
+	@Nullable
+	String getBodyHTML();
+
+	/**
+	 * Returns reader-decompressed and decoded RTF without further processing. It may contain encapsulated HTML,
+	 * encapsulated text or rich text; it is neither the compressed RTF property nor the original MSG bytes.
+	 * Like {@link #getBodyHTML()}, this describes native input independently of the final interpreted Email.
+	 *
+	 * @return Captured reader-provided RTF text, or null when unavailable or uncaptured. Empty remains empty.
+	 * Performs no I/O or conversion.
+	 */
+	@Nullable
+	String getBodyRTF();
 }

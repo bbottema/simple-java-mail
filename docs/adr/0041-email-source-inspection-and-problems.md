@@ -229,6 +229,56 @@ whole-Email Java restoration can still require existing optional producer classe
 dependency is deferred to child [#965](https://github.com/bbottema/simple-java-mail/issues/965), outside #961 acceptance. No general
 cross-version archival compatibility promise follows from this decision.
 
+## Complete original input and selected-value inspection (accepted 10 November 2026)
+
+The [#961](https://github.com/bbottema/simple-java-mail/issues/961) continuation adds the logical readable selection in
+[ADR 0040](0040-retained-protected-content-merging.md#one-logical-readable-email-accepted-10-november-2026). It supersedes this record's
+earlier selective-retention rule specifically for complete supplied raw input: automatically retain fully acquired EML/MSG input for
+`getInspection().getOriginalMessage()` and deliberate original forwarding. Share safely owned immutable storage across ordinary copies;
+do not reacquire the source. An independently transformed protected attachment retains its complete original separately, associated with
+the selected attachment occurrence. An unchanged owned payload can share storage. The enclosing message envelope is the original message,
+not a substitute original for every contained attachment.
+
+Completeness and confidentiality are separate: an extracted child's complete original does not automatically include the enclosing parent's
+encryption. Original forwarding preserves those actual bytes/format and retains a helper-derived outgoing requirement when reusing exposed
+confidential material, including outer child headers that body-only encryption does not cover. An intact root encrypted original remains
+distinct. Automatic carrier metadata can be neutral without redacting the historical original resource's name/description/Content-ID.
+These are helper-output decisions under ADR 0008, not a new read gate, public source mode or automatic deletion/rewrite of retained evidence.
+
+Only complete actual capture qualifies. A failed/limited prefix remains diagnostic evidence and cannot be forwarded as a complete
+original. MIME/native reader objects without captured file input and freshly composed messages have no invented original. MSG stays MSG;
+generated adapter EML is not original MSG. For EML String input, retained bytes are the UTF-8 interpretation actually consumed, with no
+claim about unknown external wire encoding. Unrelated deferred resources remain unread. Import limits retain their acquisition/traversal
+scope; they are not whole-heap retention limits or permission to evict captured history silently.
+
+Keep captured source history separate from immutable metadata about each current selected value. `Email.getInspection()` reports origin,
+derivation, availability, sources and scoped protection for named fields and indexed resource occurrences. A present empty value differs
+from established absence, unavailable processing, deliberate deferral and uncaptured history. Family views reuse captured observations;
+no getter performs work, returns duplicate field values or infers parent protection from a child. Old snapshots without captured facts
+remain unknown rather than acquiring reconstructed proof. Historical source and Problems remain available after current-field edits.
+
+Defaults/overrides completion likewise preserves the submitted draft's source/Problems/originals, historical protection observations and
+unchanged selected-field associations. A replaced field has caller-supplied/unknown current facts; templates supply neither incoming
+evidence nor disclosure consent. This supersedes the earlier completion/new-history statement above for these snapshots. New helper
+messages still describe their own source and carry only deliberately reused content requirements; preserving history does not make a
+captured old signature a verification of reconstructed output or turn historical Problems into a send gate.
+
+Incoming best-effort processing preserves readable neighbors and complete original payload when usable configured credentials do not
+match one component or corrupt/unsupported protected input cannot be opened. An invalid signature does not discard readable content.
+Record the actual located failure/unavailable result once; deliberately unselected work does not fabricate a Problem. Unusable configured
+key stores, explicitly requested missing modules, invalid API use, cancellation/interruption and unrelated application/provider defects
+retain their operation-failure boundary. This refines the earlier explicit-decryption-failure statement for automatic Email interpretation;
+standalone cryptographic helpers and outgoing preparation retain their own failure contracts. Classify at the owning boundary, never by
+exception-message text or a blanket runtime catch.
+
+Pure application protection checks return their own outcomes/reasons without adding Email Problems. A clean parse is not partner
+approval. Diagnostic output results also distinguish refusal of helper-derived confidential reuse from a usable completed artifact;
+they cannot expose unfinished cleartext output as success or mutate the source Email's history.
+
+Retaining raw originals alongside distinct decoded/interpreted content can increase retained memory. Sharing storage avoids redundant
+copies; it does not eliminate the cost of genuinely different representations. Copies/snapshots must not retain ancestor Emails, parsers
+or live provider objects. The deferred whole-Email optional-module portability work under #965 remains separate.
+
 ## Consequences
 
 Applications can use one Email for convenient parsed content, original evidence and explanation of imperfect input. The diagnostic

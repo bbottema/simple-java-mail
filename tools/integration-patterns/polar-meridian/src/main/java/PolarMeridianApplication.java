@@ -186,7 +186,7 @@ public final class PolarMeridianApplication implements AutoCloseable {
         }
         var parsed = ProtectedContent.readProtected(captured);
         return Map.of("sameBytes", java.util.Arrays.equals(retained, captured), "sha256", ProtectedContent.sha256(retained),
-                "verification", parsed.getOriginalSmimeDetails().getVerificationStatus().name(), "readable", parsed.getPlainText() != null);
+                "verification", parsed.getInspection().getPlainText().getSignatureStatus().name(), "readable", parsed.getPlainText() != null);
     }
 
     @Override

@@ -101,7 +101,8 @@ class SelectedMailerPreparationTest {
 			assertTemplate(messagesSentByPrimary.get(0), "primary");
 			assertTemplate(messagesSentByFailoverMailer.get(0), "failover");
             assertThat(original.getFromRecipient()).isNull();
-            assertThat(original.getHeaders()).isEmpty();
+            assertThat(original.getHeaders()).containsEntry("To", List.of("customer@example.org"))
+                    .doesNotContainKeys("From", "Bcc", "X-Relay");
             assertThat(original.getRecipients()).hasSize(1);
         }
     }
@@ -152,7 +153,8 @@ class SelectedMailerPreparationTest {
 			assertTemplate(messagesSentByPrimary.get(0), "primary");
 			assertTemplate(messagesSentByFailoverMailer.get(0), "failover");
             assertThat(original.getFromRecipient()).isNull();
-            assertThat(original.getHeaders()).isEmpty();
+            assertThat(original.getHeaders()).containsEntry("To", List.of("customer@example.org"))
+                    .doesNotContainKeys("From", "Bcc", "X-Relay");
             assertThat(original.getRecipients()).hasSize(1);
         } finally {
             release.countDown();

@@ -4,7 +4,10 @@ import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
+import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.ValueInspection;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
@@ -88,10 +91,10 @@ public final class OpenPgpConsumer {
     }
 
     private static void assertReceived(final Email email, final String body, final boolean encrypted) {
-        final OriginalOpenPgpDetails details = email.getOriginalOpenPgpDetails();
-        if (!body.equals(email.getPlainText()) || details == null
-                || details.getSignatureStatus() != OriginalOpenPgpDetails.SignatureStatus.VALID
-                || (encrypted && details.getDecryptionStatus() != OriginalOpenPgpDetails.DecryptionStatus.DECRYPTED)) {
+        final ValueInspection plain = email.getInspection().getPlainText();
+        if (!body.equals(email.getPlainText())
+                || plain.getSignatureStatus() != SignatureStatus.VERIFIED
+                || plain.getEncryptionStatus() != (encrypted ? EncryptionStatus.DECRYPTED : EncryptionStatus.NOT_ENCRYPTED)) {
             throw new AssertionError("The protected message did not complete the expected public round trip");
         }
     }
@@ -103,15 +106,15 @@ public final class OpenPgpConsumer {
         final byte[] ordinary = mail.converter().fromEmail(plain).toEmlBytes();
         final Email imported = mail.converter().fromEml(ordinary).toEmail();
         if (!"Readable without OpenPGP".equals(imported.getPlainText())
-                || imported.getOriginalOpenPgpDetails().getSignatureStatus() != OriginalOpenPgpDetails.SignatureStatus.NOT_PRESENT) {
+                || imported.getInspection().getPlainText().getSignatureStatus() != SignatureStatus.UNSIGNED) {
             throw new AssertionError("Ordinary mail needs an absent optional module");
         }
         for (String fixture : new String[] {"signed", "encrypted"}) {
             final byte[] source = Files.readAllBytes(keys.resolve(fixture + "-mixed.eml"));
             final Email preserved = mail.converter().fromEml(source).toEmail();
-            final OriginalOpenPgpDetails details = preserved.getOriginalOpenPgpDetails();
-            if (details.getSignatureStatus() != OriginalOpenPgpDetails.SignatureStatus.UNKNOWN
-                    || !Arrays.equals(source, details.getOriginalProtectedMessage())
+            final AttachmentResource original = preserved.getInspection().getOriginalMessage();
+            if (preserved.getInspection().getPlainText().getSignatureStatus() != SignatureStatus.UNKNOWN
+                    || original == null || !Arrays.equals(source, original.readAllBytes())
                     || (fixture.equals("signed") && !"Héllo from OpenPGP.js".equals(preserved.getPlainText()))) {
                 throw new AssertionError("Unavailable inspection lost its source or invented a signature fact");
             }

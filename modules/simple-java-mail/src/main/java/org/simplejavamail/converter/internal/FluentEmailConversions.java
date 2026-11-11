@@ -322,11 +322,16 @@ class FluentEmailConversions {
 		}
 
 		final MimeMessage exportEmail(final ArtifactConversions.Operation operation, final Email email, final boolean writingContent) {
+			return exportEmail(operation, email, writingContent, false);
+		}
+
+		final MimeMessage exportEmail(final ArtifactConversions.Operation operation, final Email email, final boolean writingContent,
+				final boolean conversionPermission) {
 			// Export preserves the existing no-template default; factory configuration belongs to imported builders, not implicit outgoing policy.
 			return operation.render(email,
 					selectOptionOrCreateFallback(session, FluentEmailConversions::emptySession, "withSession"),
 					selectOptionOrCreateFallback(governance, EmailGovernanceImpl::NO_GOVERNANCE, "withEmailGovernance"),
-					converter::copyForOutput, writingContent, converter.smimeRuntime());
+					converter::copyForOutput, writingContent, converter.smimeRuntime(), conversionPermission);
 		}
 
 		final void checkImportOptions() {
@@ -340,6 +345,7 @@ class FluentEmailConversions {
 
 	static final class FromEmail extends ExportOptions implements EmailConversion {
 		private final Email source;
+		private boolean unencryptedContentAllowed = EmailStartingBuilder.DEFAULT_ALLOW_UNENCRYPTED_CONTENT;
 
 		FromEmail(final ConfiguredEmailConverterImpl converter, final Email source) {
 			super(converter);
@@ -373,6 +379,26 @@ class FluentEmailConversions {
 			selectGovernance(null);
 			return this;
 		}
+
+		/** @see EmailConversion#allowUnencryptedContent() */
+		@Override
+		public EmailConversion allowUnencryptedContent() {
+			checkAvailable();
+			unencryptedContentAllowed = true;
+			return this;
+		}
+
+		/** @see EmailConversion#clearUnencryptedContentPermission() */
+		@Override
+		public EmailConversion clearUnencryptedContentPermission() {
+			checkAvailable();
+			unencryptedContentAllowed = EmailStartingBuilder.DEFAULT_ALLOW_UNENCRYPTED_CONTENT;
+			return this;
+		}
+
+		/** @see EmailConversion#isUnencryptedContentAllowed() */
+		@Override
+		public boolean isUnencryptedContentAllowed() { return unencryptedContentAllowed; }
 
 		/** @see EmailConversion#toMimeMessage() */
 		@Override
@@ -419,7 +445,7 @@ class FluentEmailConversions {
 			beginConversion();
 			final ArtifactConversions.Operation operation = new ArtifactConversions.Operation(source.getId());
 			operation.includeEmail(source, false);
-			return operation.execute(() -> target.apply(operation, exportEmail(operation, source, writingContent)));
+			return operation.execute(() -> target.apply(operation, exportEmail(operation, source, writingContent, unencryptedContentAllowed)));
 		}
 	}
 

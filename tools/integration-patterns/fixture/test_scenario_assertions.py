@@ -34,7 +34,7 @@ class SubmissionEvidenceTest(unittest.TestCase):
     def test_bulk_archive_proof_uses_an_actually_submitted_job_not_enqueue_order(self):
         rows = [{"id": "current_bulk_0", "state": "CLAIMED"}, {"id": "current_bulk_2", "state": "SUBMITTED"},
                 {"id": "current_bulk_4", "state": "SUBMITTED"}]
-        proof = {"sameBytes": True, "verification": "VALID", "readable": True}
+        proof = {"sameBytes": True, "verification": "VERIFIED", "readable": True}
 
         def respond(url, data=None, headers=None):
             if data is not None:

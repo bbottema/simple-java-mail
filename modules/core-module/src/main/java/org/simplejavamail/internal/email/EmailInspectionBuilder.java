@@ -11,4 +11,6 @@ public interface EmailInspectionBuilder {
     EmailSourceData getSourceData();
     List<EmailProblem> getProblems();
     void retainInspection(EmailSourceData sourceData, List<EmailProblem> problems);
+    org.simplejavamail.api.email.EmailInspection getSelectionInspection();
+    void retainSelectionInspection(org.simplejavamail.api.email.EmailInspection inspection);
 }

@@ -112,19 +112,29 @@ class MimeSourceContentRecoveryTest {
     }
 
     @Test
-    void overwrittenInlineContentRemainsAvailableWithoutArchivingTheRepresentedImage() throws Exception {
+    void ambiguousInlineContentRemainsAvailableWithoutArchivingTheRepresentedPayloads() {
         final String input = HEADERS + "Content-Type: multipart/related; boundary=parts\r\n\r\n"
                 + "--parts\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n<img src=\"cid:shared\">\r\n"
                 + "--parts\r\nContent-Type: image/png\r\nContent-Disposition: inline; filename=first.png\r\nContent-ID: <shared>\r\n\r\nfirst\r\n"
                 + "--parts\r\nContent-Type: image/png\r\nContent-Disposition: inline; filename=last.png\r\nContent-ID: <shared>\r\n\r\nlast\r\n--parts--\r\n";
         final Email email = MAIL.converter().fromEml(input).toEmail();
 
-        assertThat(email.getEmbeddedImages()).hasSize(1);
-        assertThat(email.getEmbeddedImages().get(0).readAllBytes()).isEqualTo("last".getBytes(UTF_8));
-        assertThat(email.getAttachments()).isEmpty();
-        assertThat(email.getProblems()).isEmpty();
-        assertThat(retainedParts(email.getSourceData())).singleElement().satisfies(part ->
-                assertThat(part.getContent().readAllBytes()).isEqualTo("first".getBytes(UTF_8)));
+        assertThat(email.getEmbeddedImages()).isEmpty();
+        assertThat(email.getAttachments()).extracting(AttachmentResource::getName).containsExactly("first.png", "last.png");
+        assertThat(email.getAttachments()).extracting(AttachmentResource::getContentId).containsOnlyNulls();
+        assertThat(email.getAttachments().get(0).readAllBytes()).isEqualTo("first".getBytes(UTF_8));
+        assertThat(email.getAttachments().get(1).readAllBytes()).isEqualTo("last".getBytes(UTF_8));
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(input.getBytes(UTF_8));
+        final EmailSourcePart first = (EmailSourcePart) email.getInspection().getAttachment(0).getSources().get(0);
+        final EmailSourcePart last = (EmailSourcePart) email.getInspection().getAttachment(1).getSources().get(0);
+        assertThat(first.getLocation()).isNotEqualTo(last.getLocation());
+        assertThat(email.getProblems()).singleElement().satisfies(problem -> {
+            assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_NOT_REPRESENTED);
+            assertThat(problem.getLocation()).isEqualTo(first.getLocation());
+            assertThat(problem.getSourceValue()).isEqualTo("shared");
+            assertThat(problem.getSources()).contains(first);
+        });
+        assertThat(retainedParts(email.getSourceData())).isEmpty();
     }
 
     @Test

@@ -27,13 +27,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.pgpainless.key.parsing.KeyRingReader;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.converter.EmailConverter;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -72,14 +69,15 @@ class OpenPgpDecryptionEvidenceTest {
 
         final Email parsed = route.read(input, receiving);
 
-        final OriginalOpenPgpDetails details = parsed.getOriginalOpenPgpDetails();
-        assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-        assertThat(details.getOpenPgpMode()).isEqualTo(OpenPgpMode.ENCRYPTED);
-        assertThat(details.getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        final var details = parsed.getInspection().getOpenPgp();
+        assertThat(details.getDecryptions()).singleElement().satisfies(attempt -> {
+            assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED);
+            assertThat(attempt.getEncryptionAlgorithm()).isNull();
+            assertThat(attempt.getFailureReason()).isNotBlank();
+        });
         assertThat(details.getSignatures()).isEmpty();
-        assertThat(details.getEncryptionAlgorithm()).isNull();
-        assertThat(details.getFailureReason()).isNotBlank();
-        assertThat(details.getOriginalProtectedMessage()).containsExactly(input);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertOriginal(parsed, input, route);
         assertThat(parsed.getPlainText()).isNull();
         assertThat(parsed.getHTMLText()).isNull();
     }
@@ -96,9 +94,9 @@ class OpenPgpDecryptionEvidenceTest {
 
         final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(input).toEmail();
 
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(input);
         assertThat(parsed.getPlainText()).isNull();
     }
 
@@ -109,8 +107,8 @@ class OpenPgpDecryptionEvidenceTest {
 
         final Email parsed = route.read(input, receiving);
 
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertOriginal(parsed, input, route);
         assertThat(parsed.getPlainText()).isEqualTo("Héllo from OpenPGP.js");
     }
 
@@ -127,9 +125,18 @@ class OpenPgpDecryptionEvidenceTest {
 
         final Email parsed = ImportRoute.FLUENT_EML.read(input, receiving);
 
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE);
+        assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(input);
         assertThat(parsed.getPlainText()).isNull();
+    }
+
+    private static void assertOriginal(final Email email, final byte[] source, final ImportRoute route) {
+        if (route == ImportRoute.FLUENT_EML || route == ImportRoute.STATIC_EML) {
+            assertThat(email.getInspection().getOriginalMessage()).isNotNull();
+            assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
+        } else {
+            assertThat(email.getInspection().getOriginalMessage()).isNull();
+        }
     }
 
     private static byte[] unencryptedPackets(final PacketShape shape) throws Exception {

@@ -26,7 +26,9 @@ class EmailHeaderAndRecipientContractTest {
 	void replacingAHeaderIgnoresItsCapitalizationInTheFinalMessage() throws Exception {
 		final Email email = message().withHeader("X-Route", "old").withHeader("x-route", "new", true).buildEmail();
 
-		assertThat(email.getHeaders()).containsOnlyKeys("X-Route");
+		assertThat(email.getHeaders()).containsOnlyKeys("From", "To", "X-Route");
+		assertThat(email.getHeaders().get("from")).containsExactly("sender@example.org");
+		assertThat(email.getHeaders().get("TO")).containsExactly("Recipient <recipient@example.org>");
 		assertThat(mail.converter().fromEmail(email).toMimeMessage().getHeader("X-ROUTE")).containsExactly("new");
 	}
 
@@ -36,7 +38,7 @@ class EmailHeaderAndRecipientContractTest {
 				.withHeader("x-route", "second").withHeader("X-ROUTE", "first").withHeader("X-Unrelated", "kept").buildEmail();
 		final MimeMessage mime = mail.converter().fromEmail(email).toMimeMessage();
 
-		assertThat(email.getHeaders()).containsOnlyKeys("X-Route", "X-Unrelated");
+		assertThat(email.getHeaders()).containsOnlyKeys("From", "To", "X-Route", "X-Unrelated");
 		assertThat(mime.getHeader("x-route")).containsExactly("first", "second");
 		assertThat(mime.getHeader("X-Unrelated")).containsExactly("kept");
 	}
@@ -46,7 +48,7 @@ class EmailHeaderAndRecipientContractTest {
 		final Email email = message().withHeader("X-Route", "first")
 				.withHeaders(Map.of("x-route", List.of("second", "third"))).buildEmail();
 
-		assertThat(email.getHeaders()).containsOnlyKeys("X-Route");
+		assertThat(email.getHeaders()).containsOnlyKeys("From", "To", "X-Route");
 		assertThat(mail.converter().fromEmail(email).toMimeMessage().getHeader("X-Route"))
 				.containsExactly("first", "second", "third");
 	}
@@ -60,7 +62,7 @@ class EmailHeaderAndRecipientContractTest {
 				.produceEmailApplyingDefaultsAndOverrides(provided);
 		final MimeMessage mime = mail.converter().fromEmail(effective).toMimeMessage();
 
-		assertThat(effective.getHeaders()).hasSize(2);
+		assertThat(effective.getHeaders()).containsOnlyKeys("From", "To", "X-Route", "X-Default");
 		assertThat(mime.getHeader("x-route")).containsExactly("override one", "override two");
 		assertThat(mime.getHeader("X-Default")).containsExactly("kept");
 		assertThat(provided.getHeaders().get("x-route")).containsExactly("provided");
@@ -75,7 +77,7 @@ class EmailHeaderAndRecipientContractTest {
 				.produceEmailApplyingDefaultsAndOverrides(provided);
 
 		assertThat(mail.converter().fromEmail(effective).toMimeMessage().getHeader("X-Route")).containsExactly("provided");
-		assertThat(effective.getHeaders()).hasSize(2);
+		assertThat(effective.getHeaders()).containsOnlyKeys("From", "To", "X-Route", "X-Default");
 	}
 
 	@Test
@@ -86,7 +88,7 @@ class EmailHeaderAndRecipientContractTest {
 		final Email effective = new EmailGovernanceImpl(null, defaults, overrides, null)
 				.produceEmailApplyingDefaultsAndOverrides(provided);
 
-		assertThat(effective.getHeaders()).containsOnlyKeys("x-route", "X-Other");
+		assertThat(effective.getHeaders()).containsOnlyKeys("From", "To", "x-route", "X-Other");
 		assertThat(mail.converter().fromEmail(effective).toMimeMessage().getHeader("X-Route")).containsExactly("provided");
 	}
 

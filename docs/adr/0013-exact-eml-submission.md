@@ -7,6 +7,28 @@
 - Implementation baseline: `codex/10.0.0` at `a4eda9e6`; pending ENVID additions are separate
 - Related decisions: [ADR 0002: Governance](0002-email-defaults-and-overrides.md), [ADR 0011: Submission outcomes](0011-transport-neutral-submission-outcomes.md), [ADR 0014: Rehearsal](0014-send-time-rehearsal.md)
 
+## Retained original forwarding and interpreted output (accepted 10 November 2026)
+
+Under [#961](https://github.com/bbottema/simple-java-mail/issues/961), complete captured raw input can be retained on an ordinary
+interpreted Email through `getInspection().getOriginalMessage()`. `forwardingOriginal(Email)` attaches those actual EML/MSG bytes in a
+new outer message. It is not an exact relay and cannot silently reconstruct an unavailable original. `forwarding(Email)` instead renders
+the current represented fields and usable resources, including edits and successful incoming decryption. Reading a materialized child
+does not change its attachment payload. A private inner subject must not leak into the new outer subject.
+
+Preserving a child's original file does not restore an enclosing parent's encryption. If that original was extracted from confidential
+parent content, the new original-forwarding helper carries the appropriate outgoing protection requirement. A child's own body encryption
+does not cover ancestor-private outer headers, and a signature provides no confidentiality. Use outgoing encryption or the existing
+conversion-local permission for a deliberate one-export handoff; actual original bytes/format remain authoritative. Generated carrier
+metadata stays neutral when confidential, independently of the unchanged historical metadata exposed by the original getter. An intact
+root encrypted original remains a distinct case when the new outer message repeats no confidential values.
+
+Exact Email continues using its authoritative EML source and separately chosen envelope. The richer case-insensitive parsed-header and
+shared protection inspection views do not activate reconstructed header filtering, helper requirements or a historical Problems send gate
+for exact relay. Incoming family/field facts now use the shared `getInspection()` entry point; the older flattened getters described in
+this record's historical implementation notes are superseded. Incoming inspection remains passive and supplies no implicit outgoing credentials. The output requirement described in
+[ADR 0008](0008-minimal-mime-structures-and-protection-order.md#confidential-content-at-final-output-accepted-10-november-2026) belongs
+to new helpers that automatically reuse confidential material, not every parsed/copied Email or authoritative exact source.
+
 ## Context
 
 Parsing an EML file into a composed Email and sending it again is a reconstruction. Simple Java Mail selects an appropriate MIME structure and can generate new boundaries, dates and identifiers. This is useful for editing but cannot preserve an archived or externally signed message. An upstream DKIM or S/MIME signature may fail even when the reconstructed mail looks equivalent.
@@ -25,6 +47,11 @@ Tolerant reading does not relax this explicit submission mode's validation, cont
 [ADR 0041](0041-email-source-inspection-and-problems.md) adds enumerable source evidence, selectively retained original content and root
 processing observations to that inspection view. Their getters/copying do not alter authoritative EML bytes, trigger another interpretation
 or retroactively replace a problem's original input identity. The optional non-Email artifact-result API does not relax exact-byte ownership.
+
+The [10 November complete-input amendment](0041-email-source-inspection-and-problems.md#complete-original-input-and-selected-value-inspection-accepted-10-november-2026)
+extends that earlier selective-retention decision: fully acquired actual raw EML/MSG is retained automatically, without inventing file
+originals for MIME/native reader objects or promoting incomplete prefixes. Its shared inspection entry point supersedes the old flattened
+protection getter names in this record's historical notes.
 
 Exact submission bypasses Email defaults/overrides, composed-message validation, embedded-resource resolution and outgoing DKIM/S/MIME/OpenPGP transformations. Content that is already final must not silently acquire headers, signatures or encryption. Envelope invariants and the configured maximum byte size still apply. Copying an exact Email through the ordinary composition builder intentionally creates a composed source and relinquishes the preservation contract.
 

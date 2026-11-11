@@ -11,6 +11,7 @@ import jakarta.mail.Part;
 import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.InternetAddress;
+import jakarta.mail.internet.HeaderTokenizer;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
@@ -26,7 +27,9 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.ValueInspection;
 import org.simplejavamail.api.internal.general.MessageHeader;
+import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.simplejavamail.internal.util.MimeTypeUtil;
 import org.simplejavamail.internal.util.NamedDataSource;
@@ -67,43 +70,97 @@ public class MimeMessageHelper {
 	private static final String GENERATED_CONTENT_ID_DOMAIN = "simplejavamail.generated";
 
 	/** Projects visible reply headers without rendering, protecting or reading the source content. */
-	public static MimeMessage createReplyHeaders(final Email email, final Session session) throws MessagingException, UnsupportedEncodingException {
-		final MimeMessage message = new MessageIdFixingMimeMessage(session, email.getId());
+	public static MimeMessage createReplyHeaders(final Email email, final Session session, final boolean privateThreading)
+			throws MessagingException, UnsupportedEncodingException {
+		final boolean unavailableAuthoredView = InternalEmail.requireInternalEmail(email).isAuthoredHeaderViewUnavailable();
+		final String parentId = privateThreading || unavailableAuthoredView ? null : email.getId();
+		final MimeMessage message = new MessageIdFixingMimeMessage(session, parentId);
 		setSubject(email, message);
-		setFrom(email, message);
-		setReplyTo(email, message);
-		setRecipients(email, message);
-		for (final Map.Entry<String, Collection<String>> header : email.getHeaders().entrySet()) {
-			setHeader(message, header);
+		if (!unavailableAuthoredView) {
+			setFrom(email, message);
+			setReplyTo(email, message);
+			setRecipients(email, message);
+			if (!privateThreading) setReplyThreadingSource(email.getHeaders(), message);
 		}
 		// Only headers drive MimeMessage.reply(); a placeholder avoids materializing the original body or resources.
 		message.setText("", CHARACTER_ENCODING.name());
 		message.setSentDate(ofNullable(email.getSentDate()).orElseGet(Date::new));
 		message.saveChanges();
+		if (parentId == null || parentId.isBlank()) message.removeHeader("Message-ID");
 		return message;
 	}
 
-	/** Matches the ordinary parser's referenced-CID selection and owned snapshots, without reading unrelated attachments. */
-	public static List<AttachmentResource> replyEmbeddedImages(final Email email) {
-		final Set<String> referenced = CidReferences.inHtml(defaultTo(email.getHTMLText(), ""));
-		final Map<String, AttachmentResource> selected = new TreeMap<>();
-		for (final AttachmentResource resource : email.getEmbeddedImages()) {
-			addReplyResource(resource, Part.INLINE, referenced, selected);
+	private static void setReplyThreadingSource(final Map<String, Collection<String>> headers, final MimeMessage message)
+			throws MessagingException, UnsupportedEncodingException {
+		for (final Map.Entry<String, Collection<String>> header : headers.entrySet()) {
+			if ("References".equalsIgnoreCase(header.getKey()) || "In-Reply-To".equalsIgnoreCase(header.getKey())
+					&& !headers.containsKey("References") && containsOneMessageIdentifier(header.getValue())) setHeader(message, header);
 		}
-		for (final AttachmentResource resource : email.getAttachments()) {
+	}
+
+	/** JavaMail's fallback accepts an arbitrary In-Reply-To string; a single-parent reply may use exactly one usable identifier. */
+	private static boolean containsOneMessageIdentifier(final Collection<String> values) {
+		final String joined = values.stream().map(value -> value == null ? "" : value).collect(java.util.stream.Collectors.joining(" ")).trim();
+		final int start = joined.indexOf('<');
+		final int end = joined.lastIndexOf('>');
+		if (start < 0 || end <= start) return false;
+		try {
+			if (new HeaderTokenizer(joined.substring(0, start), HeaderTokenizer.RFC822).next().getType() != HeaderTokenizer.Token.EOF
+					|| new HeaderTokenizer(joined.substring(end + 1), HeaderTokenizer.RFC822).next().getType() != HeaderTokenizer.Token.EOF) return false;
+			final InternetAddress[] identifiers = InternetAddress.parseHeader(joined.substring(start, end + 1), true);
+			if (identifiers.length != 1 || identifiers[0].isGroup() || identifiers[0].getPersonal() != null) return false;
+			identifiers[0].validate();
+			return true;
+		} catch (final jakarta.mail.internet.ParseException invalidIdentifier) {
+			return false;
+		}
+	}
+
+	/** Matches the ordinary parser's referenced-CID selection and owned snapshots, without reading unrelated attachments. */
+	public static ReplyResources prepareReplyResources(final Email email, final String quotedHtml) {
+		final Set<String> referenced = CidReferences.inHtml(quotedHtml);
+		final Map<String, ReplyOccurrence> selected = new TreeMap<>();
+		for (int index = 0; index < email.getEmbeddedImages().size(); index++) {
+			addReplyResource(email.getEmbeddedImages().get(index), email.getInspection().getEmbeddedImage(index), Part.INLINE, referenced, selected);
+		}
+		for (int index = 0; index < email.getAttachments().size(); index++) {
+			final AttachmentResource resource = email.getAttachments().get(index);
 			if (!valueNullOrEmpty(resource.getContentId())) {
-				addReplyResource(resource, Part.ATTACHMENT, referenced, selected);
+				addReplyResource(resource, email.getInspection().getAttachment(index), Part.ATTACHMENT, referenced, selected);
 			}
 		}
 		final List<AttachmentResource> snapshots = new ArrayList<>();
-		for (final AttachmentResource resource : selected.values()) {
-			snapshots.add(snapshotReplyResource(resource));
+		final List<ValueInspection> inspections = new ArrayList<>();
+		for (final ReplyOccurrence occurrence : selected.values()) {
+			snapshots.add(snapshotReplyResource(occurrence.resource));
+			inspections.add(occurrence.inspection);
 		}
-		return snapshots;
+		return new ReplyResources(snapshots, inspections);
 	}
 
-	private static void addReplyResource(final AttachmentResource resource, final String disposition,
-			final Set<String> referenced, final Map<String, AttachmentResource> selected) {
+	/** Chosen occurrence metadata stays paired with its newly owned quote resource during helper assembly only. */
+	public static final class ReplyResources {
+		private final List<AttachmentResource> resources;
+		private final List<ValueInspection> inspections;
+		private ReplyResources(final List<AttachmentResource> resources, final List<ValueInspection> inspections) {
+			this.resources = List.copyOf(resources);
+			this.inspections = List.copyOf(inspections);
+		}
+		public List<AttachmentResource> getResources() { return resources; }
+		public List<ValueInspection> getInspections() { return inspections; }
+	}
+
+	private static final class ReplyOccurrence {
+		private final AttachmentResource resource;
+		private final ValueInspection inspection;
+		private ReplyOccurrence(final AttachmentResource resource, final ValueInspection inspection) {
+			this.resource = resource;
+			this.inspection = inspection;
+		}
+	}
+
+	private static void addReplyResource(final AttachmentResource resource, final ValueInspection inspection, final String disposition,
+			final Set<String> referenced, final Map<String, ReplyOccurrence> selected) {
 		final String contentId = determineContentId(resource, disposition);
 		if (referenced.contains(contentId)) {
 			final ContentType type = MimeTypeUtil.parseOrDefault(resource.getDataSource().getContentType());
@@ -111,8 +168,8 @@ public class MimeMessageHelper {
 				return;
 			}
 			final String name = determineResourceFileName(resource, disposition);
-			selected.put('<' + contentId + '>', resource.toBuilder().withName(name)
-					.withContentId(contentId.equals(name) ? null : contentId).build());
+			selected.put('<' + contentId + '>', new ReplyOccurrence(resource.toBuilder().withName(name)
+					.withContentId(contentId.equals(name) ? null : contentId).build(), inspection));
 		}
 	}
 
@@ -190,7 +247,7 @@ public class MimeMessageHelper {
 		final MimeMessage headers = new MimeMessage(session);
 		setRecipients(email, headers);
 		for (final Map.Entry<String, Collection<String>> header : email.getHeaders().entrySet()) {
-			if (isRecipientHeader(header.getKey())) {
+			if ("Newsgroups".equalsIgnoreCase(header.getKey())) {
 				try {
 					setHeader(headers, header);
 				} catch (UnsupportedEncodingException invalidEncoding) {
@@ -200,10 +257,6 @@ public class MimeMessageHelper {
 		}
 		final Address[] recipients = headers.getAllRecipients();
 		return recipients == null ? new Address[0] : recipients;
-	}
-
-	private static boolean isRecipientHeader(final String name) {
-		return "To".equalsIgnoreCase(name) || "Cc".equalsIgnoreCase(name) || "Bcc".equalsIgnoreCase(name) || "Newsgroups".equalsIgnoreCase(name);
 	}
 
 	/** Keep display names MIME-encoded even when UTF-8 is enabled for internationalized mailbox addresses. */
@@ -349,7 +402,7 @@ public class MimeMessageHelper {
 
 		// add headers (for raw message headers we need to 'fold' them using MimeUtility
 		for (val header : email.getHeaders().entrySet()) {
-			setHeader(message, header);
+			if (OutgoingHeaderRoles.shouldEmit(email, header.getKey())) setHeader(message, header);
 		}
 
 		if (TRUE.equals(email.getUseDispositionNotificationTo())) {

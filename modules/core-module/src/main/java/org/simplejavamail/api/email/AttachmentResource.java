@@ -111,6 +111,29 @@ public class AttachmentResource implements Serializable {
 	}
 
 	/**
+	 * Library construction of a materialized received-resource view; retains the selected payload without opening it.
+	 * @hidden
+	 */
+	@org.jetbrains.annotations.ApiStatus.Internal
+	protected AttachmentResource(@NotNull final AttachmentResource selected) {
+		this.serializationFormatVersion = selected.serializationFormatVersion;
+		this.dataSource = selected.dataSource;
+		this.name = selected.name;
+		this.description = selected.description;
+		this.contentTransferEncoding = selected.contentTransferEncoding;
+		this.contentId = selected.contentId;
+		this.preEncodedContentTransferEncoding = selected.preEncodedContentTransferEncoding;
+	}
+
+	/**
+	 * Returns the already materialized independent attached message, or null when this resource has no parsed message view.
+	 * This getter performs no reading, parsing or cryptography. Editing a copy of the child does not replace this resource's payload;
+	 * explicitly select and replace the attachment to send an edited child. Ordinary resource reads and sending use the same selected payload.
+	 */
+	@Nullable
+	public Email getEmail() { return null; }
+
+	/**
 	 * Collects content and optional MIME metadata. Setting one content representation replaces the previous representation;
 	 * metadata choices remain unchanged. Construction never opens streams or probes files.
 	 * <p>Normal transfer encoding and already encoded content are distinct choices and cannot both be supplied.</p>

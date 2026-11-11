@@ -70,7 +70,6 @@ final class CliEmailInputFixture {
         if (option.equals("--email:clearTlsRequiredForOnwardDelivery")) {
             email.withSmtpDeliveryOptions(email.getSmtpDeliveryOptions().toBuilder().withTlsRequiredForOnwardDelivery().build());
         }
-        if (option.equals("--email:clearSMIMESignedAttachmentMergingBehavior")) { email.notMergingSingleSMIMESignedAttachment(); }
         if (option.equals("--email:clearEmailToForward")) {
             ((InternalEmailPopulatingBuilder) email).withForward(new MimeMessage(Session.getInstance(new Properties()),
                     new ByteArrayInputStream(CliConfigurationInputContractTest.EML)));
@@ -105,6 +104,19 @@ final class CliEmailInputFixture {
             case "startingBlank": assertThat(email.getSubject()).isNull(); assertThat(email.getRecipients()).isEmpty(); return;
             case "copying": assertThat(email.getSubject()).isEqualTo("CLI source"); assertThat(email.getPlainText()).contains("CLI source body"); return;
             case "forwarding": assertThat(email.getSubject()).contains("CLI source"); assertThat(email.getEmailToForward()).isSameAs(arguments.get(0)); return;
+            case "forwardingWithOptions":
+                assertThat(email.getSubject()).contains("CLI source");
+                assertThat(email.getEmailToForward()).isSameAs(arguments.get(0));
+                assertThat(((InternalEmailPopulatingBuilder) email).getConfidentialContentState().isUnencryptedContentAllowed())
+                        .isEqualTo(arguments.get(1));
+                return;
+            case "replyingWithOptions":
+                assertThat(email.getSubject()).contains("CLI source");
+                assertThat(email.getRecipients()).extracting(Recipient::getAddress).contains("source@example.test");
+                assertThat(email.getHTMLText()).contains("CLI quoted:", "CLI source body");
+                assertThat(((InternalEmailPopulatingBuilder) email).getConfidentialContentState().isUnencryptedContentAllowed())
+                        .isEqualTo(arguments.get(3));
+                return;
             case "replyingTo": case "replyingToAll": case "replyingToAllWithDefaultQuoteMarkup": case "replyingToSender": case "replyingToSenderWithDefaultQuoteMarkup":
                 assertThat(email.getSubject()).contains("CLI source"); assertThat(email.getRecipients()).extracting(Recipient::getAddress).contains("source@example.test"); return;
             case "withSubject": assertThat(email.getSubject()).isEqualTo(arguments.get(0)); return;
@@ -169,8 +181,6 @@ final class CliEmailInputFixture {
             case "ignoringOverridesYesNo": assertThat(email.getTemplateOptions().isIgnoreOverrides()).isTrue(); return;
             case "clearDefaultValueSuppressions": assertThat(email.getTemplateOptions().getPropertiesNotToApplyDefaultValueFor()).isNullOrEmpty(); return;
             case "clearOverrideValueSuppressions": assertThat(email.getTemplateOptions().getPropertiesNotToApplyOverrideValueFor()).isNullOrEmpty(); return;
-            case "notMergingSingleSMIMESignedAttachment": assertThat(email.isMergeSingleSMIMESignedAttachment()).isFalse(); return;
-            case "clearSMIMESignedAttachmentMergingBehavior": assertThat(email.isMergeSingleSMIMESignedAttachment()).isTrue(); return;
             case "clearDkim": assertThat(email.getDkimConfig()).isNull(); return;
             case "clearOpenPgp": assertThat(email.getOpenPgpSigningConfig()).isNull(); assertThat(email.getOpenPgpEncryptionConfig()).isNull(); return;
             case "clearOpenPgpSigning": assertThat(email.getOpenPgpSigningConfig()).isNull(); assertThat(email.getOpenPgpEncryptionConfig()).isNotNull(); return;

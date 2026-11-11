@@ -72,7 +72,8 @@ class FailoverScopeContractTest {
                 assertThat(delivery.getMimeMessage().getHeader("X-Relay")).containsExactly("selected");
             }
             assertThat(original.getFromRecipient()).isNull();
-            assertThat(original.getHeaders()).isEmpty();
+            assertThat(original.getHeaders()).containsEntry("To", List.of("receiver@example.test"))
+                    .doesNotContainKeys("From", "Bcc", "X-Relay");
             assertThat(original.getRecipients()).hasSize(1);
         } finally {
             inbox.afterEach(null);

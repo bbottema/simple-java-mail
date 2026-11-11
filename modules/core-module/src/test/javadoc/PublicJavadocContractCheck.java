@@ -31,6 +31,30 @@ public final class PublicJavadocContractCheck {
                 "getDeliveryStatusNotificationNotifyOptions");
         requireGetters("email/Recipients", "getRecipients", "getDefaultName", "getOverridingName");
         requireGetters("email/ContentTransferEncoding", "getEncoder");
+        requireGetters("email/Email", "getInspection");
+        requireGetters("email/AttachmentResource", "getEmail");
+        requireGetters("email/EmailInspection", "getPlainText", "getHTMLText", "getSubject", "getFromRecipient", "getToRecipients",
+                "getCcRecipients", "getBccRecipients", "getReplyToRecipients", "getBounceToRecipient", "getId", "getSentDate", "getCalendar",
+                "getSmime", "getOpenPgp", "getOriginalMessage");
+        requireText("email/EmailInspection", "id=\"getOriginalAttachment(int)\"");
+        requireGetters("email/ValueInspection", "getOrigin", "getDerivation", "getAvailability", "getSignatureStatus", "getEncryptionStatus",
+                "getSignatures", "getDecryptions", "isSignatureInspectionComplete");
+        requireGetters("email/ProtectionInspection", "getFamily", "isInspectionComplete", "getSignatures", "getDecryptions", "getSources");
+        requireGetters("email/SignatureInspection", "getObservation", "getCoverage");
+        requireGetters("email/SignatureObservation", "getReference", "getFamily", "getStatus", "getSignerName", "getSignerKeyId",
+                "getSigningKeyFingerprint", "getSignatureAlgorithm", "getHashAlgorithm", "getFailureReason", "getSources");
+        requireGetters("email/DecryptionInspection", "getReference", "getFamily", "getStatus", "getCoverage", "getEncryptionAlgorithm",
+                "getRecipientKeyIds", "getFailureReason", "getSources");
+        requireGetters("email/ProtectionCheck", "getOutcome", "isSatisfied", "getReasons");
+        requireGetters("email/ProtectionReason", "getCode", "getMessage", "getSources");
+        requireLinkedCompanions("email/ApprovedSigners.Builder", "getSmimeSigningKeyFingerprints", "getOpenPgpSigningKeyFingerprints",
+                "clearSmimeCertificates", "clearOpenPgpSigningKeyFingerprints");
+        requireLinkedCompanions("email/ProtectionRequirements.Builder", "getApprovedSigners", "isDecryptedContentRequired",
+                "isAllSignaturesVerifiedRequired", "clearVerifiedSignatureRequirement", "clearDecryptedContentRequirement",
+                "clearAllSignaturesVerifiedRequirement");
+        requireLinkedCompanions("email/ReplyOptions.Builder", "getQuotingTemplate", "resetQuotingTemplate", "isUnencryptedContentAllowed",
+                "resetUnencryptedContentAllowed");
+        requireLinkedCompanions("email/ForwardOptions.Builder", "isUnencryptedContentAllowed", "resetUnencryptedContentAllowed");
         requireGetters("mailer/MailSendRejectedException", "getReason");
         requireGetters("../MailException", "getKind", "getSubmissionReceipt");
         requireGetters("mailer/MailSubmissionReceipt", "isAcceptedForAtLeastOneRecipient", "isFullyAcceptedForSubmission");

@@ -2,7 +2,7 @@ package org.simplejavamail.internal.smimesupport;
 
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.converter.EmailConverter;
 
 import java.io.ByteArrayInputStream;
@@ -32,8 +32,8 @@ public class OpenSslSmimeInteroperabilityTest {
 		final Email email = EmailConverter.emlToEmail(new ByteArrayInputStream(wireMessage));
 
 		assertThat(email.getPlainText()).contains("OpenSSL independent body");
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(wireMessage);
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(wireMessage);
 	}
 
 	@Test
@@ -47,7 +47,7 @@ public class OpenSslSmimeInteroperabilityTest {
 				tampered.getBytes(StandardCharsets.ISO_8859_1)));
 
 		assertThat(email.getPlainText()).contains("OpenSSL compromised body");
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.INVALID);
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
 	}
 
 	private static byte[] readOpenSslFixture() throws Exception {

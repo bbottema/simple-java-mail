@@ -12,6 +12,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ConfigurationContractInventoryTest {
     @Test
+    void receivedRequirementsAndHelperOptionsHaveTheirOwnFiniteApplicationChoices() {
+        final Set<String> helpers = ConfigurationContractInventory.discoverFrom(List.of(org.simplejavamail.api.email.EmailStartingBuilder.class));
+        assertThat(helpers).contains("org.simplejavamail.api.email.ReplyOptions$Builder#withQuotingTemplate(java.lang.String):org.simplejavamail.api.email.ReplyOptions$Builder",
+                "org.simplejavamail.api.email.ForwardOptions$Builder#resetUnencryptedContentAllowed():org.simplejavamail.api.email.ForwardOptions$Builder");
+        final Set<String> checks = ConfigurationContractInventory.discoverFrom(List.of(org.simplejavamail.api.email.ProtectionRequirements.class));
+        assertThat(checks).contains("org.simplejavamail.api.email.ProtectionRequirements$Builder#requireDecryptedContent():org.simplejavamail.api.email.ProtectionRequirements$Builder",
+                "org.simplejavamail.api.email.ApprovedSigners$Builder#addSmimeCertificate(java.security.cert.X509Certificate):org.simplejavamail.api.email.ApprovedSigners$Builder")
+                .noneMatch(route -> route.contains("#check(") || route.contains("#getInspection("));
+    }
+
+    @Test
     void theImportGroupMakesItsValueBuilderAndCopyRouteReachable() {
         final String group = "org.simplejavamail.api.converter.config.ImportLimitsConfig";
         final String builder = group + "$Builder";

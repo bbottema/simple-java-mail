@@ -14,7 +14,7 @@ Pick one row, open its README and follow **Start here → Follow one job → Try
 | [event-communications](event-communications/README.md) | A business event drives customer communication | Kafka; RabbitMQ variation; PostgreSQL |
 | [mail-workflow](mail-workflow/README.md) | A process waits for later mail feedback | Temporal; Camunda variation |
 | [restartable-batch](restartable-batch/README.md) | An interrupted nightly run resumes its untouched remainder | Spring Batch, PostgreSQL |
-| [protected-partners](protected-partners/README.md) | A protected document needs a verified, byte-preserving archive | Apache Camel, S/MIME, local archive |
+| [protected-partners](protected-partners/README.md) | A received document needs approved protection before processing | Apache Camel, S/MIME, local archive |
 | [incoming-feedback](incoming-feedback/README.md) | Received mail facts feed an ordinary HTTP integration | Spring Integration |
 | [relaydesk](relaydesk/README.md) | Each customer needs an independently operated mail route | Unchanged article helpers, Java, PostgreSQL, authenticated SMTP |
 | [polar-meridian](polar-meridian/README.md) | Two dispatchers coordinate priorities, limits and protected archives | Unchanged Dispatcher/JDBC helpers, PostgreSQL; optional OpenTelemetry |

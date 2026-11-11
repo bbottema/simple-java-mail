@@ -11,7 +11,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.EmailConversionResult;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -175,7 +175,7 @@ class ConversionCancellationTest {
             modules.when(ModuleLoader::smimeModuleAvailable).thenReturn(false);
             final Email inspected = mail.converter().fromMimeMessage(message).toEmail();
             assertThat(inspected.getPlainText()).contains("readable body");
-            assertThat(inspected.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.UNKNOWN);
+            assertThat(inspected.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
             assertThat(message.failures).isEqualTo(1);
             assertThat(Thread.currentThread().isInterrupted()).isFalse();
         }

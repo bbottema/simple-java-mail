@@ -40,6 +40,12 @@ public interface EmailStartingBuilder {
 	 */
 	boolean DEFAULT_FETCH_ATTACHMENT_DATA = true;
 
+	/** Default permission for helper reuse of confidential content: protection is required.
+	 * @see ReplyOptions.Builder#withUnencryptedContentAllowed(boolean)
+	 * @see ForwardOptions.Builder#withUnencryptedContentAllowed(boolean)
+	 */
+	boolean DEFAULT_ALLOW_UNENCRYPTED_CONTENT = false;
+
 	/**
 	 * Used for replying to email, when quoting the original email. Matches the beginning of every line.
 	 * <p>
@@ -113,19 +119,43 @@ public interface EmailStartingBuilder {
 	ExactEmailBuilder startingFromExactEml(@NotNull Path emlPath);
 	
 	/**
-	 * Primes a reply to the sender from the composed Email's readable content, using the default HTML quoting template.
-	 * Outgoing protection is not applied while obtaining the quote. The original Email's protection and the reply's own protection choices
-	 * still apply during normal conversion or sending. Exact Email input retains its authoritative MIME/receive-side interpretation.
+	 * Primes a reply to the selected sender from the Email's readable content, using the default HTML quoting template and confidentiality safeguard.
+	 * Outgoing protection is not applied while obtaining the quote. The new reply needs its own outgoing protection choices when confidential
+	 * content is automatically included; it does not inherit the source's keys. Exact input retains its authoritative receive-side interpretation.
 	 *
-	 * @see #replyingTo(MimeMessage, boolean, String)
+	 * @see #replyingTo(Email, ReplyOptions)
 	 */
 	EmailPopulatingBuilder replyingTo(@NotNull Email email);
+
+	/**
+	 * Prepares a reply from the selected logical message, with the supplied quote and disclosure choices.
+	 * Quoted content remains readable/editable in the draft. Automatically reused content recovered from encryption requires suitable
+	 * outgoing encryption at finalized MIME/EML or sending, unless these options deliberately allow unencrypted output.
+	 * Permission never disables configured encryption. The new Subject uses a known public counterpart or a neutral subject when the
+	 * selected subject is confidential. Copies preserve this draft's choices; a new reply uses its own options.
+	 * Private received threading identifiers are not automatically exposed in the new outer headers; changing the current Message-ID
+	 * does not make retained private ancestry public. Explicitly replaced or cleared threading lists follow their new supplied choices.
+	 * If a recognized protected authored header view could not be read, automatic destinations and ancestry remain unresolved.
+	 * Readable content and a safe subject remain available; supply the reply's recipients explicitly.
+	 * @see ReplyOptions.Builder#withQuotingTemplate(String)
+	 * @see ReplyOptions.Builder#withUnencryptedContentAllowed(boolean)
+	 * @see EmailPopulatingBuilder#clearPlainText()
+	 * @see EmailPopulatingBuilder#clearHTMLText()
+	 */
+	@Cli.ExcludeApi(reason = "Operation options are supplied by the internal scalar CLI adapter")
+	EmailPopulatingBuilder replyingTo(@NotNull Email email, @NotNull ReplyOptions options);
 	
 	/**
 	 * Primes a reply-all from the composed Email's readable content, with the protection boundary of {@link #replyingTo(Email)}
 	 * and the default HTML quoting template.
 	 */
 	EmailPopulatingBuilder replyingToAll(@NotNull Email email);
+
+	/** Reply-all with the logical destinations and disclosure boundary of {@link #replyingTo(Email, ReplyOptions)}.
+	 * Selected To/Cc recipients follow the ordinary reply-all rules; Bcc recipients are not automatically added.
+	 */
+	@Cli.ExcludeApi(reason = "Operation options are supplied by the internal scalar CLI adapter")
+	EmailPopulatingBuilder replyingToAll(@NotNull Email email, @NotNull ReplyOptions options);
 	
 	/**
 	 * Primes a reply-all with a custom HTML quote, using the readable-content and protection boundary of {@link #replyingTo(Email)}.
@@ -147,6 +177,10 @@ public interface EmailStartingBuilder {
 	 */
 	@Cli.OptionNameOverride("replyingToSenderWithDefaultQuoteMarkup")
 	EmailPopulatingBuilder replyingTo(@NotNull MimeMessage message);
+
+	/** Converts the supplied message before deriving a reply using the logical view and options described by {@link #replyingTo(Email, ReplyOptions)}. */
+	@Cli.ExcludeApi(reason = "Operation options are supplied by the internal scalar CLI adapter")
+	EmailPopulatingBuilder replyingTo(@NotNull MimeMessage message, @NotNull ReplyOptions options);
 	
 	/**
 	 * Delegates to {@link #replyingTo(MimeMessage, boolean, String)} with replyToAll set to <code>false</code>.
@@ -179,6 +213,10 @@ public interface EmailStartingBuilder {
 	 */
 	@Cli.OptionNameOverride("replyingToAllWithDefaultQuoteMarkup")
 	EmailPopulatingBuilder replyingToAll(@NotNull MimeMessage message);
+
+	/** Converts the supplied message before deriving reply-all using the logical view and options described by {@link #replyingTo(Email, ReplyOptions)}. */
+	@Cli.ExcludeApi(reason = "Operation options are supplied by the internal scalar CLI adapter")
+	EmailPopulatingBuilder replyingToAll(@NotNull MimeMessage message, @NotNull ReplyOptions options);
 	
 	/**
 	 * Primes the email with subject, quoted content, headers, originally embedded images and recipients needed for a valid RFC reply.
@@ -212,9 +250,39 @@ public interface EmailStartingBuilder {
 	EmailPopulatingBuilder replyingTo(@NotNull MimeMessage emailMessage, boolean repyToAll, @NotNull String htmlTemplate);
 	
 	/**
-	 * Delegates to {@link #forwarding(MimeMessage)} with the provided {@link Email} converted to {@link MimeMessage}.
+	 * Constructs a new outer forward carrying the Email's current interpreted content, including edits and the ordinary selected
+	 * attachment payloads. This does not preserve input bytes or existing signature validity. Automatically included confidential content
+	 * requires suitable outgoing encryption at finalized output; use {@link #forwarding(Email, ForwardOptions)} for deliberate disclosure.
+	 * Internal reconstruction does not require inner encryption when suitable encryption will cover the completed outer message.
 	 */
 	EmailPopulatingBuilder forwarding(@NotNull Email email);
+
+	/** Interpreted forwarding with deliberate operation options.
+	 * @see #forwarding(Email)
+	 * @see ForwardOptions.Builder#withUnencryptedContentAllowed(boolean)
+	 */
+	@Cli.ExcludeApi(reason = "Operation options are supplied by the internal scalar CLI adapter")
+	EmailPopulatingBuilder forwarding(@NotNull Email email, @NotNull ForwardOptions options);
+
+	/**
+	 * Constructs a new outer forward with the complete retained original message as an attachment, preserving its captured format
+	 * (including EML versus native MSG), payload and protection. Edits to the represented Email do not change this historical payload.
+	 * EML originals use an encoded binary file carrier with their EML filename, so SMTP line handling cannot change the retained bytes.
+	 * Its carrier media type can therefore be {@code application/octet-stream}; the attached file remains the captured EML.
+	 * The outer subject uses a known public counterpart or a neutral subject when needed. Forwarding an encrypted original does not
+	 * grant a new recipient access. An intact encrypted original can be carried in an otherwise public outer message, but an original
+	 * extracted through a parent's encryption can itself contain confidential plaintext (including child-message headers). Such reused
+	 * original content still requires suitable outgoing encryption or explicit conversion-local disclosure permission. Signing alone
+	 * does not supply confidentiality. Copies/edits retain this original-input obligation; explicitly removing the attachment removes it.
+	 * For known confidential reuse, new carrier filename/description/Content-ID metadata is neutralized while retained original bytes,
+	 * format and inspection metadata stay unchanged. The new sender and recipients remain
+	 * caller/governance choices; this is not exact SMTP relay.
+	 * @throws IllegalStateException If complete appropriate original input was not retained; no reconstructed fallback is substituted.
+	 * @see EmailInspection#getOriginalMessage()
+	 * @see org.simplejavamail.api.converter.ConfiguredEmailConverter.EmailConversion#allowUnencryptedContent()
+	 */
+	@Cli.ExcludeApi(reason = "Requires an Email with captured original input rather than a caller-supplied MIME object")
+	EmailPopulatingBuilder forwardingOriginal(@NotNull Email email);
 	
 	/**
 	 * Primes the email to be build with proper subject and include the forwarded email as "message/rfc822" bodypart (valid RFC forward).
@@ -232,6 +300,13 @@ public interface EmailStartingBuilder {
 	 * @see EmailPopulatingBuilder#clearEmailToForward()
 	 */
 	EmailPopulatingBuilder forwarding(@NotNull MimeMessage message);
+
+	/** Caller-supplied MIME forwarding with deliberate disclosure choices; no original-wire-byte claim is made.
+	 * @see #forwarding(MimeMessage)
+	 * @see #forwarding(Email, ForwardOptions)
+	 */
+	@Cli.ExcludeApi(reason = "Operation options are supplied by the internal scalar CLI adapter")
+	EmailPopulatingBuilder forwarding(@NotNull MimeMessage message, @NotNull ForwardOptions options);
 	
 	/**
 	 * Delegates to {@link #copying(Email)}, by converting the provided message first.
@@ -263,14 +338,13 @@ public interface EmailStartingBuilder {
 	 * destinations. Editing the copy leaves the original Email unchanged; ordinary defaults, overrides and mandatory locks still apply later.
 	 * <p>
 	 * Attachment content remains borrowed. Copying an exact Email starts editable composition rather than preserving its authoritative MIME bytes.
-	 * Neither original byte identity nor the validity of already applied signatures is guaranteed. Copying does not automatically remove or
-	 * re-sign old signatures. Reuse the original exact Email for unchanged resubmission. To construct a new exact envelope, use
+	 * Neither original byte identity nor the validity of already applied signatures is guaranteed. Copying retains their received evidence;
+	 * reconstructed MIME omits obsolete delivery/authentication signature headers and uses separately configured outgoing protection.
+	 * Reuse the original exact Email for unchanged resubmission. To construct a new exact envelope, use
 	 * {@link #startingFromExactEml(byte[])} with the authoritative finalized input and supply explicit envelope recipients on the exact builder.
-	 * A merged S/MIME message supplies its complete visible bodies, headers and resource occurrences to the new builder. Later replacements,
-	 * clears, additions and encoding choices lead; retained signed-content history cannot undo them during {@link EmailPopulatingBuilder#buildEmail()}.
-	 * Disabling merging on this materialized copy does not strip visible content. For a previously unmerged copy,
-	 * {@link EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior()} explicitly integrates the retained inner view once at that call;
-	 * subsequent edits lead. Repeated copies or merge resets do not re-add resources already represented by the copied message.
+	 * Unchanged selected fields retain their incoming inspection associations; an explicit setter replaces that field's current evidence,
+	 * even when the supplied value compares equal. Complete retained originals remain historical input after edits. Helper-derived
+	 * confidentiality requirements and deliberate draft permission survive copying independently from incoming protection facts.
 	 *
 	 * @see EmailPopulatingBuilder#clearOverrideReceivers()
 	 * @throws IllegalArgumentException If the Email was constructed directly or through an unsupported application subclass instead of the library's builder.

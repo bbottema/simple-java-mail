@@ -67,7 +67,7 @@ Match the port and transport strategy to your SMTP service. In an application, b
 Spring manages that lifecycle for its Mailer bean. The standalone example above uses try-with-resources.
 
 To change a built message, use `mail.emailBuilder().copying(email)` and build a replacement. Copies retain test-inbox routing and other metadata;
-later builder edits take precedence over the copied content, including content imported from a merged S/MIME message.
+later builder edits take precedence over the copied content, including content interpreted from protected input.
 
 ## Add HTML and attachments
 
@@ -337,7 +337,7 @@ Use `simplejavamail.defaults.sendtoacceptedrecipients` for a default, or `simple
 
 For individual replies, inspect `receipt.getRecipientResults()`: each result retains the envelope address, its RCPT reply (including an optional enhanced status such as `4.2.0`), and its final submission disposition. A positive RCPT reply is not final message acceptance. `receipt.getRetryDisposition()` distinguishes known-safe retry candidates from permanent rejection, missing provider facts, and duplicate risk; `getRetryableRecipients()` returns candidates only for the safe-to-retry dispositions. These are inputs to your retry policy, not an automatic resend facility. The existing accepted/unsent/invalid lists remain available.
 
-Logging-only receipts describe the prepared recipient intent, including raw recipient headers and delivery overrides, with unknown acceptance and no SMTP replies. A CustomMailer receipt captures that intent before your callback; your implementation owns its external delivery mapping. If raw headers cannot be parsed, the receipt keeps the existing typed recipient view.
+Logging-only receipts describe the prepared recipient intent, including typed destinations and delivery overrides, with unknown acceptance and no SMTP replies. Generic To, Cc and Bcc setters update the same typed lists. A CustomMailer receipt captures that intent before your callback; your implementation owns its external delivery mapping. If the finalized MIME recipient view cannot be read, the receipt keeps the existing typed recipient view.
 
 For cross-cutting audit and metrics code, configure one terminal observer on the reusable `Mailer`:
 
@@ -419,9 +419,9 @@ MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
 
 The result remains an ordinary `Email`, so all getters and all existing send methods still apply. Its body and header getters keep the original parsed view; sending, conversion, and rehearsal use the copied input bytes unchanged. Exact mode bypasses defaults, overrides, composed-content validation, embedded-image resolution, MIME rebuilding, and outgoing signing or encryption.
 
-The existing S/MIME and OpenPGP getters automatically report protection facts established during construction. Unavailable or inconclusive inspection leaves unestablished results `UNKNOWN`; precise results that were established remain available. When constructing from the original EML, missing optional modules do not by themselves prevent relay. This inspection neither opens a new editable content view nor changes the authoritative EML; use ordinary conversion when supplying receive keys or reading unwrapped content.
+`getInspection().getSmime()` and `getInspection().getOpenPgp()` report captured incoming observations, and the named field/resource inspections describe their actual coverage. Unavailable or inconclusive inspection leaves unestablished facts unknown; precise facts that were established remain available. When constructing from original EML, missing optional modules do not by themselves prevent relay. This inspection neither opens a new editable content view nor changes the authoritative EML; use ordinary conversion when supplying receive keys or reading unwrapped content.
 
-A Java snapshot still needs the classes and modules stored in its object graph when restored. S/MIME inspection results produced by the optional module can require that module's result classes. Retain the original EML for relay independently of those optional-module classes.
+A Java snapshot still needs the classes and modules stored in its object graph when restored. Current source/protection observations are core-owned, while other parts of a whole Email graph or older snapshots can still require optional producer classes; broader snapshot portability remains separate work. Retain original EML for relay independently of that graph.
 
 Exact mode also retains headers normally removed during submission—including `Bcc`, `Resent-Bcc`, and `Content-Length`—so supply an already safe outbound message and always provide the real SMTP-envelope recipients separately. Copying this `Email` through the normal builder intentionally returns to composed-email behavior.
 
@@ -453,16 +453,59 @@ Choose a source and target with `mail.converter().fromEml(emlPath).toEmail()`, o
 The same entry point covers Email, MimeMessage, EML and Outlook sources, with receive-side options and direct MIME/EML routes.
 Existing static conversion methods remain available; see [conversion examples](https://www.simplejavamail.org/features.html#section-converting).
 
-Inspect imperfect received mail through the same Email: usable content stays in the normal getters, while retained originals and processing
-problems explain what could not be interpreted or differs from the received content:
+Inspect imperfect received mail through the same Email. Supported incoming decryption makes selected body/file content usable through
+ordinary getters; an independent attached message remains one attachment with its own passive child view. Inspection explains the exact
+selected value's source and protection, while retained originals and Problems explain available history and processing limitations:
 
 ```java
-Email received = mail.converter().fromEml(emlBytes).toEmail();
-received.getAttachments();              // successfully represented attachments
-received.getSourceData().getHeaders();  // received header occurrences, including outgoing exclusions
-received.getSourceData().getParts();    // source structure and selectively retained original content
-received.getProblems();                 // actual processing issues, with original input identity
+Email received = mail.converter().fromEml(emlBytes)
+    .withSmimeDecryption(recipientKeys)
+    .toEmail();
+int documentIndex = findRequiredDocument(received.getAttachments()); // application choice
+received.getInspection().getAttachment(documentIndex); // metadata without another read
+received.getInspection().getOriginalMessage();      // complete retained EML/MSG input, or null
+received.getInspection().getOriginalAttachment(documentIndex); // original of the selected file, or null
+received.getSourceData().getHeaders();              // captured header occurrences and other source history
+received.getProblems();                            // actual processing issues, with original input identity
 ```
+
+Choose the document occurrence your application expects. To require a verified partner signature and content recovered from encryption,
+initialize approved keys from application configuration and check that selected document:
+
+```java
+ApprovedSigners partner = ApprovedSigners.builder()
+    .addSmimeCertificate(configuredPartnerCertificate)
+    .build();
+ProtectionRequirements requirements = ProtectionRequirements.builder()
+    .requireVerifiedSignatureFrom(partner)
+    .requireDecryptedContent()
+    .build();
+ProtectionCheck check = requirements.check(received.getInspection().getAttachment(documentIndex));
+if (check.isSatisfied()) {
+    processDocument(received.getAttachments().get(documentIndex).readAllBytes());
+} else {
+    holdForReview(check.getOutcome(), check.getReasons());
+}
+```
+
+These are application decisions over already captured evidence. Parsing successfully, a claimed From address or decrypting content does
+not approve a signer. Unavailable verification/coverage can be indeterminate; a signature covering one body alternative does not protect
+native fallback HTML or an independent child by implication. See the [receiving security workflow](https://www.simplejavamail.org/security.html#section-inspecting-received-protection).
+
+Family lists retain historical observations from this source and its directly opened attachment payloads; they exclude independent child
+Email body layers. A file signature appearing there does not sign the parent's plain text. Check the exact consumed field or attachment
+through its `ValueInspection` rather than treating a family list as a whole-message verdict.
+
+`forwarding(received)` renders the current interpreted view. `forwardingOriginal(received)` attaches complete retained input in its actual
+format and fails when no complete original is available. Replies/forwards automatically reusing confidential content require suitable
+outgoing encryption by default. `ReplyOptions.allowUnencryptedContent()` / `ForwardOptions.allowUnencryptedContent()` deliberately permit
+it on their corresponding reply/interpreted-forward draft; `mail.converter().fromEmail(draft).allowUnencryptedContent().toEmlBytes()` permits only that conversion and leaves the
+draft's later send protected by the default rule. Neither permission disables configured encryption, and safe outer subjects remain safe.
+
+Original forwarding also needs outgoing protection when a child's retained original was extracted from confidential parent content and
+does not contain the parent's encryption. A child's body encryption can still leave ancestor-private outer headers exposed; signing alone
+does not provide confidentiality. An intact root encrypted original remains protected by the envelope it actually carries. Generated carrier
+names, descriptions and Content-IDs stay neutral when confidential, while inspection preserves the original resource's actual metadata.
 
 Original RTF remains available when an Outlook body becomes HTML; an expected successful conversion does not itself create a Problem.
 If a malformed Sender supplies the existing fallback for a missing From, its recovery Problem points to that received Sender header.
@@ -476,6 +519,10 @@ a Problem linked to the affected part. Completed report facts can still be inspe
 Ordinary copies and later edits preserve captured sources and each problem's original Message-ID/reference. For EML bytes, text or
 MimeMessage outputs, optional result terminals such as `toEmlBytesResult()` return diagnostics alongside the artifact. Source content is
 not automatically included in outgoing mail. See [source inspection](https://www.simplejavamail.org/features.html#section-source-inspection).
+
+Defaults/overrides completion retains the submitted draft's source history and unchanged selected associations. Replaced values have
+caller-supplied/unknown incoming facts; templates cannot supply received proof or disclosure permission. Retained input verification
+does not verify the newly rendered output.
 
 Choose [Tactical Patterns](https://www.simplejavamail.org/email-workload-field-guide.html) for a focused sending problem, or
 [Strategic Patterns](https://www.simplejavamail.org/strategic-patterns.html) for runnable applications integrating jobs, brokers, workflows,

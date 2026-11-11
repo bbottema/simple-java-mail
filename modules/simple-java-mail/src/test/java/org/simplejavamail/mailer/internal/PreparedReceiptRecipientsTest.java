@@ -8,11 +8,13 @@ import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
+import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.Arguments;
@@ -49,6 +51,7 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.net.ConnectException;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -73,6 +76,8 @@ public class PreparedReceiptRecipientsTest {
     private static final String ALICE = "alice@example.org";
     private static final String BOB = "bob@example.org";
     private static final String GROUP = "Team: one@example.org, two@example.org;";
+    private static final DkimConfig SIGNING_FIXTURE = DkimConfig.builder().dkimPrivateKeyData("unused-test-key")
+            .dkimSigningDomain("example.org").dkimSelector("test").build();
     private static final AtomicInteger TRANSPORTS = new AtomicInteger();
     private static final AtomicInteger FAILED_CONNECTIONS = new AtomicInteger();
 
@@ -99,10 +104,10 @@ public class PreparedReceiptRecipientsTest {
 
     private static Stream<Arguments> recipientProjections() {
         final List<Projection> projections = List.of(
-                new Projection("raw To", message().withHeader("To", BOB).buildEmail(), List.of(ALICE, BOB)),
-                new Projection("raw Cc", message().withHeader("Cc", BOB).buildEmail(), List.of(ALICE, BOB)),
-                new Projection("raw Bcc", message().withHeader("Bcc", BOB).buildEmail(), List.of(ALICE, BOB)),
-                new Projection("all raw categories", message().withHeader("Bcc", "hidden@example.org")
+                new Projection("generic To", message().withHeader("To", BOB).buildEmail(), List.of(ALICE, BOB)),
+                new Projection("generic Cc", message().withHeader("Cc", BOB).buildEmail(), List.of(ALICE, BOB)),
+                new Projection("generic Bcc", message().withHeader("Bcc", BOB).buildEmail(), List.of(ALICE, BOB)),
+                new Projection("all generic categories", message().withHeader("Bcc", "hidden@example.org")
                         .withHeader("To", BOB).withHeader("Cc", "copy@example.org").buildEmail(),
                         List.of(ALICE, BOB, "copy@example.org", "hidden@example.org")),
                 new Projection("interleaved typed categories", message().bcc("hidden@example.org")
@@ -110,12 +115,13 @@ public class PreparedReceiptRecipientsTest {
                         List.of(ALICE, "last@example.org", "copy@example.org", "hidden@example.org")),
                 new Projection("duplicate occurrences", message().bcc(ALICE).cc(ALICE).to(ALICE)
                         .withHeader("Cc", ALICE).buildEmail(), List.of(ALICE, ALICE, ALICE, ALICE, ALICE)),
-                new Projection("raw group stays one entry", message().withHeader("Cc", GROUP).buildEmail(), List.of(ALICE, GROUP)),
+                new Projection("generic group expands", message().withHeader("Cc", GROUP).buildEmail(),
+                        List.of(ALICE, "one@example.org", "two@example.org")),
                 new Projection("convenience group uses its normal expansion", message().cc(GROUP).buildEmail(),
                         List.of(ALICE, "one@example.org", "two@example.org")),
                 new Projection("receipt inspection does not bind provider DSN preferences", message()
                         .withRecipients(new Recipient(null, "notify@example.org", TO, null, Set.of(NotifyOption.FAILURE)))
-                        .withHeader("Cc", BOB).buildEmail(), List.of(ALICE, "notify@example.org", BOB)),
+                        .withHeader("Newsgroups", "example.discussion").buildEmail(), Arrays.asList(ALICE, "notify@example.org", null)),
                 new Projection("explicit delivery override", message().withHeader("Cc", BOB)
                         .withOverrideReceivers(override("second@example.org"), override("first@example.org"), override("second@example.org"))
                         .buildEmail(), List.of("second@example.org", "first@example.org", "second@example.org")));
@@ -273,32 +279,29 @@ public class PreparedReceiptRecipientsTest {
     }
 
     @ParameterizedTest
-    @EnumSource(Mode.class)
-    void malformedRawHeadersDoNotAddAReceiptValidationGate(final Mode mode) throws Exception {
+    @CsvSource({"LOGGING_ONLY, false", "LOGGING_ONLY, true", "CUSTOM, false", "CUSTOM, true"})
+    void unreadablePreparedRecipientHeadersPreserveFallbackAndExplicitOverrides(final Mode mode, final boolean deliveryOverride) throws Exception {
+        final String malformedCc = "broken <";
+        final AtomicInteger securityPasses = new AtomicInteger();
+        final EmailPopulatingBuilder draft = message().signWithDomainKey(SIGNING_FIXTURE);
+        if (deliveryOverride) {
+            draft.withOverrideReceivers(override("delivery@example.org"), override("delivery@example.org"));
+        }
         final RecordingCustomMailer custom = new RecordingCustomMailer() {
             @Override protected void receive(final MimeMessage message) throws MessagingException {
-                assertThat(message.getHeader("Cc", null)).isEqualTo("broken <");
+                assertThat(message.getHeader("Cc", null)).isEqualTo(malformedCc);
+                assertThatThrownBy(message::getAllRecipients).isInstanceOf(AddressException.class);
             }
         };
-        try (Mailer mailer = builder(mode, custom).buildMailer()) {
-            final MailSubmissionReceipt receipt = mailer.sync().sendMail(message().withHeader("Cc", "broken <").buildEmail());
-            assertRecipients(receipt, List.of(ALICE));
+        final DKIMModule dkim = signingModuleWithCc(malformedCc, securityPasses);
+        try (Mailer mailer = builder(mode, custom).buildMailer();
+             MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+            modules.when(ModuleLoader::loadDKIMModule).thenReturn(dkim);
+            final MailSubmissionReceipt receipt = mailer.sync().sendMail(draft.buildEmail());
+            assertRecipients(receipt, deliveryOverride ? List.of("delivery@example.org", "delivery@example.org") : List.of(ALICE));
             assertUnknownFacts(receipt);
         }
-        assertThat(custom.calls.get()).isEqualTo(mode == Mode.CUSTOM ? 1 : 0);
-        assertThat(TRANSPORTS.get()).isZero();
-    }
-
-    @ParameterizedTest
-    @EnumSource(Mode.class)
-    void deliveryOverridesDoNotRequireParsingUnusedRawRecipientHeaders(final Mode mode) throws Exception {
-        final RecordingCustomMailer custom = new RecordingCustomMailer();
-        try (Mailer mailer = builder(mode, custom).buildMailer()) {
-            final MailSubmissionReceipt receipt = mailer.sync().sendMail(message().withHeader("Cc", "broken <")
-                    .withOverrideReceivers(override("delivery@example.org"), override("delivery@example.org")).buildEmail());
-            assertRecipients(receipt, List.of("delivery@example.org", "delivery@example.org"));
-            assertUnknownFacts(receipt);
-        }
+        assertThat(securityPasses.get()).isEqualTo(1);
         assertThat(custom.calls.get()).isEqualTo(mode == Mode.CUSTOM ? 1 : 0);
         assertThat(TRANSPORTS.get()).isZero();
     }
@@ -324,18 +327,9 @@ public class PreparedReceiptRecipientsTest {
     @ParameterizedTest
     @EnumSource(Mode.class)
     void receiptReusesRecipientsFromTheOneCompletedSecurityPass(final Mode mode) throws Exception {
-        final Email email = message().withHeader("Cc", BOB)
-                .signWithDomainKey(DkimConfig.builder().dkimPrivateKeyData("unused-test-key")
-                        .dkimSigningDomain("example.org").dkimSelector("test").build()).buildEmail();
+        final Email email = message().withHeader("Cc", BOB).signWithDomainKey(SIGNING_FIXTURE).buildEmail();
         final AtomicInteger securityPasses = new AtomicInteger();
-        final DKIMModule dkim = mock(DKIMModule.class);
-        when(dkim.signMessageWithDKIM(any(Email.class), any(MimeMessage.class), any(DkimConfig.class), any(Recipient.class)))
-                .thenAnswer(invocation -> {
-                    assertThat(securityPasses.incrementAndGet()).isEqualTo(1);
-                    final MimeMessage message = invocation.getArgument(1);
-                    message.setHeader("Cc", "security-adjusted@example.org");
-                    return FinalizedMimeMessage.finalizeMessage(message, FINAL_WIRE_SIGNED);
-                });
+        final DKIMModule dkim = signingModuleWithCc("security-adjusted@example.org", securityPasses);
         try (Mailer mailer = builder(mode, new RecordingCustomMailer()).buildMailer();
              MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::loadDKIMModule).thenReturn(dkim);
@@ -345,6 +339,18 @@ public class PreparedReceiptRecipientsTest {
         }
         assertThat(securityPasses.get()).isEqualTo(1);
         assertThat(TRANSPORTS.get()).isZero();
+    }
+
+    private static DKIMModule signingModuleWithCc(final String cc, final AtomicInteger securityPasses) {
+        final DKIMModule dkim = mock(DKIMModule.class);
+        when(dkim.signMessageWithDKIM(any(Email.class), any(MimeMessage.class), any(DkimConfig.class), any(Recipient.class)))
+                .thenAnswer(invocation -> {
+                    assertThat(securityPasses.incrementAndGet()).isEqualTo(1);
+                    final MimeMessage message = invocation.getArgument(1);
+                    message.setHeader("Cc", cc);
+                    return FinalizedMimeMessage.finalizeMessage(message, FINAL_WIRE_SIGNED);
+                });
+        return dkim;
     }
 
     @ParameterizedTest

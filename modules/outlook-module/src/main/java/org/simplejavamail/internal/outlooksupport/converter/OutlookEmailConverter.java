@@ -12,7 +12,6 @@ import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeUtility;
-import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.AttachmentResource;
@@ -20,6 +19,9 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.ValueDerivation;
+import org.simplejavamail.internal.email.ParsedAttachmentResource;
+import org.simplejavamail.internal.converter.ImportedSentDateParser;
 import org.simplejavamail.api.internal.general.EmailPopulatingBuilderFactory;
 import org.simplejavamail.api.internal.general.HeadersToIgnoreWhenParsingExternalEmails;
 import org.simplejavamail.api.internal.general.MessageHeader;
@@ -42,8 +44,6 @@ import java.io.InputStream;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
@@ -52,6 +52,9 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.IdentityHashMap;
 import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.regex.Pattern;
 import jakarta.activation.DataSource;
 
 import static jakarta.mail.Message.RecipientType.BCC;
@@ -69,6 +72,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class OutlookEmailConverter implements OutlookModule {
 
 	private static final Logger LOGGER = getLogger(OutlookEmailConverter.class);
+	// Match the mode selection of the reader's OutlookRtfToHtmlConverter, without converting the RTF again.
+	private static final Pattern ENCAPSULATED_HTML = Pattern.compile("\\\\fromhtml\\d*\\b");
+	private static final Pattern ENCAPSULATED_TEXT = Pattern.compile("\\\\fromtext\\b");
 
 	@Override
 	public EmailFromOutlookMessage outlookMsgToEmailBuilder(
@@ -139,7 +145,7 @@ public class OutlookEmailConverter implements OutlookModule {
 			builder.from(importedRecipient(outlookMessage.getFromName(), fromEmail));
 		}
 		builder.fixingMessageId(outlookMessage.getMessageId());
-		final Date sentDate = ofNullable(outlookMessage.getClientSubmitTime()).orElseGet(outlookMessage::getDate);
+		final Date sentDate = statedSentDate(outlookMessage);
 		if (sentDate != null) {
 			builder.fixingSentDate(sentDate);
 		}
@@ -149,12 +155,14 @@ public class OutlookEmailConverter implements OutlookModule {
 		copyReceiversFromOutlookMessage(builder, outlookMessage);
 		builder.withSubject(outlookMessage.getSubject());
         final String plain = outlookMessage.getBodyText();
-        final String html = outlookMessage.getBodyHTML() != null ? outlookMessage.getBodyHTML() : outlookMessage.getConvertedBodyHTML();
+        final String html = selectedHtml(outlookMessage);
         if (admitBody(traversal, "plain", plain)) builder.withPlainText(plain);
         if (admitBody(traversal, "html", html)) builder.withHTMLText(html);
 		
         final Map<OutlookAttachment, Integer> nativeAttachmentIndices = admittedAttachments(outlookMessage, traversal);
-		final Map<String, OutlookFileAttachment> cidMap = referencedImages(outlookMessage, internalEmailConverter, nativeAttachmentIndices);
+		final Set<String> ambiguousContentIds = new LinkedHashSet<>();
+		final Map<String, OutlookFileAttachment> cidMap = referencedImages(outlookMessage, internalEmailConverter,
+				nativeAttachmentIndices, ambiguousContentIds);
 		for (final Map.Entry<String, OutlookFileAttachment> cid : cidMap.entrySet()) {
 			final String contentId = verifyNonnullOrEmpty(extractCID(checkNonEmptyArgument(cid.getKey(), "cid.key")));
 			final OutlookFileAttachment attachment = cid.getValue();
@@ -165,11 +173,13 @@ public class OutlookEmailConverter implements OutlookModule {
 			if (valueNullOrEmpty(attachmentName)) {
 				attachmentName = contentId;
 			}
-			builder.withEmbeddedImage(AttachmentResource.builder()
+			final AttachmentResource resource = AttachmentResource.builder()
 					.withName(attachmentName)
 					.withData(attachment.getData(), attachmentMimeType(attachment))
 					.withContentId(contentId)
-					.build());
+					.build();
+			builder.withEmbeddedImage(resource);
+			attachmentSourceIndices.put(resource.getDataSource(), nativeAttachmentIndices.get(attachment));
 		}
 		for (final OutlookFileAttachment attachment : ordinaryAttachments(outlookMessage, cidMap, nativeAttachmentIndices)) {
 			String attachmentName = ofNullable(attachment.getLongFilename()).orElse(attachment.getFilename());
@@ -189,8 +199,9 @@ public class OutlookEmailConverter implements OutlookModule {
                     continue;
                 }
 				final OutlookMessage nestedMsg = ((OutlookMsgAttachment) attachment).getOutlookMessage();
-				final Email email = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg, builderFactory, internalEmailConverter, nestedScope)
-						.getEmailBuilder().buildEmail();
+				final EmailFromOutlookMessage nativeChild = buildEmailFromOutlookMessage(builderFactory.create(), nestedMsg,
+						builderFactory, internalEmailConverter, nestedScope);
+				final Email email = internalEmailConverter.completeOutlookChild(nativeChild, nestedScope);
 				if (hasNoMimeContent(email)) {
 					// Some Exchange delivery receipts contain a nominal .msg attachment without any MIME body.
 					// It could not be serialized before MIME finalization became eager, so retain that behavior explicitly.
@@ -199,7 +210,11 @@ public class OutlookEmailConverter implements OutlookModule {
 				final MimeMessage message = internalEmailConverter.emailToMimeMessage(email);
 				try {
 					final byte[] mimedata = internalEmailConverter.mimeMessageToEMLByteArray(message);
-					builder.withAttachment(nestedMsg.getSubject() + ".eml", new ByteArrayDataSource(mimedata, "message/rfc822"));
+					final AttachmentResource resource = ParsedAttachmentResource.withEmail(AttachmentResource.builder()
+							.withName(nestedMsg.getSubject() + ".eml")
+							.withData(mimedata, "message/rfc822").build(), email);
+					builder.withAttachment(resource);
+					attachmentSourceIndices.put(resource.getDataSource(), i);
 				} catch (IllegalStateException e) {
 					boolean reasonIsEmptyMessage = e.getCause() instanceof MessagingException && e.getCause().getMessage().equals("No MimeMessage content");
 					if (!reasonIsEmptyMessage) throw e;
@@ -213,6 +228,8 @@ public class OutlookEmailConverter implements OutlookModule {
 			.emailBuilder(builder)
 			.outlookMessage(new OutlookMessageProxy(outlookMessage))
 			.outlookMessageData(extractOutlookMessageData(outlookMessage))
+			.htmlDerivation(htmlDerivation(outlookMessage))
+			.ambiguousContentIds(ambiguousContentIds)
 			.attachmentSourceIndices(attachmentSourceIndices)
 			.build();
 	}
@@ -239,48 +256,43 @@ public class OutlookEmailConverter implements OutlookModule {
 
 	@NotNull
 	private static Map<String, OutlookFileAttachment> referencedImages(final OutlookMessage message, final InternalEmailConverter converter,
-            final Map<OutlookAttachment, Integer> admitted) {
-		final Map<String, OutlookFileAttachment> selected = new HashMap<>();
-		final String nativeHtml = message.getBodyHTML();
-		final String html = !valueNullOrEmpty(nativeHtml) ? nativeHtml : message.getConvertedBodyHTML();
-		if (!valueNullOrEmpty(html)) {
-			final Set<String> references = converter.referencedContentIds(html);
-			for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
-                if (!admitted.containsKey(attachment)) break;
-				if (attachment instanceof OutlookFileAttachment) {
-					final OutlookFileAttachment file = (OutlookFileAttachment) attachment;
-					if (file.getData().length != 0 && !selectReferencedImage(selected, references, file, file.getContentId())
-							&& !selectReferencedImage(selected, references, file, file.getFilename())) {
-						selectReferencedImage(selected, references, file, file.getLongFilename());
-					}
+			final Map<OutlookAttachment, Integer> admitted, final Set<String> ambiguous) {
+		final Map<String, OutlookFileAttachment> selected = new LinkedHashMap<>();
+		final String html = selectedHtml(message);
+		if (html == null || html.isEmpty()) return selected;
+		final Set<String> references = converter.referencedContentIds(html);
+		final Map<String, List<OutlookFileAttachment>> candidates = new LinkedHashMap<>();
+		for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
+			if (!admitted.containsKey(attachment)) break;
+			if (attachment instanceof OutlookFileAttachment) {
+				final OutlookFileAttachment file = (OutlookFileAttachment) attachment;
+				if (file.getData().length != 0) {
+					final String reference = preferredReference(file, references);
+					if (reference != null) candidates.computeIfAbsent(reference, ignored -> new ArrayList<>()).add(file);
 				}
 			}
+		}
+		for (final Map.Entry<String, List<OutlookFileAttachment>> entry : candidates.entrySet()) {
+			if (entry.getValue().size() == 1) selected.put(entry.getKey(), entry.getValue().get(0));
+			else ambiguous.add(entry.getKey());
 		}
 		return selected;
 	}
 
-	private static boolean selectReferencedImage(final Map<String, OutlookFileAttachment> selected, final Set<String> references,
-			final OutlookFileAttachment attachment, @Nullable final String candidate) {
-		if (!valueNullOrEmpty(candidate) && references.contains(candidate)) {
-			selected.put(candidate, attachment);
-			return true;
-		}
-		return false;
+	@Nullable
+	private static String preferredReference(final OutlookFileAttachment file, final Set<String> references) {
+		if (references.contains(file.getContentId())) return file.getContentId();
+		if (references.contains(file.getFilename())) return file.getFilename();
+		if (references.contains(file.getLongFilename())) return file.getLongFilename();
+		return null;
 	}
 
 	private static List<OutlookFileAttachment> ordinaryAttachments(final OutlookMessage message,
 			final Map<String, OutlookFileAttachment> cidMap, final Map<OutlookAttachment, Integer> admitted) {
-		// Retain the specialist parser's existing set/collision semantics instead of introducing a new occurrence or ordering policy.
-        final List<OutlookAttachment> selected = new ArrayList<>();
-        for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
-            if (!admitted.containsKey(attachment)) break;
-            selected.add(attachment);
-        }
-		final Set<OutlookAttachment> remaining = new HashSet<>(selected);
-		remaining.removeAll(cidMap.values());
 		final List<OutlookFileAttachment> files = new ArrayList<>();
-		for (final OutlookAttachment attachment : remaining) {
-			if (attachment instanceof OutlookFileAttachment) {
+		for (final OutlookAttachment attachment : message.getOutlookAttachments()) {
+			if (!admitted.containsKey(attachment)) break;
+			if (attachment instanceof OutlookFileAttachment && cidMap.values().stream().noneMatch(selected -> selected == attachment)) {
 				files.add((OutlookFileAttachment) attachment);
 			}
 		}
@@ -319,7 +331,33 @@ public class OutlookEmailConverter implements OutlookModule {
 			.propertiesAsHex(outlookMessage.getPropertiesAsHex())
 			.propertyCodes(outlookMessage.getPropertyCodes())
 			.propertyListing(outlookMessage.getPropertyListing())
+			.bodyHTML(outlookMessage.getBodyHTML())
+			.bodyRTF(outlookMessage.getBodyRTF())
 			.build();
+	}
+
+	@Nullable
+	private static String selectedHtml(final OutlookMessage message) {
+		return message.getBodyHTML() != null ? message.getBodyHTML() : message.getConvertedBodyHTML();
+	}
+
+	private static ValueDerivation htmlDerivation(final OutlookMessage message) {
+		if (message.getBodyHTML() != null) return ValueDerivation.NATIVE_HTML;
+		if (message.getConvertedBodyHTML() == null || message.getBodyRTF() == null) return ValueDerivation.UNKNOWN;
+		if (ENCAPSULATED_HTML.matcher(message.getBodyRTF()).find()) return ValueDerivation.RTF_ENCAPSULATED_HTML;
+		if (ENCAPSULATED_TEXT.matcher(message.getBodyRTF()).find()) return ValueDerivation.RTF_ENCAPSULATED_TEXT;
+		return ValueDerivation.RTF_RENDERED_HTML;
+	}
+
+	@Nullable
+	private static Date statedSentDate(final OutlookMessage message) {
+		if (message.getClientSubmitTime() != null) return message.getClientSubmitTime();
+		for (final Map.Entry<String, ? extends java.util.Collection<String>> header : message.getHeadersMap().entrySet()) {
+			if ("Date".equalsIgnoreCase(header.getKey()) && !header.getValue().isEmpty()) {
+				return ImportedSentDateParser.parse(header.getValue().iterator().next());
+			}
+		}
+		return null;
 	}
 
 	private static void parseHeader(final String headerName, final String headerValue, final EmailPopulatingBuilder builder) {
@@ -337,9 +375,9 @@ public class OutlookEmailConverter implements OutlookModule {
 				dispositionRecipients.addAll(importedRecipients(null, value));
 			} else if (isEmailHeader(header.getName(), value, MessageHeader.RETURN_RECEIPT_TO.getName())) {
 				returnRecipients.addAll(importedRecipients(null, value));
-			} else {
-				parseHeader(header.getName(), value, builder);
 			}
+			// Empty/uninterpretable source occurrences remain in the native capture. Replaying one
+			// through withHeader would treat it as a newly authored notification destination.
 		}
 		if (!dispositionRecipients.isEmpty()) {
 			builder.withDispositionNotificationTo(dispositionRecipients);
@@ -414,7 +452,8 @@ public class OutlookEmailConverter implements OutlookModule {
 			// Keep the source header when no bounce address can be interpreted.
 		}
 		builder.withBounceTo((Recipient) null);
-		builder.withHeader(MessageHeader.RETURN_PATH.getName(), source);
+		// Main retains every raw occurrence from native source data. Replaying it as a composition setter would
+		// reinterpret this failed source value and undo the selected absent Bounce-To.
 	}
 
 	@NotNull

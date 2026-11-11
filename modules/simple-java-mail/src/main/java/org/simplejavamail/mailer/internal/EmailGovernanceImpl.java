@@ -13,6 +13,7 @@ import lombok.val;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.Recipient;
@@ -28,15 +29,24 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.config.ConfigLoader.Property;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.email.internal.EmailStartingBuilderImpl;
+import org.simplejavamail.email.internal.ConfidentialContentState;
+import org.simplejavamail.email.internal.GovernedEmailInspection;
+import org.simplejavamail.email.internal.EmailConfigurationResolver.CollectionSelection;
 import org.simplejavamail.email.internal.EmailConfigurationResolver;
 import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
+import org.simplejavamail.internal.configresolution.ConfigurationResolution;
+import org.simplejavamail.internal.configresolution.ConfigurationOrigin;
+import org.simplejavamail.internal.email.HeaderSettings;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.function.Function;
 import java.util.function.BiPredicate;
@@ -241,7 +251,7 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			allDefaults.withSubject(config.get(ConfigKeys.DEFAULT_SUBJECT));
 		}
 
-		if (allDefaults.getSmimeSignedEmail() == null && includeProperty.test(SMIME_SIGNING_KEYSTORE)) {
+		if (allDefaults.getSmimeSigningConfig() == null && includeProperty.test(SMIME_SIGNING_KEYSTORE)) {
 			allDefaults.signWithSmime(SmimeSigningConfig.builder()
 					.pkcs12Config(Pkcs12Config.builder()
 							.pkcs12Store(verifyNonnullOrEmpty(config.get(ConfigKeys.SMIME_SIGNING_KEYSTORE)))
@@ -297,15 +307,20 @@ public class EmailGovernanceImpl implements EmailGovernance {
 				? emailBuilder.startingBlank()
 				: emailBuilder.forwarding(emailToForward);
 		retainTemplateSuppression(provided, (InternalEmailPopulatingBuilder) builder);
+		final Map<EmailProperty, CollectionSelection<?>> collectionSelections = new EnumMap<>(EmailProperty.class);
 
 		final Recipient fromRecipient = resolveEmailProperty(provided, EmailProperty.FROM_RECIPIENT, Email::getFromRecipient);
-		final List<Recipient> replyToRecipients = resolveEmailRecipients(provided, EmailProperty.REPLYTO_RECIPIENT, additionalLockOwners);
+		final CollectionSelection<Recipient> replyToSelection = resolveEmailRecipientSelection(provided, EmailProperty.REPLYTO_RECIPIENT, additionalLockOwners);
+		collectionSelections.put(EmailProperty.REPLYTO_RECIPIENT, replyToSelection);
+		final List<Recipient> replyToRecipients = replyToSelection.getValues();
 
 		ofNullable(fromRecipient).ifPresent(builder::from);
 		builder.withReplyTo(replyToRecipients);
-		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.TO_RECIPIENTS, additionalLockOwners));
-		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.CC_RECIPIENTS, additionalLockOwners));
-		builder.withRecipients(resolveEmailRecipients(provided, EmailProperty.BCC_RECIPIENTS, additionalLockOwners));
+		for (EmailProperty field : new EmailProperty[] {EmailProperty.TO_RECIPIENTS, EmailProperty.CC_RECIPIENTS, EmailProperty.BCC_RECIPIENTS}) {
+			final CollectionSelection<Recipient> selectedRecipients = resolveEmailRecipientSelection(provided, field, additionalLockOwners);
+			collectionSelections.put(field, selectedRecipients);
+			builder.withRecipients(selectedRecipients.getValues());
+		}
 		builder.withSubject(resolveEmailProperty(provided, EmailProperty.SUBJECT, Email::getSubject));
 		builder.withPlainText(resolveEmailProperty(provided, EmailProperty.BODY_TEXT, Email::getPlainText));
 		builder.withHTMLText(resolveEmailProperty(provided, EmailProperty.BODY_HTML, Email::getHTMLText));
@@ -314,9 +329,15 @@ public class EmailGovernanceImpl implements EmailGovernance {
 			builder.withCalendarText(requireNonNull(calendarSource.getCalendarMethod(), "calendarMethod"),
 					requireNonNull(calendarSource.getCalendarText(), "calendarText"));
 		}
-		builder.withHeaders(resolveEmailHeadersProperty(provided));
-		builder.withAttachments(resolveEmailCollectionProperty(provided, EmailProperty.ATTACHMENTS, Email::getAttachments, EmailConfigurationResolver::sameResource));
-		builder.withEmbeddedImages(resolveEmailCollectionProperty(provided, EmailProperty.EMBEDDED_IMAGES, Email::getEmbeddedImages, EmailConfigurationResolver::sameResource));
+		final List<ConfigurationResolution<List<String>>> selectedHeaders = EmailConfigurationResolver.headerResolutions(provided, emailDefaults, emailOverrides);
+		((InternalEmailPopulatingBuilder) builder).retainReceivedHeaders(HeaderSettings.snapshot(selectedHeaders));
+		final CollectionSelection<AttachmentResource> selectedAttachments = EmailConfigurationResolver.collectionSelection(
+				provided, emailDefaults, emailOverrides, EmailProperty.ATTACHMENTS, Email::getAttachments, EmailConfigurationResolver::sameResource);
+		final CollectionSelection<AttachmentResource> selectedImages = EmailConfigurationResolver.collectionSelection(
+				provided, emailDefaults, emailOverrides, EmailProperty.EMBEDDED_IMAGES, Email::getEmbeddedImages, EmailConfigurationResolver::sameResource);
+		collectionSelections.put(EmailProperty.ATTACHMENTS, selectedAttachments);
+		collectionSelections.put(EmailProperty.EMBEDDED_IMAGES, selectedImages);
+		builder.withAttachments(selectedAttachments.getValues()).withEmbeddedImages(selectedImages.getValues());
 
 		val useReturnReceiptTo = resolveEmailProperty(provided, EmailProperty.USE_RETURN_RECEIPT_TO, Email::getUseReturnReceiptTo);
 		if (TRUE.equals(useReturnReceiptTo)) {
@@ -377,6 +398,11 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		builder.fixingMessageId(resolveEmailProperty(provided, EmailProperty.ID, Email::getId));
 
 		lockedEmailConfiguration.apply(builder, provided, emailDefaults, emailOverrides);
+		((InternalEmailPopulatingBuilder) builder).retainConfidentialContentState(resolveConfidentialReuse(provided, collectionSelections));
+		GovernedEmailInspection.restoreReceivedAssociations((InternalEmailPopulatingBuilder) builder, provided, emailDefaults, emailOverrides,
+				collectionSelections, lockedEmailConfiguration::replacesInspection);
+		((InternalEmailPopulatingBuilder) builder).retainExplicitHeaderNames(resolveSelectedHeaderNames(provided, selectedHeaders, InternalEmail::getExplicitHeaderNames));
+		((InternalEmailPopulatingBuilder) builder).retainConfidentialHeaderNames(resolveSelectedHeaderNames(provided, selectedHeaders, InternalEmail::getConfidentialHeaderNames));
 		val email = builder.buildEmail();
 		retainSubmissionRestrictions(provided, email);
 
@@ -389,6 +415,69 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		//noinspection deprecation
 		((InternalEmail) email).markAsDefaultsAndOverridesApplied();
 		return email;
+	}
+
+	private Set<String> resolveSelectedHeaderNames(final Email provided, final List<ConfigurationResolution<List<String>>> selectedHeaders,
+			final Function<InternalEmail, Set<String>> namesFromSource) {
+		final Set<String> names = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+		for (ConfigurationResolution<List<String>> header : selectedHeaders) {
+			if (header.getSelected() == null) continue;
+			final Email owner;
+			switch (header.getSelected().getOrigin().getKind()) {
+				case SUBMITTED: owner = provided; break;
+				case OVERRIDE: owner = emailOverrides; break;
+				case DEFAULT: owner = emailDefaults; break;
+				default: throw new IllegalStateException("Unexpected header configuration owner");
+			}
+			final String name = header.getSetting().getName();
+			if (owner != null && namesFromSource.apply(InternalEmail.requireInternalEmail(owner)).contains(name)) names.add(name);
+		}
+		return names;
+	}
+
+	/** Template content may carry a helper obligation, but deliberate permission belongs only to the submitted draft. */
+	private ConfidentialContentState resolveConfidentialReuse(final Email provided,
+			final Map<EmailProperty, CollectionSelection<?>> collections) {
+		final ConfidentialContentState submitted = provided == null
+				? ConfidentialContentState.none()
+				: InternalEmail.requireInternalEmail(provided).getConfidentialContentState();
+		final Set<ConfidentialContentState.Component> required =
+				EnumSet.noneOf(ConfidentialContentState.Component.class);
+		for (ConfidentialContentState.Component component :
+				ConfidentialContentState.Component.values()) {
+			if (submitted.requires(component)) required.add(component);
+		}
+		retainSelectedHelperRequirement(required, selectedComponentSource(provided, EmailProperty.BODY_TEXT, Email::getPlainText),
+				ConfidentialContentState.Component.PLAIN_TEXT);
+		retainSelectedHelperRequirement(required, selectedComponentSource(provided, EmailProperty.BODY_HTML, Email::getHTMLText),
+				ConfidentialContentState.Component.HTML_TEXT);
+		retainSelectedHelperRequirement(required, selectedComponentSource(provided, EmailProperty.MAIL_TO_FORWARD, Email::getEmailToForward),
+				ConfidentialContentState.Component.FORWARDED_MESSAGE);
+		retainTemplateResourceRequirements(required, collections, emailDefaults, ConfigurationOrigin.Kind.DEFAULT);
+		retainTemplateResourceRequirements(required, collections, emailOverrides, ConfigurationOrigin.Kind.OVERRIDE);
+		return ConfidentialContentState.requiring(required, submitted.isUnencryptedContentAllowed());
+	}
+
+	private static void retainTemplateResourceRequirements(final Set<ConfidentialContentState.Component> required,
+			final Map<EmailProperty, CollectionSelection<?>> collections, final Email template,
+			final ConfigurationOrigin.Kind origin) {
+		if (collections.get(EmailProperty.EMBEDDED_IMAGES).getOccurrences().stream().anyMatch(occurrence -> occurrence.getOrigin() == origin)) {
+			retainSelectedHelperRequirement(required, template, ConfidentialContentState.Component.EMBEDDED_IMAGES);
+		}
+		if (collections.get(EmailProperty.ATTACHMENTS).getOccurrences().stream().anyMatch(occurrence -> occurrence.getOrigin() == origin)) {
+			retainSelectedHelperRequirement(required, template, ConfidentialContentState.Component.ATTACHMENTS);
+		}
+	}
+
+	private Email selectedComponentSource(final Email provided, final EmailProperty property, final Function<Email, ?> getter) {
+		return EmailConfigurationResolver.scalar(provided, emailDefaults, emailOverrides, property,
+				email -> getter.apply(email) == null ? null : email).valueOrNull();
+	}
+
+	private static void retainSelectedHelperRequirement(
+			final Set<ConfidentialContentState.Component> required,
+			final Email source, final ConfidentialContentState.Component component) {
+		if (source != null && InternalEmail.requireInternalEmail(source).getConfidentialContentState().requires(component)) required.add(component);
 	}
 
 	/** Only envelope-compatible locks apply here; ordinary templates never rewrite exact EML. */
@@ -405,6 +494,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		lockedEmailConfiguration.apply(builder, email);
 		// Required destinations live in the envelope, not in the getter view of exact, unchanged recipient headers.
 		builder.clearRecipients().withRecipients(email.getRecipients());
+		GovernedEmailInspection.restoreExactAssociations((InternalEmailPopulatingBuilder) builder, email,
+				lockedEmailConfiguration.replacesInspection(EmailProperty.BOUNCETO_RECIPIENT));
 		final Email result = InternalEmail.requireInternalEmail(email).copyPreservingSource(builder);
 		retainSubmissionRestrictions(email, result);
 		return result;
@@ -424,6 +515,8 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		}
 		final EmailPopulatingBuilder builder = emailBuilder.copying(email);
 		lockedEmailConfiguration.apply(builder, email);
+		GovernedEmailInspection.restoreUntouchedRecipientsAfterLocks((InternalEmailPopulatingBuilder) builder, email,
+				lockedEmailConfiguration::replacesInspection);
 		final Email result = builder.buildEmail();
 		InternalEmail.requireInternalEmail(result).setUserProvidedEmail(email);
 		InternalEmail.requireInternalEmail(result).markAsDefaultsAndOverridesApplied();
@@ -475,9 +568,9 @@ public class EmailGovernanceImpl implements EmailGovernance {
 	}
 
 	@NotNull
-	private List<Recipient> resolveEmailRecipients(@Nullable final Email email, @NotNull final EmailProperty emailProperty,
+	private CollectionSelection<Recipient> resolveEmailRecipientSelection(@Nullable final Email email, @NotNull final EmailProperty emailProperty,
 			final List<EmailGovernanceImpl> additionalLockOwners) {
-		return EmailConfigurationResolver.collection(email, emailDefaults, emailOverrides, emailProperty, recipientGetter(emailProperty),
+		return EmailConfigurationResolver.collectionSelection(email, emailDefaults, emailOverrides, emailProperty, recipientGetter(emailProperty),
 				(first, second) -> recipientForComparison(first, emailProperty, additionalLockOwners)
 						.equals(recipientForComparison(second, emailProperty, additionalLockOwners)));
 	}
@@ -501,8 +594,4 @@ public class EmailGovernanceImpl implements EmailGovernance {
 		return completed;
 	}
 
-	@NotNull
-	private Map<String, Collection<String>> resolveEmailHeadersProperty(@Nullable Email email) {
-		return EmailConfigurationResolver.headers(email, emailDefaults, emailOverrides);
-	}
 }

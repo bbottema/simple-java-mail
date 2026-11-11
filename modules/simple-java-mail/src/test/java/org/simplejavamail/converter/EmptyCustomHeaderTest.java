@@ -63,7 +63,7 @@ class EmptyCustomHeaderTest {
 				.withHeader("X-MIXED", "first").withHeader("X-Mixed", null).withHeader("X-Mixed", "")
 				.withHeader("X-Mixed", " \t ").withHeader("X-Mixed", "last").buildEmail();
 
-		assertThat(email.getHeaders()).containsOnlyKeys("X-Mixed");
+		assertThat(email.getHeaders()).containsOnlyKeys("From", "To", "X-Mixed");
 		assertThat(email.getHeaders().get("X-Mixed")).containsExactly(null, "", "first", " \t ", "last");
 		final String[] rendered = mail.converter().fromEmail(email).toMimeMessage().getHeader("x-mixed");
 		final String whitespaceOnly = mail.converter().fromEmail(message().withHeader("X-Mixed", " \t ").buildEmail())
@@ -75,7 +75,7 @@ class EmptyCustomHeaderTest {
 	void replacingWithNullRemovesEarlierValuesAndLeavesAnEmptyField() throws Exception {
 		final Email email = message().withHeader("X-Example", "old").withHeader("x-example", null, true).buildEmail();
 
-		assertThat(email.getHeaders()).containsOnlyKeys("X-Example");
+		assertThat(email.getHeaders()).containsOnlyKeys("From", "To", "X-Example");
 		assertThat(email.getHeaders().get("X-Example")).containsExactly((String) null);
 		assertThat(mail.converter().fromEmail(email).toMimeMessage().getHeader("X-Example")).containsExactly("");
 	}

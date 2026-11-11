@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
@@ -67,12 +68,16 @@ class EmailSerializationSmtpTest {
 		final MimeMessage receivedMessage = SMTP_SERVER.getOnlyMessage("recipient@example.org");
 		final Email received = EmailConverter.mimeMessageToEmailBuilder(receivedMessage, loadPkcs12KeyStore()).buildEmail();
 
-		assertThat(received.getOriginalSmimeDetails().getSmimeSignatureValid())
-				.as("received S/MIME details: %s; verification=%s; failure=%s",
-						received.getOriginalSmimeDetails(),
-						received.getOriginalSmimeDetails().getVerificationStatus(),
-						received.getOriginalSmimeDetails().getFailureReason())
-				.isTrue();
+		assertThat(received.getInspection().getPlainText().getSignatureStatus())
+				.as("received S/MIME observations: %s", received.getInspection().getSmime().getSignatures())
+				.isEqualTo(SignatureStatus.VERIFIED);
+		assertThat(received.getInspection().getHTMLText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		for (int index = 0; index < received.getAttachments().size(); index++) {
+			assertThat(received.getInspection().getAttachment(index).getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		}
+		for (int index = 0; index < received.getEmbeddedImages().size(); index++) {
+			assertThat(received.getInspection().getEmbeddedImage(index).getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		}
 		assertThat(received.getSubject()).isEqualTo("Fwd: Forwarded subject");
 		assertThat(received.getPlainText()).isEqualTo("Serialized body");
 		assertThat(received.getHTMLText()).isEqualTo("<p>Serialized body</p><img src=\"cid:logo.png\">");

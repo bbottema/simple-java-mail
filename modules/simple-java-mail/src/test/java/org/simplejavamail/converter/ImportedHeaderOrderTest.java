@@ -28,7 +28,7 @@ class ImportedHeaderOrderTest {
 
 	@ParameterizedTest
 	@EnumSource(ImportRoute.class)
-	void mixedCaseNamesKeepTheirFirstSpellingAndDistinctValueOrder(final ImportRoute route) throws Exception {
+	void mixedCaseNamesKeepTheirFirstSpellingAndEveryValueOccurrenceInOrder(final ImportRoute route) throws Exception {
 		final Email imported = convert(route, SOURCE);
 
 		assertHeaderFacts(imported);
@@ -46,7 +46,7 @@ class ImportedHeaderOrderTest {
 		assertHeaderFacts(copied);
 		assertHeaderFacts(restored);
 		final MimeMessage exported = MAIL.converter().fromEmail(restored).toMimeMessage();
-		assertThat(exported.getHeader("x-step")).containsExactly("first", "second", "third", "");
+		assertThat(exported.getHeader("x-step")).containsExactly("first", "second", "third", "first", "");
 		assertHeaderFacts(MAIL.converter().fromMimeMessage(exported).toEmail());
 	}
 
@@ -61,11 +61,9 @@ class ImportedHeaderOrderTest {
 	}
 
 	private static void assertHeaderFacts(final Email email) {
-		assertThat(email.getHeaders().entrySet().stream()
-				.filter(entry -> entry.getKey().equalsIgnoreCase("X-Step")).findFirst().orElseThrow().getValue())
-				.containsExactly("first", "second", "third", "");
-		assertThat(email.getHeaders()).containsOnlyKeys("X-Step", "X-Unrelated");
-		assertThat(email.getHeaders().get("X-Step")).containsExactly("first", "second", "third", "");
+		assertThat(email.getHeaders().keySet().stream().filter(name -> name.regionMatches(true, 0, "X-", 0, 2)))
+				.containsExactlyInAnyOrder("X-Step", "X-Unrelated");
+		assertThat(email.getHeaders().get("x-sTEP")).containsExactly("first", "second", "third", "first", "");
 		assertThat(email.getHeaders().get("X-Unrelated")).containsExactly("kept");
 	}
 

@@ -42,8 +42,8 @@ class SmimeGlobalStateIsolationTest {
         final MimeMessage signed = EmailConverter.emailToMimeMessage(source);
         final Email parsed = EmailConverter.mimeMessageToEmail(signed);
 
-        assertThat(parsed.getOriginalSmimeDetails().getVerificationStatus())
-                .isEqualTo(org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus())
+                .isEqualTo(org.simplejavamail.api.email.SignatureStatus.VERIFIED);
         assertThat(Security.getProviders()).containsExactly(providersBefore);
         assertThat(CommandMap.getDefaultCommandMap()).isSameAs(commandMapBefore);
     }

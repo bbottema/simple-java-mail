@@ -110,6 +110,12 @@ passphrase arrays retain their existing ownership. This is a narrow correction t
 
 ## Complete incoming OpenPGP signature results (accepted 28 October 2026)
 
+Historical API note, 10 November 2026: the flat type/getter names and aggregate labels below describe the unreleased predecessor.
+The [received-value amendment](#confidential-content-at-final-output-accepted-10-november-2026) and
+[ADR 0031](0031-public-api-and-internal-construction.md#received-value-inspection-and-application-requirements-accepted-10-november-2026)
+replace that public surface with shared `SignatureObservation`, contextual `SignatureInspection` and family `ProtectionInspection` under
+`Email.getInspection()`. Useful individual signer/algorithm/failure facts and source ownership remain; no released-9.x OpenPGP migration is implied.
+
 Retain individual signature results from both combined OpenPGP packets and MIME-nested signing. Use supplied verification keys during
 decryption as well as detached verification. A present packet-level signature must not be reported as absent merely because the decrypted
 content has no `multipart/signed` wrapper. Keep every represented occurrence, including repeated signers, in a detached immutable result list.
@@ -601,6 +607,49 @@ explicit receive-side decryption; reply priming does not weaken that boundary or
 The maintainer accepted this condition under [#950](https://github.com/bbottema/simple-java-mail/issues/950) for unreleased 10.0.0. The issue
 tracks delivery. [ADR 0007](0007-provider-neutral-mime-boundary.md) retains the finalized protected-send boundary and
 [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md) retains source/resource ownership.
+
+## Confidential content at final output (accepted 10 November 2026)
+
+The received-Email continuation of [#961](https://github.com/bbottema/simple-java-mail/issues/961) distinguishes incoming evidence from
+outgoing protection intent. Reply/reply-all and interpreted-forward helpers automatically reusing established confidential content carry
+a requirement into their draft. Reading, editing and copying that draft remain available. Resolve applicable outgoing choices and locks,
+construct/protect the complete output, then require actual protection of the reused material or explicit applicable consent before releasing
+final MIME/EML or submitting to a provider. Suitable enclosing encryption can protect an internally reconstructed forward; internal base
+rendering is not an early final-output boundary. Standalone conversion does not borrow an unrelated Mailer's defaults.
+
+Immutable `ReplyOptions` and `ForwardOptions` can deliberately permit unencrypted reuse for that draft. The `fromEmail(...)` conversion's
+`allowUnencryptedContent()` is narrower: it applies to that conversion's direct/result MIME/EML terminals without changing the source draft
+or another fresh conversion/send. Neither permission disables configured or mandatory encryption or permits a failed protection operation
+to downgrade. An outgoing refusal has no successful unprotected artifact. Explicitly clearing every reused confidential component removes
+its derived requirement; editing one representation or resetting incoming status does not prove that all reused content was removed.
+
+Keep new outer subjects safe independently of consent: use a positively established public subject for the same logical input, otherwise
+`Re: Your message` or `Fwd: Message`. Body encryption does not hide a private outer header. Other automatically reused headers follow their
+actual role and confidentiality; do not substitute unrelated carrier identifiers or add full outbound header protection through this work.
+Original forwarding can carry an intact encrypted original without encrypting an outer message that repeats no confidential material.
+
+Original preservation is not an unconditional confidentiality exception. A child's complete original extracted from an encrypted parent
+does not contain that parent's envelope. The original-forwarding helper therefore retains the requirement for suitable outgoing protection
+when it automatically carries that exposed confidential input. Encryption inside the child's body is insufficient if its outer headers were
+also private under the missing ancestor layer; signing alone is never content confidentiality. Keep the actual original bytes and format.
+The existing conversion-local `allowUnencryptedContent()` permits a deliberate one-export handoff without granting a later send permission;
+no new original-forward overload or Email mode follows. Automatically generated carrier filename, description and Content-ID use neutral
+metadata when their derived values would reveal confidential input. Historical original-resource metadata stays available unchanged.
+
+Incoming layers retain individual source-associated signature/decryption observations and actual key identifiers. Selection of readable
+content does not flatten all layers into one success Boolean. Native fallback and independent attached children retain their own coverage.
+Preserve exact signed/encrypted entities for processing and history; neither selection nor inspection rewrites those bytes. S/MIME and
+OpenPGP stay optional feature owners with existing factory-owned key-cache and shared import-allowance boundaries.
+
+Completion preserves the submitted draft's immutable source/Problems/original history and unchanged selected associations. Defaults or
+overrides replacing a value supply caller-owned/unknown current incoming facts; templates cannot import received evidence or disclosure
+consent. This supersedes earlier blanket completion-history-reset prose in this record. Historical input protection remains evidence
+about that input, never verification of the new MIME. The [ADR 0037 amendment](0037-repeatable-email-completion.md#preserve-helper-requirements-without-inheriting-consent-accepted-10-november-2026)
+owns that completion lifecycle separately from outgoing protection resolution.
+
+This amendment supersedes legacy incoming merge/result assumptions only as described in
+[ADR 0040](0040-retained-protected-content-merging.md#one-logical-readable-email-accepted-10-november-2026). It introduces no new algorithms,
+PKI engine, automatic key trust, SMTP extension or arbitrary outbound family nesting.
 
 ## Implementation anchors
 

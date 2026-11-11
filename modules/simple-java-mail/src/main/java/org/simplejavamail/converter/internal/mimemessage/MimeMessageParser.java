@@ -1,8 +1,10 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
+import org.simplejavamail.internal.converter.ImportedSentDateParser;
+
 import java.util.Objects;
 
-import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.*;
 import org.simplejavamail.internal.converter.ImportTraversal;
 import org.simplejavamail.api.email.EmailSourceData;
 import org.simplejavamail.api.email.ContentTransferEncoding;
@@ -60,6 +62,11 @@ public final class MimeMessageParser {
 	private static final Pattern CALENDAR_METHOD_TOKEN_PATTERN = Pattern.compile("^(\\w+)");
 	private static final Pattern CALENDAR_BODY_METHOD_PATTERN = Pattern.compile("(?i)^METHOD:(\\w+)", Pattern.MULTILINE);
 
+    /** Preserves the parser's recognized selected-input failure boundary for cross-package layer readers. */
+    public static RuntimeException selectedContentFailure(final Exception failure) {
+        return new MimeMessageParseException(MimeMessageParseException.ERROR_PARSING_CONTENT, failure);
+    }
+
 	/**
 	 * Delegates to {@link #parseMimeMessage(MimeMessage, boolean)}.
 	 */
@@ -76,46 +83,32 @@ public final class MimeMessageParser {
 
     public static ParsedMimeMessageComponents parseMimeMessage(@NotNull final MimeMessage mimeMessage, boolean fetchAttachmentData,
             InputInspection inspection) {
-		final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
+        return parseMimeMessage(mimeMessage, fetchAttachmentData, inspection, null, ProtectionScope.plain());
+    }
+
+    public static ParsedMimeMessageComponents parseMimeMessage(final MimeMessage mimeMessage, final boolean fetchAttachmentData,
+            final InputInspection inspection, final IncomingPartInterpreter interpreter, final ProtectionScope covering) {
+        final ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
         parsedComponents.inspection = inspection;
-		parsedComponents.messageId = inspection.recover("Message-ID", () -> parseMessageId(mimeMessage), () -> inspection.raw("Message-ID"));
-		parsedComponents.sentDate = inspection.recover("Date", () -> parseSentDate(mimeMessage), () -> null);
-        inspection.noteUninterpretedDate(parsedComponents.sentDate);
-        parsedComponents.subject = inspection.recover("Subject", () -> parseSubject(mimeMessage),
-                () -> inspection.raw("Subject") == null ? null : MimeUtility.unfold(inspection.raw("Subject")));
-        if (InputInspection.unavailableCharset(inspection.raw("Subject")) && !inspection.decodingFailed("Subject", inspection.raw("Subject"))
-                && (Objects.equals(parsedComponents.subject, inspection.raw("Subject"))
-                    || Objects.equals(parsedComponents.subject, MimeUtility.unfold(inspection.raw("Subject"))))) {
-            parsedComponents.subject = MimeUtility.unfold(inspection.raw("Subject"));
-            inspection.record(EmailProblem.Code.VALUE_NOT_DECODED, "Subject", inspection.raw("Subject"),
-                    "The received subject charset is unavailable; the complete original value is retained");
-        }
-        parsedComponents.toAddresses.addAll(inspection.recover("To", inspection.joined("To"), () -> parseToAddresses(mimeMessage),
-                () -> Arrays.asList(rawAddressHeader(inspection.joined("To")))));
-        parsedComponents.ccAddresses.addAll(inspection.recover("Cc", inspection.joined("Cc"), () -> parseCcAddresses(mimeMessage),
-                () -> Arrays.asList(rawAddressHeader(inspection.joined("Cc")))));
-        parsedComponents.bccAddresses.addAll(inspection.recover("Bcc", inspection.joined("Bcc"), () -> parseBccAddresses(mimeMessage),
-                () -> Arrays.asList(rawAddressHeader(inspection.joined("Bcc")))));
-        parsedComponents.fromAddress = inspection.recover("From", () -> parseFromAddress(mimeMessage, inspection),
-                () -> rawAddress(inspection.raw("From")));
-        parsedComponents.replyToAddresses.addAll(inspection.recover("Reply-To", inspection.joined("Reply-To"), () -> parseReplyToAddresses(mimeMessage, inspection),
-                () -> Arrays.asList(rawAddressHeader(inspection.joined("Reply-To")))));
-		// Only the effective root message owns message-level headers; child parts retain their own resource metadata.
-		for (final Header header : inspection.headers()) {
-            inspection.recover(header.getName(), header.getValue(), () -> {
-                parseHeader(header, parsedComponents);
-                return null;
-            }, () -> null);
-		}
-        inspection.noteAddressRecovery();
+        parsedComponents.partInterpreter = interpreter;
+        parsedComponents.headerProtection = covering;
+        parsedComponents.carrierProtection = covering;
+        parsedComponents.carrierHeaders = inspection;
+        parsedComponents.subjectHeaders = inspection;
+        parsedComponents.subjectProtection = covering;
+        final HeaderView outerHeaders = new HeaderView(mimeMessage, inspection, covering);
+        parsedComponents.headerViews.add(outerHeaders);
+        parsedComponents.authoredView = outerHeaders;
+        parsedComponents.nativeSubject = publicSubject(inspection);
         final MimePartCapture root = inspection.beginRootPart();
         final ImportTraversal traversal = inspection.importTraversal();
         if (inspection.contentStop() != null || !traversal.admit()) {
-            root.problem(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED, null,
+            root.problem(inspection.contentStop() != null ? inspection.contentStopCode() : EmailProblem.Code.IMPORT_LIMIT_EXCEEDED, null,
                     inspection.contentStop() != null ? inspection.contentStop() : traversal.stopDescription());
         } else {
-		    parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData, false, root, traversal);
+		    parseMimePartTree(mimeMessage, parsedComponents, fetchAttachmentData, false, root, traversal, covering, false);
         }
+        finishHeaderSelection(parsedComponents);
 		if (parsedComponents.deliveryStatusReport == null && (parsedComponents.reportContainer || parsedComponents.deliveryStatusPart != null)) {
 			parsedComponents.deliveryStatusReport = DeliveryStatusReportParser.unavailableReport(parsedComponents.deliveryStatusPart != null
                     ? "The delivery-status content may be incomplete because it could not be read."
@@ -135,6 +128,159 @@ public final class MimeMessageParser {
 		return parsedComponents;
 	}
 
+    private static void parseMessageHeaders(final MimeMessage mimeMessage, final ParsedMimeMessageComponents parsedComponents,
+            final InputInspection inspection) {
+        parsedComponents.selectedHeaders = inspection;
+		parsedComponents.messageId = inspection.recover("Message-ID", () -> parseMessageId(mimeMessage), () -> inspection.raw("Message-ID"));
+		parsedComponents.sentDate = inspection.recover("Date", () -> parseSentDate(mimeMessage), () -> null);
+        inspection.noteUninterpretedDate(parsedComponents.sentDate);
+        parsedComponents.toAddresses.addAll(inspection.recover("To", inspection.joined("To"), () -> parseToAddresses(mimeMessage),
+                () -> Arrays.asList(rawAddressHeader(inspection.joined("To")))));
+        parsedComponents.ccAddresses.addAll(inspection.recover("Cc", inspection.joined("Cc"), () -> parseCcAddresses(mimeMessage),
+                () -> Arrays.asList(rawAddressHeader(inspection.joined("Cc")))));
+        parsedComponents.bccAddresses.addAll(inspection.recover("Bcc", inspection.joined("Bcc"), () -> parseBccAddresses(mimeMessage),
+                () -> Arrays.asList(rawAddressHeader(inspection.joined("Bcc")))));
+        parsedComponents.fromAddress = inspection.recover("From", () -> parseFromAddress(mimeMessage, inspection),
+                () -> rawAddress(inspection.raw("From")));
+        parsedComponents.replyToAddresses.addAll(inspection.recover("Reply-To", inspection.joined("Reply-To"), () -> parseReplyToAddresses(mimeMessage, inspection),
+                () -> Arrays.asList(rawAddressHeader(inspection.joined("Reply-To")))));
+    }
+
+    private static final class HeaderView {
+        private final MimeMessage message;
+        private final InputInspection inspection;
+        private final ProtectionScope protection;
+        private HeaderView(final MimeMessage message, final InputInspection inspection, final ProtectionScope protection) {
+            this.message = message; this.inspection = inspection; this.protection = protection;
+        }
+    }
+
+    private static void selectAuthoredHeaders(final MimeMessage message, final InputInspection inspection,
+            final ParsedMimeMessageComponents target, final ProtectionScope protection) {
+        final HeaderView view = new HeaderView(message, inspection, protection);
+        target.headerViews.add(view);
+        if (target.authoredView == null || protection.getOpenedDepth() >= target.authoredView.protection.getOpenedDepth()) target.authoredView = view;
+    }
+
+    /** Choose each authority before invoking its typed reader; displaced source headers remain passive captured evidence. */
+    private static void finishHeaderSelection(final ParsedMimeMessageComponents target) {
+        final HeaderView authored = target.authoredView;
+        target.selectedHeaders = authored.inspection;
+        target.headerProtection = authored.protection;
+        target.authoredHeaderViewUnavailable = target.unavailableAuthoredDepth >= authored.protection.getOpenedDepth();
+        if (!target.authoredHeaderViewUnavailable) parseMessageHeaders(authored.message, target, authored.inspection);
+        final List<HeaderView> preferred = new ArrayList<>(target.headerViews);
+        Collections.reverse(preferred);
+        preferred.sort(Comparator.comparingInt((HeaderView view) -> view.protection.getOpenedDepth()).reversed());
+        HeaderView subject = target.headerViews.get(0);
+        for (final HeaderView view : preferred) {
+            if (view.inspection.raw("Subject") == null && view.inspection.isHeaderCaptureComplete() && view != target.headerViews.get(0)) continue;
+            final String value = selectedSubject(view);
+            subject = view;
+            if (value != null) { target.subject = value; break; }
+        }
+        target.subjectHeaders = subject.inspection;
+        target.subjectProtection = subject.protection;
+        final HeaderView outer = target.headerViews.get(0);
+        HeaderView carrier = outer;
+        if (outer.inspection.raw("Return-Path") == null) {
+            for (final HeaderView view : preferred) if (view.inspection.raw("Return-Path") != null) { carrier = view; break; }
+        }
+        target.carrierHeaders = carrier.inspection;
+        target.carrierProtection = carrier.protection;
+        final Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        target.headerViews.forEach(view -> view.inspection.headers().forEach(header -> names.add(header.getName())));
+        for (final String name : names) {
+            final HeaderView owner;
+            if (name.equalsIgnoreCase("Subject")) owner = subject;
+            else if (name.equalsIgnoreCase("Return-Path")) owner = carrier;
+            else if (authoredField(name)) owner = authored;
+            else if ((org.simplejavamail.internal.email.HeaderRoles.classify(name) == org.simplejavamail.internal.email.HeaderRoles.Role.DELIVERY_HISTORY
+                    || org.simplejavamail.internal.email.HeaderRoles.classify(name) == org.simplejavamail.internal.email.HeaderRoles.Role.MIME_STRUCTURE)
+                    && outer.inspection.headers().stream().anyMatch(header -> header.getName().equalsIgnoreCase(name))) owner = outer;
+            else owner = preferred.stream().filter(view -> view.inspection.headers().stream().anyMatch(header -> header.getName().equalsIgnoreCase(name))).findFirst().orElse(outer);
+            for (final Header header : owner.inspection.headers()) {
+                if (!header.getName().equalsIgnoreCase(name)) continue;
+                if (target.authoredHeaderViewUnavailable && authoredField(name)) {
+                    target.headers.computeIfAbsent(header.getName(), ignored -> new ArrayList<>())
+                            .add(header.getValue() == null ? null : MimeUtility.unfold(header.getValue()));
+                    continue;
+                }
+                owner.inspection.recover(name, header.getValue(), () -> { parseHeader(header, target, owner.inspection); return null; }, () -> null);
+            }
+        }
+        if (!target.authoredHeaderViewUnavailable) {
+            authored.inspection.noteAddressRecovery("From", "To", "Cc", "Bcc", "Reply-To", "Disposition-Notification-To", "Return-Receipt-To");
+        }
+        carrier.inspection.noteAddressRecovery("Return-Path");
+    }
+
+    private static boolean authoredField(final String name) {
+        return !name.equalsIgnoreCase("Subject") && org.simplejavamail.internal.email.HeaderRoles.classify(name) == org.simplejavamail.internal.email.HeaderRoles.Role.TYPED
+                || name.equalsIgnoreCase("Sender") || name.equalsIgnoreCase("References") || name.equalsIgnoreCase("In-Reply-To");
+    }
+
+    private static String selectedSubject(final HeaderView view) {
+        final InputInspection inspection = view.inspection;
+        String value = inspection.recover("Subject", () -> parseSubject(view.message),
+                () -> inspection.raw("Subject") == null ? null : MimeUtility.unfold(inspection.raw("Subject")));
+        final String raw = inspection.raw("Subject");
+        if (InputInspection.unavailableCharset(raw) && !inspection.decodingFailed("Subject", raw)
+                && (Objects.equals(value, raw) || Objects.equals(value, MimeUtility.unfold(raw)))) {
+            value = MimeUtility.unfold(raw);
+            inspection.record(EmailProblem.Code.VALUE_NOT_DECODED, "Subject", raw,
+                    "The received subject charset is unavailable; the complete original value is retained");
+        }
+        return value;
+    }
+
+    private static String publicSubject(final InputInspection inspection) {
+        final String raw = inspection.raw("Subject");
+        if (raw == null) return null;
+        try { return MimeUtility.unfold(MimeUtility.decodeText(raw)); }
+        catch (final UnsupportedEncodingException unavailable) { return null; }
+    }
+
+    private static final class BodyValue {
+        private final String content;
+        private final MimePartCapture source;
+        private final ProtectionScope protection;
+        private final List<AlternativeChoice> alternatives;
+        private BodyValue(final String content, final MimePartCapture source, final ProtectionScope protection, final Collection<AlternativeChoice> alternatives) {
+            this.content = content; this.source = source; this.protection = protection;
+            this.alternatives = List.copyOf(alternatives);
+        }
+    }
+
+    private static final class AlternativeChoice {
+        private final String owner;
+        private final int branch;
+        private AlternativeChoice(final String owner, final int branch) { this.owner = owner; this.branch = branch; }
+    }
+
+    private static List<BodyValue> selectedBodies(final List<BodyValue> values) {
+        final Map<String, Integer> selected = new LinkedHashMap<>();
+        final Map<String, Integer> strengths = new LinkedHashMap<>();
+        for (final BodyValue value : values) {
+            for (final AlternativeChoice choice : value.alternatives) {
+                final int strength = value.protection.getOpenedDepth();
+                final int previous = strengths.getOrDefault(choice.owner, -1);
+                if (strength > previous || strength == previous && choice.branch > selected.getOrDefault(choice.owner, -1)) {
+                    strengths.put(choice.owner, strength); selected.put(choice.owner, choice.branch);
+                }
+            }
+        }
+        return values.stream().filter(value -> value.alternatives.stream().allMatch(choice -> selected.get(choice.owner) == choice.branch))
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    private static String bodyContent(final List<BodyValue> values) {
+        if (values.isEmpty()) return null;
+        final StringBuilder result = new StringBuilder();
+        selectedBodies(values).forEach(value -> result.append(value.content));
+        return result.toString();
+    }
+
     private static void finishSourceRetention(final ParsedMimeMessageComponents parsed) {
         final String plain = parsed.getPlainContent();
         final String html = parsed.getHtmlContent();
@@ -147,19 +293,78 @@ public final class MimeMessageParser {
         for (final MimePartCapture capture : parsed.htmlSources) {
             capture.finishRepresentation(!capture.isBodyValue(html));
         }
+        for (final MimePartCapture capture : parsed.calendarSources) capture.finishRepresentation(capture != parsed.calendarSource);
         final Set<MimeDataSource> represented = Collections.newSetFromMap(new IdentityHashMap<>());
-        represented.addAll(parsed.attachmentList);
+        parsed.attachmentList.stream().filter(value -> !parsed.bodyContainers.contains(value)).forEach(represented::add);
         represented.addAll(parsed.cidMap.values());
         parsed.resourceSources.forEach((resource, capture) -> capture.finishRepresentation(!represented.contains(resource)));
     }
 
 	private static void parseMimePartTree(@NotNull final MimePart currentPart, @NotNull final ParsedMimeMessageComponents parsedComponents,
-			final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture, final ImportTraversal traversal) {
+			final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture, final ImportTraversal traversal, final ProtectionScope covering,
+            final boolean alternativeChild) {
         if (parsedComponents.deliveryStatusCandidates.contains(currentPart)) {
             parsedComponents.deliveryStatusSources.add(capture);
         }
         try {
-            interpretMimePart(currentPart, parsedComponents, fetchAttachmentData, insideRelated, capture, traversal);
+            MimePart selected = currentPart;
+            ProtectionScope protection = covering;
+            final boolean messageBody = currentPart instanceof MimeMessage || alternativeChild;
+            if (parsedComponents.partInterpreter != null
+                    && (messageBody || !Part.ATTACHMENT.equalsIgnoreCase(parseDisposition(currentPart, capture)))) {
+                final IncomingPartInterpreter.PartSelection selection = parsedComponents.partInterpreter.open(currentPart, covering,
+                        capture.layerSource(), traversal, messageBody);
+                selected = selection.getContent();
+                protection = selection.getProtection();
+                if (selection.isAuthoredHeaderViewUnavailable()) {
+                    parsedComponents.unavailableAuthoredDepth = Math.max(parsedComponents.unavailableAuthoredDepth, protection.getOpenedDepth() + 1);
+                }
+                if (selection.isProtectedContainer() && !messageBody) {
+                    if (prepareTransferEncoding(currentPart, capture, fetchAttachmentData)) {
+                        parseDataSource(currentPart, parsedComponents, fetchAttachmentData, parseDisposition(currentPart, capture), insideRelated, capture, covering, traversal);
+                    }
+                    capture.represented();
+                    return;
+                }
+                if (protection != covering) parsedComponents.encounteredScopes.add(protection);
+                if (selection.getAuthoredHeaders() != null) {
+                    final InputInspection authored = InputInspection.capture(selection.getAuthoredHeaders(), false, EmailSourceData.Representation.EXTRACTED);
+                    selectAuthoredHeaders(selection.getAuthoredHeaders(), authored, parsedComponents, selection.getAuthoredProtection());
+                }
+                if (selection.getInputFailure() != null) {
+                    final MimePartCapture failed;
+                    if (selected == currentPart) failed = capture;
+                    else { failed = parsedComponents.inspection.beginPart(selected, capture.getLocation() + "/opened"); capture.add(failed); }
+                    failed.failed(selected, new MimeMessageParseException(MimeMessageParseException.ERROR_READING_CONTENT, selection.getInputFailure()), fetchAttachmentData);
+                    parsedComponents.inspection.noteUnvisitedStructure(); parsedComponents.unavailableBody = true;
+                    return;
+                }
+                if (selected != currentPart) {
+                    final MimePartCapture opened = parsedComponents.inspection.beginPart(selected, capture.getLocation() + "/opened");
+                    if (!protection.isComplete() || protection.getDecryptions().stream().anyMatch(value -> value.getStatus() != DecryptionStatus.DECRYPTED)) {
+                        parsedComponents.unavailableBody = true;
+                        parsedComponents.protectedBodyParts.add(opened);
+                    }
+                    capture.add(opened);
+                    interpretMimePart(selected, parsedComponents, fetchAttachmentData, insideRelated, opened,
+                            selection.getContentTraversal() != null ? selection.getContentTraversal() : traversal.view("opened"), protection);
+                    opened.represented();
+                    capture.represented();
+                    return;
+                }
+                if (protection != covering) parsedComponents.unavailableBody = true;
+                if (selection.isProtectedContainer() && protection != covering) {
+                    parsedComponents.protectedBodyParts.add(capture);
+                    if (protection.hasRetainedCiphertext() && isMimeType(currentPart, "multipart/encrypted", capture)) {
+                        if (prepareTransferEncoding(currentPart, capture, fetchAttachmentData)) {
+                            parseDataSource(currentPart, parsedComponents, fetchAttachmentData, parseDisposition(currentPart, capture), insideRelated, capture, protection, traversal);
+                        }
+                        capture.represented();
+                        return;
+                    }
+                }
+            }
+            interpretMimePart(selected, parsedComponents, fetchAttachmentData, insideRelated, capture, traversal, protection);
             capture.represented();
         } catch (final MimeMessageParseException failure) {
             if (!InputInspection.recognizedFailure(failure)) {
@@ -171,7 +376,7 @@ public final class MimeMessageParser {
     }
 
     private static void interpretMimePart(final MimePart currentPart, final ParsedMimeMessageComponents parsedComponents,
-            final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture, final ImportTraversal traversal) {
+            final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture, final ImportTraversal traversal, final ProtectionScope protection) {
         if (currentPart instanceof MimeMessage) {
             parsedComponents.reportContainer = inspectOuterReportContainer(currentPart, parsedComponents.inspection);
             if (DeliveryStatusReportParser.isStatusPart(currentPart)) {
@@ -190,6 +395,7 @@ public final class MimeMessageParser {
             capture.bodyValue(content);
             parsedComponents.inspection.noteReadableBody();
             parsedComponents.plainSources.add(capture);
+            parsedComponents.plainValues.add(new BodyValue(content, capture, protection, parsedComponents.activeAlternatives));
             capture.deferRepresentation();
 			parsedComponents.plainContentPresent = true;
 			if (parsedComponents.plainTextContentTransferEncoding == null) {
@@ -203,12 +409,13 @@ public final class MimeMessageParser {
             parsedComponents.inspection.noteReadableBody();
             parsedComponents.inspection.originalHtml(capture);
             parsedComponents.htmlSources.add(capture);
+            parsedComponents.htmlValues.add(new BodyValue(content, capture, protection, parsedComponents.activeAlternatives));
             capture.deferRepresentation();
 			parsedComponents.htmlContentPresent = true;
 			if (parsedComponents.htmlTextContentTransferEncoding == null) {
 				parsedComponents.htmlTextContentTransferEncoding = checkContentTransferEncoding(parsedComponents, capture);
 			}
-		} else if (isMimeType(currentPart, "text/calendar", capture) && parsedComponents.calendarContent == null && canSupplyBody) {
+        } else if (isMimeType(currentPart, "text/calendar", capture) && canSupplyBody) {
             if (!prepareTransferEncoding(currentPart, capture, true)) return;
 			final String content = parseCalendarContent(currentPart, capture);
             final String contentType = retrieveDataHandler(currentPart).getContentType();
@@ -218,22 +425,25 @@ public final class MimeMessageParser {
                 capture.unrepresented("No supported Calendar METHOD could be established");
                 return;
             }
+            capture.bodyValue(content); capture.deferRepresentation(); parsedComponents.calendarSources.add(capture);
+            if (protection.getOpenedDepth() <= parsedComponents.calendarDepth) return;
 			parsedComponents.calendarContent = content;
+            parsedComponents.calendarSource = capture;
+            parsedComponents.calendarProtection = protection;
+            parsedComponents.calendarDepth = protection.getOpenedDepth();
             parsedComponents.inspection.noteReadableBody();
 			parsedComponents.calendarMethod = method;
-			if (parsedComponents.calendarTextContentTransferEncoding == null) {
-				parsedComponents.calendarTextContentTransferEncoding = checkContentTransferEncoding(parsedComponents, capture);
-			}
+			parsedComponents.calendarTextContentTransferEncoding = checkContentTransferEncoding(parsedComponents, capture);
         } else if (isMimeType(currentPart, "multipart/*", capture) && canSupplyBody) {
-            parseMultipart(currentPart, parsedComponents, fetchAttachmentData, insideRelated, capture, traversal);
+            parseMultipart(currentPart, parsedComponents, fetchAttachmentData, insideRelated, capture, traversal, protection);
         } else {
             if (!prepareTransferEncoding(currentPart, capture, fetchAttachmentData)) return;
-			parseDataSource(currentPart, parsedComponents, fetchAttachmentData, disposition, insideRelated, capture);
+			parseDataSource(currentPart, parsedComponents, fetchAttachmentData, disposition, insideRelated, capture, protection, traversal);
 		}
 	}
 
     private static void parseMultipart(final MimePart currentPart, final ParsedMimeMessageComponents parsedComponents,
-            final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture, final ImportTraversal traversal) {
+            final boolean fetchAttachmentData, final boolean insideRelated, final MimePartCapture capture, final ImportTraversal traversal, final ProtectionScope protection) {
         boolean childrenVisited = false;
         try {
             if (!prepareTransferEncoding(currentPart, capture, true)) return;
@@ -256,6 +466,9 @@ public final class MimeMessageParser {
                 capture.problem(EmailProblem.Code.CONTENT_NOT_REPRESENTED, null, InputInspection.describe(failure));
             }
 			final boolean childrenInsideRelated = insideRelated || isMimeType(currentPart, "multipart/related", capture);
+            final boolean alternativeChildren = isMimeType(currentPart, "multipart/alternative", capture);
+            final boolean relatedChildren = isMimeType(currentPart, "multipart/related", capture);
+            final String relatedRoot = relatedChildren ? relatedStart(currentPart) : null;
             boolean allChildren = true;
 			for (int i = 0, count = countBodyParts(mp); i < count; i++) {
                 final ImportTraversal childTraversal = traversal.child("children[" + i + "]");
@@ -279,11 +492,39 @@ public final class MimeMessageParser {
                 }
                 final MimePartCapture childCapture = parsedComponents.inspection.beginPart(child, location);
                 capture.add(childCapture);
-				parseMimePartTree(child, parsedComponents, fetchAttachmentData, childrenInsideRelated, childCapture, childTraversal);
+				if (i == 1 && signedContainerArtifact(currentPart, child)) {
+                    childCapture.represented();
+                    continue;
+                }
+				final boolean relatedBody = relatedChildren && (relatedRoot == null ? i == 0 : relatedRoot.equals(extractCID(childCapture.raw("Content-ID"))));
+                if (alternativeChildren) parsedComponents.activeAlternatives.addLast(new AlternativeChoice(capture.getLocation(), i));
+                try {
+                    parseMimePartTree(child, parsedComponents, fetchAttachmentData, childrenInsideRelated, childCapture, childTraversal, protection, alternativeChildren || relatedBody);
+                } finally {
+                    if (alternativeChildren) parsedComponents.activeAlternatives.removeLast();
+                }
 			}
             childrenVisited = allChildren;
         } finally {
             if (!childrenVisited) parsedComponents.inspection.noteUnvisitedStructure();
+        }
+    }
+
+    private static String relatedStart(final MimePart owner) {
+        try { return extractCID(new ContentType(owner.getContentType()).getParameter("start")); }
+        catch (final MessagingException unavailable) { return null; }
+    }
+
+    private static boolean signedContainerArtifact(final MimePart parent, final MimePart child) {
+        try {
+            if (!parent.isMimeType("multipart/signed")) return false;
+            final String protocol = new ContentType(parent.getContentType()).getParameter("protocol");
+            if (protocol == null) return child.isMimeType("application/pkcs7-signature") || child.isMimeType("application/x-pkcs7-signature") || child.isMimeType("application/pgp-signature");
+            return protocol != null && (protocol.equalsIgnoreCase("application/pkcs7-signature")
+                    || protocol.equalsIgnoreCase("application/x-pkcs7-signature") || protocol.equalsIgnoreCase("application/pgp-signature"))
+                    && child.isMimeType(protocol);
+        } catch (final MessagingException unavailable) {
+            return false;
         }
     }
 
@@ -333,7 +574,8 @@ public final class MimeMessageParser {
 	}
 
 	private static void parseDataSource(@NotNull MimePart currentPart, @NotNull ParsedMimeMessageComponents parsedComponents,
-			boolean fetchAttachmentData, String disposition, final boolean insideRelated, final MimePartCapture capture) {
+			boolean fetchAttachmentData, String disposition, final boolean insideRelated, final MimePartCapture capture, final ProtectionScope protection,
+            final ImportTraversal traversal) {
         final String contentID = interpretReceivedContentId(recoverMetadata(capture, "Content-ID", () -> parseContentID(currentPart),
                 () -> capture.raw("Content-ID")));
 		final boolean statusPart = currentPart == parsedComponents.deliveryStatusPart;
@@ -354,21 +596,20 @@ public final class MimeMessageParser {
 			LOGGER.warn("Content-Disposition '{}' for data source not recognized (it should be either 'attachment' or 'inline'). Skipping body part", disposition);
 		}
 
-		// Preserve every traversal slot independently from CID lookup, which can replace an earlier resource with the same ID.
+		// Preserve every occurrence until its association with the selected HTML is known.
 		parsedComponents.attachmentList.add(mimeDataSource);
         // A non-body effective root can be retained as one resource; it is not an independently attached child.
         if (currentPart instanceof MimeMessage) parsedComponents.rootRepresentedAsResource = true;
         parsedComponents.resourceSources.put(mimeDataSource, capture);
+        parsedComponents.resourceProtection.put(mimeDataSource, protection);
+        parsedComponents.resourceTraversals.put(mimeDataSource, traversal);
+        if (parsedComponents.protectedBodyParts.contains(capture)) parsedComponents.bodyContainers.add(mimeDataSource);
         capture.deferRepresentation();
 		if (isInline && contentID != null) {
 			parsedComponents.explicitInlineResources.add(mimeDataSource);
 		}
-		if (contentID != null) {
-			parsedComponents.cidMap.put(contentID, mimeDataSource);
-			if (implicitRelatedImage) {
-				parsedComponents.implicitRelatedImages.add(mimeDataSource);
-			}
-			// when parsing is done, we'll move any sources from cidMap that are not referenced in HTML, to attachments (or remove if already there)
+		if (contentID != null && implicitRelatedImage) {
+			parsedComponents.implicitRelatedImages.add(mimeDataSource);
 		}
 	}
 
@@ -491,28 +732,32 @@ public final class MimeMessageParser {
         return false;
     }
 
-	private static void parseHeader(final Header header, @NotNull final ParsedMimeMessageComponents parsedComponents) {
-        final InputInspection inspection = parsedComponents.inspection;
+	private static void parseHeader(final Header header, @NotNull final ParsedMimeMessageComponents parsedComponents, final InputInspection inspection) {
         final String name = inspection.recover("header-name", header.getName(), () -> decodeText(header.getName()), header::getName);
         if (!name.matches("[!-9;-~]+")) {
             inspection.record(EmailProblem.Code.FIELD_NOT_INTERPRETED, "header-name", header.getName(),
                     "The received field name cannot be used as an outgoing header name");
             return;
         }
-        if (HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(name)) return;
         if (header.getValue() == null) {
             parsedComponents.headers.computeIfAbsent(name, ignored -> new ArrayList<>()).add(null);
             return;
         }
+        if (HeadersToIgnoreWhenParsingExternalEmails.shouldIgnoreHeader(name) || name.equalsIgnoreCase("Message-ID")
+                || org.simplejavamail.internal.email.HeaderRoles.classify(name) == org.simplejavamail.internal.email.HeaderRoles.Role.DELIVERY_HISTORY && !name.equalsIgnoreCase("Return-Path")
+                || org.simplejavamail.internal.email.HeaderRoles.classify(name) == org.simplejavamail.internal.email.HeaderRoles.Role.MIME_STRUCTURE) {
+            parsedComponents.headers.computeIfAbsent(name, ignored -> new ArrayList<>()).add(MimeUtility.unfold(header.getValue()));
+            return;
+        }
         final DecodedHeader decodedHeader = name.equalsIgnoreCase("Message-ID") ? new DecodedHeader(name, header.getValue())
                 : inspection.recover(name, header.getValue(), () -> DecodedHeader.of(header), () -> new DecodedHeader(name, header.getValue()));
-        if (isGenericRootHeader(name) && InputInspection.unavailableCharset(header.getValue())) {
+        if (isGenericRootHeader(name) && !inspection.decodingFailed(name, header.getValue()) && InputInspection.unavailableCharset(header.getValue())) {
             inspection.record(EmailProblem.Code.VALUE_NOT_DECODED, name, header.getValue(),
                     "The received header charset is unavailable; the complete original value is retained");
         }
+        parsedComponents.headers.computeIfAbsent(decodedHeader.getName(), ignored -> new ArrayList<>()).add(MimeUtility.unfold(decodedHeader.getValue()));
         if (inspection.decodingFailed(name, header.getValue()) && (name.equalsIgnoreCase("Disposition-Notification-To")
                 || name.equalsIgnoreCase("Return-Receipt-To") || name.equalsIgnoreCase("Return-Path"))) {
-            if (name.equalsIgnoreCase("Return-Path")) parsedComponents.headers.computeIfAbsent(name, ignored -> new ArrayList<>()).add(header.getValue());
             return;
         }
 
@@ -522,11 +767,6 @@ public final class MimeMessageParser {
 			parsedComponents.returnReceiptToRecipients.addAll(createAddressesFromEncodedHeader(header));
 		} else if (decodedHeader.getName().equalsIgnoreCase(MessageHeader.RETURN_PATH.getName())) {
 			parseReturnPathHeader(header, parsedComponents);
-		} else {
-			if (!parsedComponents.headers.containsKey(decodedHeader.getName())) {
-				parsedComponents.headers.put(decodedHeader.getName(), new ArrayList<>());
-			}
-			parsedComponents.headers.get(decodedHeader.getName()).add(MimeUtility.unfold(decodedHeader.getValue()));
 		}
 	}
 
@@ -552,8 +792,6 @@ public final class MimeMessageParser {
 			// Keep the source header when no bounce address can be interpreted.
 		}
 		parsedComponents.bounceToAddress = null;
-		parsedComponents.headers.computeIfAbsent(MessageHeader.RETURN_PATH.getName(), ignored -> new ArrayList<>())
-				.add(MimeUtility.unfold(header.getValue()));
 	}
 
 	private static boolean isEmailHeader(DecodedHeader header, String emailHeaderName) {
@@ -1298,10 +1536,10 @@ public final class MimeMessageParser {
 		return retained;
 	}
 
-	@NotNull
+	@Nullable
 	public static String parseSubject(@NotNull final MimeMessage mimeMessage) {
 		try {
-			return ofNullable(mimeMessage.getSubject()).orElse("");
+			return mimeMessage.getSubject();
 		} catch (final MessagingException e) {
 			throw new MimeMessageParseException(MimeMessageParseException.ERROR_GETTING_SUBJECT, e);
 		}
@@ -1327,39 +1565,188 @@ public final class MimeMessageParser {
 		}
 	}
 
-	static void moveInvalidEmbeddedResourcesToAttachments(ParsedMimeMessageComponents parsedComponents) {
-		final String htmlContent = parsedComponents.htmlContent.toString();
-		final Set<String> referencedCids = CidReferences.inHtml(htmlContent);
-		for (Iterator<Map.Entry<String, MimeDataSource>> it = parsedComponents.cidMap.entrySet().iterator(); it.hasNext(); ) {
-			Map.Entry<String, MimeDataSource> cidEntry = it.next();
-			String cid = extractCID(cidEntry.getKey());
-			if (!referencedCids.contains(cid)) {
-				parsedComponents.attachmentList.add(cidEntry.getValue());
-				it.remove();
-			}
-		}
-		// Keep the existing referenced-CID selection, including collisions; only unreferenced inline occurrences become attachments.
-		parsedComponents.attachmentList.removeIf(resource -> parsedComponents.explicitInlineResources.contains(resource)
-				&& referencedCids.contains(resource.getContentId()));
-		parsedComponents.explicitInlineResources.clear();
-	}
+    static void moveInvalidEmbeddedResourcesToAttachments(final ParsedMimeMessageComponents parsed) {
+        final Set<String> referenced = CidReferences.inHtml(parsed.getHtmlContent() == null ? "" : parsed.getHtmlContent());
+        parsed.cidMap.clear();
+        for (final String cid : referenced) {
+            final List<MimeDataSource> candidates = new ArrayList<>();
+            int strongest = -1;
+            for (final MimeDataSource resource : parsed.attachmentList) {
+                if (!cid.equals(resource.getContentId()) || parsed.bodyContainers.contains(resource)) continue;
+                int association = 0;
+                for (final BodyValue html : selectedBodies(parsed.htmlValues)) {
+                    association = Math.max(association, commonOwner(html.source.getLocation(), parsed.resourceSources.get(resource).getLocation()));
+                }
+                if (association > strongest) { candidates.clear(); strongest = association; }
+                if (association == strongest) candidates.add(resource);
+            }
+            if (candidates.size() == 1) {
+                parsed.cidMap.put(cid, candidates.get(0));
+            } else if (candidates.size() > 1) {
+                parsed.resourceSources.get(candidates.get(0)).problem(EmailProblem.Code.CONTENT_NOT_REPRESENTED, cid,
+                        "Multiple same-message resources match this selected HTML Content-ID; no unique association was established");
+            }
+        }
+        final Set<MimeDataSource> selected = Collections.newSetFromMap(new IdentityHashMap<>());
+        selected.addAll(parsed.cidMap.values());
+        for (final MimeDataSource resource : parsed.attachmentList) {
+            final String contentId = resource.getContentId();
+            if (contentId != null && referenced.contains(contentId) && !selected.contains(resource)) {
+                parsed.conflictingContentIds.add(resource);
+            }
+        }
+        parsed.attachmentList.removeIf(resource -> selected.contains(resource)
+                && (parsed.explicitInlineResources.contains(resource) || parsed.implicitRelatedImages.contains(resource)));
+        parsed.explicitInlineResources.clear();
+        parsed.implicitRelatedImages.clear();
+    }
 
-	private static void removeReferencedImplicitImageAttachments(final ParsedMimeMessageComponents parsedComponents) {
-		if (parsedComponents.implicitRelatedImages.isEmpty()) {
-			return;
-		}
-		final Set<MimeDataSource> referenced = Collections.newSetFromMap(new IdentityHashMap<>());
-		referenced.addAll(parsedComponents.cidMap.values());
-		// Remove only the same parsed occurrence, leaving ordinary attachment slots and #491's explicit views intact.
-		parsedComponents.attachmentList.removeIf(resource -> parsedComponents.implicitRelatedImages.contains(resource) && referenced.contains(resource));
-		parsedComponents.implicitRelatedImages.clear();
-	}
+    private static int commonOwner(final String body, final String resource) {
+        final int limit = Math.min(body.length(), resource.length());
+        int shared = 0;
+        for (int index = 0; index < limit && body.charAt(index) == resource.charAt(index); index++) {
+            if (body.charAt(index) == '/') shared = index;
+        }
+        return shared;
+    }
+
+    private static void removeReferencedImplicitImageAttachments(final ParsedMimeMessageComponents parsed) {
+        // Classification above owns both implicit and explicit inline occurrences after final body selection.
+    }
 
 	@Getter
 	public static class ParsedMimeMessageComponents {
         @Getter(AccessLevel.NONE) private InputInspection inspection;
-        public EmailSourceData getSourceData() { return inspection.getSourceData(); }
-        public List<EmailProblem> getProblems() { return inspection.getProblems(); }
+        @Getter(AccessLevel.NONE) private InputInspection selectedHeaders;
+        @Getter(AccessLevel.NONE) private InputInspection carrierHeaders;
+        @Getter(AccessLevel.NONE) private InputInspection subjectHeaders;
+        @Getter(AccessLevel.NONE) private IncomingPartInterpreter partInterpreter;
+        @Getter(AccessLevel.NONE) private ProtectionScope headerProtection = ProtectionScope.plain();
+        @Getter(AccessLevel.NONE) private ProtectionScope carrierProtection = ProtectionScope.plain();
+        @Getter(AccessLevel.NONE) private ProtectionScope subjectProtection = ProtectionScope.plain();
+        @Getter(AccessLevel.NONE) private final List<HeaderView> headerViews = new ArrayList<>();
+        @Getter(AccessLevel.NONE) private HeaderView authoredView;
+        @Getter(AccessLevel.NONE) private int unavailableAuthoredDepth = -1;
+        private boolean authoredHeaderViewUnavailable;
+        @Getter(AccessLevel.NONE) private boolean unavailableBody;
+        private String nativeSubject;
+        @Getter(AccessLevel.NONE) private final List<ProtectionScope> encounteredScopes = new ArrayList<>();
+        @Getter(AccessLevel.NONE) private final List<BodyValue> plainValues = new ArrayList<>();
+        @Getter(AccessLevel.NONE) private final List<BodyValue> htmlValues = new ArrayList<>();
+        @Getter(AccessLevel.NONE) private final Deque<AlternativeChoice> activeAlternatives = new ArrayDeque<>();
+        @Getter(AccessLevel.NONE) private final List<MimePartCapture> calendarSources = new ArrayList<>();
+        @Getter(AccessLevel.NONE) private MimePartCapture calendarSource;
+        @Getter(AccessLevel.NONE) private ProtectionScope calendarProtection;
+        @Getter(AccessLevel.NONE) private int calendarDepth = -1;
+        @Getter(AccessLevel.NONE) private final Map<MimeDataSource, ProtectionScope> resourceProtection = new IdentityHashMap<>();
+        @Getter(AccessLevel.NONE) private final Map<MimeDataSource, ImportTraversal> resourceTraversals = new IdentityHashMap<>();
+        @Getter(AccessLevel.NONE) private final Set<MimePartCapture> protectedBodyParts = Collections.newSetFromMap(new IdentityHashMap<>());
+        @Getter(AccessLevel.NONE) private final Set<MimeDataSource> bodyContainers = Collections.newSetFromMap(new IdentityHashMap<>());
+        @Getter(AccessLevel.NONE) private final Set<MimeDataSource> conflictingContentIds = Collections.newSetFromMap(new IdentityHashMap<>());
+        public boolean hasConflictingContentId(final MimeDataSource resource) { return conflictingContentIds.contains(resource); }
+        public EmailSourceData getSourceData() {
+            final EmailSourceData original = inspection.getSourceData();
+            if (headerViews.size() <= 1) return original;
+            final List<EmailSourceData> derived = new ArrayList<>(original.getDerivedSources());
+            for (int index = 1; index < headerViews.size(); index++) derived.add(headerViews.get(index).inspection.getSourceData());
+            return org.simplejavamail.internal.email.EmailInspection.withDerivedSources(original, derived);
+        }
+        public List<EmailProblem> getProblems() {
+            final List<EmailProblem> result = new ArrayList<>(inspection.getProblems());
+            for (final HeaderView view : headerViews) if (view.inspection != inspection) result.addAll(view.inspection.getProblems());
+            return List.copyOf(result);
+        }
+        public List<ProtectionScope> getProtectionScopes() { return List.copyOf(encounteredScopes); }
+        public void useSuppliedOuterHeaders(final InputInspection original) {
+            selectedHeaders = original;
+            carrierHeaders = original;
+            subjectHeaders = original;
+            if (original.raw("Message-ID") == null) { messageId = null; headers.remove("Message-ID"); }
+            if (original.raw("Date") == null) { sentDate = null; headers.remove("Date"); }
+            if (original.raw("Subject") == null) { subject = null; nativeSubject = null; headers.remove("Subject"); }
+        }
+        public Set<String> getConfidentialHeaderNames() {
+            final Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+            for (final String name : List.of("References", "In-Reply-To")) {
+                final Collection<Object> values = headers.get(name);
+                if (values != null && !values.isEmpty()
+                        && getHeaderInspection(name, values).getEncryptionStatus() == EncryptionStatus.DECRYPTED) names.add(name);
+            }
+            return Collections.unmodifiableSet(names);
+        }
+        public List<MimeDataSource> getAttachmentList() {
+            return attachmentList.stream().filter(value -> !bodyContainers.contains(value)).collect(java.util.stream.Collectors.toList());
+        }
+        public EmailSourcePart getAttachmentSource(final int index) { return resourceSources.get(getAttachmentList().get(index)).snapshot(); }
+        public ProtectionScope getAttachmentProtection(final int index) { return resourceProtection.get(getAttachmentList().get(index)); }
+        public ImportTraversal getAttachmentTraversal(final int index) { return resourceTraversals.get(getAttachmentList().get(index)); }
+        public ValueInspection getAttachmentInspection(final int index) {
+            return getAttachmentProtection(index).inspect(List.of(getAttachmentSource(index)), ValueAvailability.PRESENT);
+        }
+        public ValueInspection getEmbeddedImageInspection(final int index) {
+            final MimeDataSource resource = new ArrayList<>(cidMap.values()).get(index);
+            return resourceProtection.get(resource).inspect(List.of(resourceSources.get(resource).snapshot()), ValueAvailability.PRESENT);
+        }
+        public ValueInspection getPlainInspection() { return bodyInspection(plainValues); }
+        public ValueInspection getHtmlInspection() { return bodyInspection(htmlValues); }
+        public ValueInspection getCalendarInspection() {
+            return calendarSource == null ? absentBodyInspection() : calendarProtection.inspect(List.of(calendarSource.snapshot()), ValueAvailability.PRESENT);
+        }
+        public ValueInspection getHeaderInspection(final String name, final Object value) {
+            final InputInspection source = name.equalsIgnoreCase("Return-Path") ? carrierHeaders : name.equalsIgnoreCase("Subject") ? subjectHeaders : selectedHeaders;
+            final List<EmailSourceElement> sources = new ArrayList<>();
+            for (final EmailSourceHeader header : source.getSourceData().getHeaders()) {
+                if (header.getName().equalsIgnoreCase(name)) sources.add(header);
+            }
+            if (authoredHeaderViewUnavailable && authoredField(name)) {
+                return org.simplejavamail.internal.email.ValueInspectionImpl.builder().availability(ValueAvailability.UNAVAILABLE).sources(sources).build();
+            }
+            if (sources.isEmpty() && name.equalsIgnoreCase("From") && value != null) {
+                source.getSourceData().getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase("Sender")).forEach(sources::add);
+            }
+            if (sources.isEmpty() && name.equalsIgnoreCase("Reply-To") && value instanceof Collection<?> && !((Collection<?>) value).isEmpty()) {
+                source.getSourceData().getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase("From")).forEach(sources::add);
+                if (sources.isEmpty()) source.getSourceData().getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase("Sender")).forEach(sources::add);
+            }
+            final boolean missing = value == null || value instanceof Collection<?> && ((Collection<?>) value).isEmpty();
+            final boolean emptyList = value instanceof Collection<?> && ((Collection<?>) value).isEmpty();
+            final boolean emptyHeader = !sources.isEmpty() && sources.stream().allMatch(element -> element instanceof EmailSourceHeader
+                    && (((EmailSourceHeader) element).getRawValue() == null || ((EmailSourceHeader) element).getRawValue().trim().isEmpty()));
+            return (name.equalsIgnoreCase("Return-Path") ? carrierProtection : name.equalsIgnoreCase("Subject") ? subjectProtection : headerProtection)
+                    .inspect(sources, missing && source.interpretationFailed(name) ? ValueAvailability.UNAVAILABLE
+                            : !missing || emptyList && !sources.isEmpty() ? ValueAvailability.PRESENT
+                            : sources.isEmpty() || emptyHeader ? ValueAvailability.ABSENT : ValueAvailability.UNAVAILABLE);
+        }
+        private ValueInspection bodyInspection(final List<BodyValue> candidates) {
+            final List<BodyValue> selected = selectedBodies(candidates);
+            if (selected.isEmpty()) return absentBodyInspection();
+            final List<ProtectionScope> scopes = new ArrayList<>();
+            final List<EmailSourceElement> sources = new ArrayList<>();
+            selected.forEach(value -> { scopes.add(value.protection); sources.add(value.source.snapshot()); });
+            return ProtectionScope.combine(scopes, sources, ValueAvailability.PRESENT, ValueDerivation.NONE);
+        }
+        private ValueInspection absentBodyInspection() {
+            final List<EmailSourceElement> sources = new ArrayList<>();
+            encounteredScopes.forEach(scope -> {
+                scope.getSignatures().forEach(value -> sources.addAll(value.getSources()));
+                scope.getDecryptions().forEach(value -> sources.addAll(value.getSources()));
+            });
+            final boolean contentUnavailable = inspection.contentStop() != null && inspection.contentStopCode() != EmailProblem.Code.IMPORT_LIMIT_EXCEEDED;
+            if (contentUnavailable) sources.addAll(inspection.getSourceData().getParts());
+            return ProtectionScope.combine(unavailableBody ? encounteredScopes : List.of(), sources, unavailableBody || contentUnavailable ? ValueAvailability.UNAVAILABLE
+                    : inspection.hasUnvisitedStructure() ? ValueAvailability.UNKNOWN : ValueAvailability.ABSENT, ValueDerivation.NONE);
+        }
+        public String getPlainTextContentTransferEncoding() { return selectedEncoding(plainValues, plainTextContentTransferEncoding); }
+        public String getHtmlTextContentTransferEncoding() { return selectedEncoding(htmlValues, htmlTextContentTransferEncoding); }
+        public String getContentTransferEncoding() {
+            if (!plainValues.isEmpty()) return selectedEncoding(plainValues, null);
+            if (!htmlValues.isEmpty()) return selectedEncoding(htmlValues, null);
+            return calendarContent != null ? calendarTextContentTransferEncoding : null;
+        }
+        private String selectedEncoding(final List<BodyValue> values, final String fallback) {
+            final List<BodyValue> selected = selectedBodies(values);
+            return selected.isEmpty() ? fallback : interpretedTransferEncoding(selected.get(0).source);
+        }
         public List<org.simplejavamail.api.email.EmailSourcePart> getOriginalHtmlParts() { return inspection.originalHtmlParts(); }
         /** Exact parsed occurrence identity; no resource reads or filename matching. */
         public org.simplejavamail.api.email.EmailSourcePart getAttachmentSource(final org.simplejavamail.api.email.AttachmentResource attachment) {
@@ -1376,7 +1763,7 @@ public final class MimeMessageParser {
         @Getter(AccessLevel.NONE) private boolean complete;
         @Getter(AccessLevel.NONE) private String completedPlainContent;
         @Getter(AccessLevel.NONE) private String completedHtmlContent;
-		final Set<MimeDataSource> attachmentList = new LinkedHashSet<>();
+		final List<MimeDataSource> attachmentList = new ArrayList<>();
         private boolean rootRepresentedAsResource;
 		final Map<String, MimeDataSource> cidMap = new TreeMap<>();
 		@Getter(AccessLevel.NONE)
@@ -1419,12 +1806,12 @@ public final class MimeMessageParser {
 
 		@Nullable
 		public String getPlainContent() {
-			return complete ? completedPlainContent : plainContentPresent ? plainContent.toString() : null;
+			return complete ? completedPlainContent : bodyContent(plainValues);
 		}
 
 		@Nullable
 		public String getHtmlContent() {
-			return complete ? completedHtmlContent : htmlContentPresent ? htmlContent.toString() : null;
+			return complete ? completedHtmlContent : bodyContent(htmlValues);
 		}
 
 		@Nullable

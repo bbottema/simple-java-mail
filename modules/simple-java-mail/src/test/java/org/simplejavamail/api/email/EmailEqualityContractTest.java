@@ -11,6 +11,8 @@ import testutil.ConfigLoaderTestHelper;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,6 +98,111 @@ class EmailEqualityContractTest {
 		assertThat(equivalent).isEqualTo(first);
 		assertThat(reads).hasValue(0);
 	}
+
+    @ParameterizedTest
+    @ValueSource(strings = {"To", "Cc", "Bcc", "Reply-To"})
+    void richRecipientHeadersDoNotReintroduceOrderButStillCountOccurrences(final String header) {
+        final Email first = received(Map.of(header, "first@example.org, second@example.org, first@example.org"), "");
+        final Email reordered = received(Map.of(header, "first@example.org, first@example.org, second@example.org"), "");
+        final Email differentOccurrences = received(Map.of(header, "first@example.org, second@example.org, second@example.org"), "");
+        assertThat(first.getHeaders().get(header)).isNotEqualTo(reordered.getHeaders().get(header));
+        assertThat(first).isEqualTo(reordered);
+        assertThat(reordered).isEqualTo(first).isNotEqualTo(differentOccurrences);
+        assertThat(differentOccurrences).isNotEqualTo(first);
+    }
+
+    @Test
+    void newlyReadableDeliveryAuthenticationAndMimeHistoryAreNotAdditionalComparands() {
+        final Map<String, String> firstHeaders = Map.of("Received", "from first.example.org", "Authentication-Results", "first.example.org; dkim=pass",
+                "DKIM-Signature", "first source signature", "ARC-Seal", "first source seal", "Content-Length", "4", "Content-MD5", "AAAA",
+                "Content-Type", "text/plain; charset=UTF-8", "MIME-Version", "1.0 (first source)");
+        final Map<String, String> secondHeaders = Map.of("Received", "from second.example.org", "Authentication-Results", "second.example.org; dkim=fail",
+                "DKIM-Signature", "second source signature", "ARC-Seal", "second source seal", "Content-Length", "40", "Content-MD5", "BBBB",
+                "Content-Type", "text/plain; charset=utf-8", "MIME-Version", "1.0 (second source)");
+        final Email first = received(firstHeaders, "");
+        final Email second = received(secondHeaders, "");
+        assertThat(first.getHeaders()).isNotEqualTo(second.getHeaders());
+        assertThat(first.getSourceData().getOrigin().getReference()).isNotEqualTo(second.getSourceData().getOrigin().getReference());
+        assertThat(first).isEqualTo(second);
+        assertThat(second).isEqualTo(first);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Date", "Return-Path"})
+    void unavailableTypedValuesDoNotAddSourceOnlyRawFallbackComparands(final String header) {
+        final Email first = received(Map.of(header, "uninterpretable first value"), "");
+        final Email second = received(Map.of(header, "uninterpretable second value"), "");
+        if (header.equals("Date")) {
+            assertThat(first.getSentDate()).isNull();
+            assertThat(second.getSentDate()).isNull();
+        } else {
+            assertThat(first.getBounceToRecipient()).isNull();
+            assertThat(second.getBounceToRecipient()).isNull();
+        }
+        assertThat(first.getHeaders().get(header)).isNotEqualTo(second.getHeaders().get(header));
+        assertThat(first).isEqualTo(second);
+        assertThat(second).isEqualTo(first);
+    }
+
+    @Test
+    void typedIdentityDateAndBounceValuesKeepTheirExistingComparison() {
+        final Email first = received(Map.of("Return-Path", "<bounce@example.org>"), "");
+        assertThat(first).isNotEqualTo(received(Map.of("Return-Path", "<bounce@example.org>", "Message-ID", "<other@example.org>"), ""));
+        assertThat(first).isNotEqualTo(received(Map.of("Return-Path", "<bounce@example.org>", "Date", "Thu, 1 Jan 1970 00:00:02 +0000"), ""));
+        assertThat(first).isNotEqualTo(received(Map.of("Return-Path", "<other-bounce@example.org>"), ""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"References", "In-Reply-To", "Sender", "Comments", "Keywords"})
+    void semanticAdditionalAuthoredHeadersRemainComparands(final String header) {
+        final Email first = received(Map.of(header, "<first@example.org>"), "");
+        final Email second = received(Map.of(header, "<second@example.org>"), "");
+        assertThat(first).isNotEqualTo(second);
+        assertThat(second).isNotEqualTo(first);
+    }
+
+    @Test
+    void customHeaderNamesAreCaseInsensitiveWhileTheirOccurrenceOrderAndEmptyValuesRemainMeaningful() {
+        final Email first = received(Map.of(), "X-Route: first\r\nX-Route: second\r\n");
+        final Email same = received(Map.of(), "x-route: first\r\nx-route: second\r\n");
+        final Email reversed = received(Map.of(), "X-Route: second\r\nX-Route: first\r\n");
+        assertThat(first).isEqualTo(same).isNotEqualTo(reversed);
+        assertThat(received(Map.of(), "X-Empty: \r\n")).isNotEqualTo(received(Map.of(), ""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"name", "filename", "size"})
+    void standaloneCustomNamesRemainExplicitComparableChoices(final String header) {
+        final Email first = message().withHeader(header, "first").buildEmail();
+        final Email second = message().withHeader(header, "second").buildEmail();
+        assertThat(first).isNotEqualTo(second).isNotEqualTo(message().buildEmail());
+        assertThat(mail.emailBuilder().copying(first).buildEmail()).isEqualTo(first);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Disposition-Notification-To", "Return-Receipt-To"})
+    void explicitGenericNotificationChoicesRemainSemanticallyDistinct(final String header) {
+        final Email first = message().withHeader(header, "first@example.org").buildEmail();
+        final Email second = message().withHeader(header, "second@example.org").buildEmail();
+        assertThat(first).isNotEqualTo(second);
+        assertThat(second).isNotEqualTo(first);
+    }
+
+    private Email received(final Map<String, String> replacements, final String additional) {
+        final Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("From", "author@example.org");
+        headers.put("To", "reader@example.org");
+        headers.put("Subject", "Same message");
+        headers.put("Message-ID", "<equality@example.org>");
+        headers.put("Date", "Thu, 1 Jan 1970 00:00:01 +0000");
+        headers.put("MIME-Version", "1.0");
+        headers.put("Content-Type", "text/plain; charset=UTF-8");
+        headers.put("Content-Transfer-Encoding", "7bit");
+        headers.putAll(replacements);
+        final StringBuilder source = new StringBuilder();
+        headers.forEach((name, value) -> source.append(name).append(": ").append(value).append("\r\n"));
+        return mail.converter().fromEml(source.append(additional).append("\r\nbody").toString()).toEmail();
+    }
 
 	private EmailPopulatingBuilder message() {
 		return mail.emailBuilder().startingBlank().withSubject("Same message").withPlainText("body");

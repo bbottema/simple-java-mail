@@ -2,129 +2,42 @@ package org.simplejavamail.internal.modules;
 
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.internet.MimePart;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
-import org.simplejavamail.api.internal.outlooksupport.model.OutlookMessage;
-import org.simplejavamail.api.internal.protectionsupport.model.InboundProtectionResult;
-import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
-import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
-import org.simplejavamail.api.internal.smimesupport.model.SmimeDetails;
-import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
+import org.simplejavamail.internal.protection.ProtectionLayerResult;
 
 import java.security.cert.X509Certificate;
 import java.util.Collection;
-import java.util.List;
 
-/**
- * This interface only serves to hide the S/MIME implementation behind an easy-to-load-with-reflection class.
- */
-public interface SMIMEModule extends InboundProtectionHandler<Pkcs12Config, OriginalSmimeDetails> {
+/** Reflection-loaded optional S/MIME boundary; incoming facts are scoped to one opened envelope. */
+public interface SMIMEModule {
+    String NAME = "S/MIME module";
 
-	String NAME = "S/MIME module";
+    /** Creates a private-key runtime for its owning factory; the shared entry point retains no factory runtime. */
+    @NotNull SMIMEModule createRuntime(int capacity);
 
-	/** Creates one private-key runtime for its owning factory; the reflection-loaded entry point retains no factory runtime. */
-	@NotNull
-	SMIMEModule createRuntime(int capacity);
+    /** Opens at most one envelope; the main importer owns roles, repeated layers and shared import allowances. */
+    @NotNull ProtectionLayerResult openIncomingLayer(@NotNull Session session, @NotNull MimeMessage originalMessage,
+            @Nullable Pkcs12Config pkcs12Config);
 
-	@NotNull
-	@Override
-	SmimePreprocessingResult processIncoming(@NotNull Session session, @NotNull MimeMessage originalMessage,
-			@Nullable Pkcs12Config pkcs12Config);
+    @NotNull MimeMessage signMessageWithSmime(@NotNull Session session, @NotNull Email email,
+            @NotNull MimeMessage messageToProtect, @NotNull SmimeSigningConfig signingConfig);
 
-	/** Inspects original-message facts without receive keys or a replacement content view. */
-	@NotNull
-	InboundProtectionResult<OriginalSmimeDetails> inspectIncomingMessage(@NotNull Session session,
-			@NotNull MimeMessage originalMessage);
+    @NotNull MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull Email email,
+            @NotNull MimeMessage messageToProtect, @NotNull SmimeEncryptionConfig encryptionConfig);
 
-	/**
-	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.
-	 */
-	SmimeParseResult decryptAttachments(@NotNull List<AttachmentResource> attachments, @NotNull OutlookMessage outlookMessage, @Nullable Pkcs12Config pkcs12Config);
+    /**
+     * Encrypts one envelope for all supplied recipient certificates. Each certificate supplies one recipient block;
+     * possession of any corresponding private key opens the content. Duplicate certificates are permitted.
+     * Algorithm choices are shared across recipients; null uses the library default. Per-recipient certificate selection
+     * is resolved by the main runtime before this operation, independently of email-wide signing configuration.
+     */
+    @NotNull MimeMessage encryptMessageWithSmimeForRecipients(@Nullable Session session, @NotNull Email email,
+            @NotNull MimeMessage messageToProtect, @NotNull Collection<X509Certificate> recipientCerts,
+            @Nullable String keyEncapsulationAlgorithm, @Nullable String cipherAlgorithm);
 
-	/**
-	 * @return The results of the S/MIME decryption of any compatible encrypted / signed attachments.
-	 */
-	SmimeParseResult decryptAttachments(@NotNull List<AttachmentResource> attachments, @NotNull MimeMessage mimeMessage, @Nullable Pkcs12Config pkcs12Config);
-
-	/**
-	 * @return A copy of given original 'true' attachments, with S/MIME encrypted / signed attachments replaced with the actual attachment.
-	 */
-	@NotNull
-	List<AttachmentDecryptionResult> decryptAttachments(@NotNull List<AttachmentResource> attachments, @Nullable Pkcs12Config pkcs12Config, @NotNull OriginalSmimeDetails messageSmimeDetails);
-
-	/**
-	 * Opens independent signed/encrypted resources without interpreting one as the owning message's envelope or updating parent facts.
-	 * Optional malformed signed-child interpretation keeps its original resource; explicitly requested decryption keeps its failure boundary.
-	 */
-	@NotNull
-	List<AttachmentDecryptionResult> processIndependentAttachments(@NotNull List<AttachmentResource> attachments,
-			@Nullable Pkcs12Config pkcs12Config);
-
-	/**
-	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@code SmimeRecognitionUtil.isSmimeAttachment(..)}.
-	 */
-	boolean isSmimeAttachment(@NotNull AttachmentResource attachment);
-
-	/**
-	 * @return The S/MIME mime type and signed who signed the attachment.
-	 * <br>
-	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link jakarta.mail.internet.MimeBodyPart}.
-	 */
-	@NotNull
-	SmimeDetails getSmimeDetails(@NotNull AttachmentResource attachment);
-
-	/**
-	 * Delegates to {@link #getSignedByAddress(MimePart)}, where the datasource of the attachment is read completely as a MimeMessage.
-	 * <br>
-	 * <strong>Note:</strong> the attachment is assumed to be a signed / encrypted {@link jakarta.mail.internet.MimeBodyPart}.
-	 */
-	@Nullable
-	String getSignedByAddress(@NotNull AttachmentResource smimeAttachment);
-
-	/**
-	 * @return Who S/MIME signed /encrypted the attachment. This is indicated by the subject of the certificate (whom the certificate was 'issued to').
-	 */
-	@Nullable
-	String getSignedByAddress(@NotNull MimePart mimePart);
-
-	boolean verifyValidSignature(@NotNull MimeMessage mimeMessage, @NotNull OriginalSmimeDetails messageSmimeDetails);
-
-	@NotNull
-	MimeMessage signMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull SmimeSigningConfig smimeSigningConfig);
-
-	@NotNull
-        MimeMessage encryptMessageWithSmime(@NotNull Session session, @NotNull final Email email, @NotNull MimeMessage messageToProtect, @NotNull SmimeEncryptionConfig smimeEncryptionConfig);
-
-        /**
-         * Encrypts a MimeMessage for multiple recipients in a single S/MIME envelope. Each cert in {@code recipientCerts}
-         * becomes an independent recipient info block, so any recipient whose private key matches one of the provided
-         * certificates can decrypt the message.
-         * <p>
-         * This is the per-recipient variant used when at least one {@link org.simplejavamail.api.email.Recipient}
-         * carries a non-null {@code smimeCertificate}. The algorithm parameters ({@code keyEncapsulationAlgorithm},
-         * {@code cipherAlgorithm}) are shared across all recipients and should come from the email-level
-         * {@link SmimeEncryptionConfig} when present; {@code null} falls back to the library defaults.
-         *
-         * @param recipientCerts         One cert per TO/CC/BCC recipient (already resolved using precedence rules).
-         *                               Duplicate certs are allowed; the underlying generator deduplicates naturally.
-         * @param keyEncapsulationAlgorithm Optional name of the key-encapsulation algorithm (e.g. {@code "RSA_OAEP_SHA256"}).
-         * @param cipherAlgorithm        Optional name of the content-encryption algorithm (e.g. {@code "AES256_CBC"}).
-         */
-        @NotNull
-        MimeMessage encryptMessageWithSmimeForRecipients(@Nullable Session session, @NotNull Email email, @NotNull MimeMessage messageToProtect,
-                        @NotNull Collection<X509Certificate> recipientCerts,
-                        @Nullable String keyEncapsulationAlgorithm,
-                        @Nullable String cipherAlgorithm);
-
-	/**
-	 * @return Whether the given attachment is S/MIME signed / encrypted. Defers to {@code SmimeRecognitionUtil.isGeneratedSmimeMessageId(..)}.
-	 */
-    <T> boolean isGeneratedSmimeMessageId(String key, T headerValue);
 }

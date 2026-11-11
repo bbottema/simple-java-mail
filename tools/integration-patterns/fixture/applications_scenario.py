@@ -158,7 +158,7 @@ def prove_shared_limits_do_not_starve_urgent_work(prefix):
     # Concurrent dispatchers need not finish jobs in enqueue order. Inspect a protected job that actually used the allowance.
     submitted = next(row["id"] for row in rows if row["id"].startswith(prefix + "_bulk_") and row["state"] == "SUBMITTED")
     proof = request(f"{APP}/archive-proof?id={submitted}")
-    assert proof["sameBytes"] and proof["verification"] == "VALID" and proof["readable"], proof
+    assert proof["sameBytes"] and proof["verification"] == "VERIFIED" and proof["readable"], proof
     return proof
 
 
@@ -177,7 +177,7 @@ def prove_primary_recovery_and_protected_archive(prefix):
     await_value(lambda: request(f"{APP}/jobs"), lambda rows: any(row["id"] == f"{prefix}_protected" and row["state"] == "SUBMITTED" for row in rows), "protected archived submission")
     assert len(request("http://urgent-a:8025/stats")["messages"]) == before_a + 1
     proof = request(f"{APP}/archive-proof?id={prefix}_protected")
-    assert proof["sameBytes"] and proof["verification"] == "VALID" and proof["readable"], proof
+    assert proof["sameBytes"] and proof["verification"] == "VERIFIED" and proof["readable"], proof
     return proof
 
 
@@ -219,7 +219,7 @@ def verify_protected_handoff(id):
     result = request(f"{APP}/jobs?id={id}")
     assert result["completed"] and result["smtpAcceptance"] == "UNKNOWN", result
     matching = [row for row in packages if row["id"] == id]
-    assert len(matching) == 1 and matching[0]["signature"] == "VALID" and matching[0]["decrypted"]
+    assert len(matching) == 1 and matching[0]["signature"] == "VERIFIED" and matching[0]["decrypted"]
     assert "archive@example.test" in matching[0]["recipients"]
 
 
@@ -239,7 +239,7 @@ def aws_local():
     rows = await_value(lambda: request(f"{APP}/jobs"), lambda rows: any(row["jobId"] == id and row["status"] == "SUBMITTED" for row in rows), "SQS worker submits once")
     row = next(row for row in rows if row["jobId"] == id)
     proof = request(f"{APP}/archive-proof?id={id}")
-    assert proof["sha256"] == row["archiveSha256"] and proof["verification"] == "VALID" and proof["readable"], proof
+    assert proof["sha256"] == row["archiveSha256"] and proof["verification"] == "VERIFIED" and proof["readable"], proof
     verify_out_of_order_ses_feedback(id)
     verify_unsafe_aws_replays_are_held(id)
     previous = request(f"{APP}/queue-evidence")["feedbackDeadLetters"]

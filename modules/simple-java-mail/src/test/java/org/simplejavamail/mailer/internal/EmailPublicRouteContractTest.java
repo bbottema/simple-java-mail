@@ -59,7 +59,6 @@ class EmailPublicRouteContractTest {
         else if (name.contains("Header")) { headers(method, fixture); }
         else if (name.contains("Calendar")) { calendar(method, fixture); }
         else if (name.contains("Smime") || name.contains("OpenPgp") || name.equals("signWithDomainKey") || name.equals("clearDkim")) { protection(method, fixture); }
-        else if (name.contains("SMIME")) { mergePolicy(method, fixture); }
         else if (name.contains("Config") || name.contains("Options")) { groups(method, fixture); }
         else { throw new AssertionError("No Email route fixture for " + method); }
     }
@@ -264,12 +263,6 @@ class EmailPublicRouteContractTest {
         if (name.equals("clearSmime")) { assertThat(builder.buildEmail().getSmimeEncryptionConfig()).isNull(); }
         if (name.equals("clearOpenPgp")) { assertThat(builder.buildEmail().getOpenPgpEncryptionConfig()).isNull(); }
         record("field", field);
-    }
-
-    private static void mergePolicy(final Method method, final EmailContractTestSupport fixture) {
-        final EmailPopulatingBuilder builder = fixture.mail.emailBuilder().startingBlank().notMergingSingleSMIMESignedAttachment();
-        assertThat(invoke(builder, method)).isSameAs(builder);
-        assertThat(builder.isMergeSingleSMIMESignedAttachment()).isEqualTo(method.getName().startsWith("clear"));
     }
 
     private static void groups(final Method method, final EmailContractTestSupport fixture) {

@@ -25,22 +25,23 @@ import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
-import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.ProtectionCoverage;
+import org.simplejavamail.api.email.ValueInspection;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
-import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.EmailTooBigException;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.internal.InternalEmail;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.util.TestDataHelper;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
@@ -57,9 +58,11 @@ import java.security.KeyPairGenerator;
 import java.util.Calendar;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
@@ -212,7 +215,7 @@ public class MailerSmtpIntegrationTest {
 		assertThat(capturedMail.getEnvelopeSender()).isEqualTo("bounce@example.com");
 		assertThat(captured.getHeader("DKIM-Signature", null)).isNotBlank();
 		assertThat(verified.getPlainText()).isEqualTo("Héllo over a server advertising 8BITMIME");
-		assertThat(verified.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+		assertThat(verified.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
 		assertThat(mailer.getSession().getProperty("mail.smtp.allow8bitmime")).isEqualTo("true");
 	}
 
@@ -220,8 +223,9 @@ public class MailerSmtpIntegrationTest {
 	public void createMailSession_OutlookMessageTest()
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		val builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
-		Email email = assertSendingEmail(builder, false, false, false, true, false);
-		verifyReceivedOutlookEmail(email, false, false);
+		assertThat(builder.getHeaders()).containsEntry("Sender", singletonList("Benny Bottema <b.bottema@gmail.com>"));
+		ReceivedEmail received = assertSendingEmail(builder, false, false, false, true, false);
+		verifyReceivedOutlookEmail(received.email);
 	}
 
 	@Test
@@ -229,20 +233,9 @@ public class MailerSmtpIntegrationTest {
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
 				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_rsa", "letmein").signatureAlgorithm(null).build());
-		Email email = assertSendingEmail(builder, false, true, false, true, false);
-		verifyReceivedOutlookEmail(email, true, false);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isFalse();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-256")
-				.smimeSignedBy("Benny Bottema")
-				.smimeSignatureValid(true)
-				.build());
+		ReceivedEmail received = assertSendingEmail(builder, false, true, false, true, false);
+		verifyReceivedOutlookEmail(received.email);
+		assertReceivedSmimeProtection(received, true, false, "2.16.840.1.101.3.4.2.1");
 	}
 
 	@Test
@@ -250,20 +243,9 @@ public class MailerSmtpIntegrationTest {
 			throws IOException, MessagingException, ExecutionException, InterruptedException {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg")
 				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(new File(RESOURCES_PKCS + "/smime_keystore.pkcs12"), "letmein", "smime_test_user_alias_dsa", "letmein").signatureAlgorithm("SHA384withDSA").build());
-		Email email = assertSendingEmail(builder, false, true, false, true, false);
-		verifyReceivedOutlookEmail(email, true, false);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isFalse();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-384")
-				.smimeSignedBy("Benny Bottema")
-				.smimeSignatureValid(true)
-				.build());
+		ReceivedEmail received = assertSendingEmail(builder, false, true, false, true, false);
+		verifyReceivedOutlookEmail(received.email);
+		assertReceivedSmimeProtection(received, true, false, "2.16.840.1.101.3.4.2.2");
 	}
 
 	@Test
@@ -283,18 +265,14 @@ public class MailerSmtpIntegrationTest {
 		EmailPopulatingBuilder builder = readOutlookMessage("test-messages/HTML mail with replyto and attachment and embedded image.msg");
 		assertThat(builder.getTemplateOptions().isIgnoreDefaults()).isTrue();
 		assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(builder.buildEmail()).getSmimeSigningConfig()).isNull();
-		Email email = assertSendingEmail(builder, false, false, false, true, false);
+		ReceivedEmail received = assertSendingEmail(builder, false, false, false, true, false);
 
 		// Outlook conversion preserves source content and deliberately opts out of mailer defaults.
 		assertThat(builder.getSmimeSigningConfig()).isNull();
-		assertThat(email.getSmimeEncryptionConfig()).isNull();
+		assertThat(received.email.getSmimeEncryptionConfig()).isNull();
 
-		verifyReceivedOutlookEmail(email, false, false);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isFalse();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
+		verifyReceivedOutlookEmail(received.email);
+		assertReceivedSmimeProtection(received, false, false, null);
 	}
 
 	@Test
@@ -345,18 +323,9 @@ public class MailerSmtpIntegrationTest {
 				.encryptWithSmime(SmimeEncryptionConfig.builder()
 						.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
 						.build());
-		Email email = assertSendingEmail(builder, false, true, false, true, false);
-		verifyReceivedOutlookEmail(email, false, true);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.build());
+		ReceivedEmail received = assertSendingEmail(builder, false, true, false, true, false);
+		verifyReceivedOutlookEmail(received.email);
+		assertReceivedSmimeProtection(received, false, true, null);
 	}
 
 	@Test
@@ -368,18 +337,9 @@ public class MailerSmtpIntegrationTest {
 						.keyEncapsulationAlgorithm("RSA_OAEP_SHA384")
 						.cipherAlgorithm("AES256_CBC")
 						.build());
-		Email email = assertSendingEmail(builder, false, true, false, true, false);
-		verifyReceivedOutlookEmail(email, false, true);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.build());
+		ReceivedEmail received = assertSendingEmail(builder, false, true, false, true, false);
+		verifyReceivedOutlookEmail(received.email);
+		assertReceivedSmimeProtection(received, false, true, null);
 	}
 
 	@Test
@@ -390,27 +350,9 @@ public class MailerSmtpIntegrationTest {
 				.encryptWithSmime(SmimeEncryptionConfig.builder()
 						.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
 						.build());
-		Email email = assertSendingEmail(builder, false, true, false, true, false);
-		verifyReceivedOutlookEmail(email, true, true);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.smimeSignatureValid(true)
-				.build());
-		EmailAssert.assertThat(email.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-256")
-				.smimeSignatureValid(true)
-				.smimeSignedBy("Benny Bottema")
-				.build());
+		ReceivedEmail received = assertSendingEmail(builder, false, true, false, true, false);
+		verifyReceivedOutlookEmail(received.email);
+		assertReceivedSmimeProtection(received, true, true, "2.16.840.1.101.3.4.2.1");
 	}
 
 	@Test
@@ -421,25 +363,8 @@ public class MailerSmtpIntegrationTest {
 						.x509Certificate(new File(RESOURCES_PKCS + "/smime_test_user.pem.standard.crt"))
 						.build());
 
-		Email email = assertSendingEmail(builder, false, true, false, false, false);
-
-		//noinspection deprecation
-		assertThat(((InternalEmail) email).wasMergedWithSmimeSignedMessage()).isTrue();
-
-		EmailAssert.assertThat(email).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.build());
-		EmailAssert.assertThat(email.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.PLAIN)
-				.smimeMime(null)
-				.smimeProtocol(null)
-				.smimeMicalg(null)
-				.smimeSignatureValid(null)
-				.smimeSignedBy(null)
-				.build());
+		ReceivedEmail received = assertSendingEmail(builder, false, true, false, false, false);
+		assertReceivedSmimeProtection(received, false, true, null);
 	}
 
 	/**
@@ -468,12 +393,7 @@ public class MailerSmtpIntegrationTest {
 		val decryptedEmail = mimeMessageToEmailBuilder(received.getMimeMessage(), loadPkcs12KeyStore()).buildEmail();
 
 		assertThat(normalizeNewlines(decryptedEmail.getPlainText()).trim()).isEqualTo("Hello, this is per-recipient encrypted!");
-		EmailAssert.assertThat(decryptedEmail).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.build());
+		assertReceivedSmimeProtection(new ReceivedEmail(received.getMimeMessage(), decryptedEmail), false, true, null);
 	}
 
 	/**
@@ -511,7 +431,46 @@ public class MailerSmtpIntegrationTest {
 		assertThat(normalizeNewlines(decryptedEmail.getPlainText()).trim()).isEqualTo("Precedence test body");
 	}
 
-	private void verifyReceivedOutlookEmail(final Email email, final boolean smimeSigned, final boolean smimeEncrypted) throws IOException {
+	private static void assertReceivedSmimeProtection(final ReceivedEmail received, final boolean signed, final boolean encrypted,
+            final String expectedHashOid) throws MessagingException {
+        final Email email = received.email;
+        if (email.getPlainText() != null) assertSelectedProtection(email.getInspection().getPlainText(), signed, encrypted);
+        if (email.getHTMLText() != null) assertSelectedProtection(email.getInspection().getHTMLText(), signed, encrypted);
+        for (int index = 0; index < email.getAttachments().size(); index++) {
+            assertSelectedProtection(email.getInspection().getAttachment(index), signed, encrypted);
+        }
+        for (int index = 0; index < email.getEmbeddedImages().size(); index++) {
+            assertSelectedProtection(email.getInspection().getEmbeddedImage(index), signed, encrypted);
+        }
+        assertThat(email.getInspection().getSmime().getSignatures()).hasSize(signed ? 1 : 0)
+                .allSatisfy(signature -> {
+                    assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED);
+                    assertThat(signature.getSignerName()).contains("Benny Bottema");
+                    assertThat(signature.getSigningKeyFingerprint()).isNotBlank();
+                    assertThat(signature.getHashAlgorithm()).isEqualTo(expectedHashOid);
+                });
+        assertThat(email.getInspection().getSmime().getDecryptions()).hasSize(encrypted ? 1 : 0)
+                .allSatisfy(decryption -> assertThat(decryption.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+        final ContentType wireType = new ContentType(received.wireMessage.getContentType());
+        if (encrypted) {
+            assertThat(wireType.getBaseType()).isEqualToIgnoringCase("application/pkcs7-mime");
+            assertThat(wireType.getParameter("smime-type")).isEqualToIgnoringCase("enveloped-data");
+            assertThat(wireType.getParameter("name")).isEqualTo("smime.p7m");
+        } else if (signed) {
+            assertThat(wireType.getBaseType()).isEqualToIgnoringCase("multipart/signed");
+            assertThat(wireType.getParameter("protocol")).isEqualToIgnoringCase("application/pkcs7-signature");
+            assertThat(wireType.getParameter("micalg")).isEqualToIgnoringCase(expectedHashOid.endsWith(".2") ? "sha-384" : "sha-256");
+        }
+    }
+
+    private static void assertSelectedProtection(final ValueInspection value, final boolean signed, final boolean encrypted) {
+        assertThat(value.getSignatureStatus()).isEqualTo(signed ? SignatureStatus.VERIFIED : SignatureStatus.UNSIGNED);
+        assertThat(value.getEncryptionStatus()).isEqualTo(encrypted ? EncryptionStatus.DECRYPTED : EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(value.getSignatures()).hasSize(signed ? 1 : 0)
+                .allSatisfy(signature -> assertThat(signature.getCoverage()).isEqualTo(ProtectionCoverage.FULL));
+    }
+
+	private void verifyReceivedOutlookEmail(final Email email) throws IOException {
 		// Google SMTP overrode this, Outlook recognized it as: Benny Bottema <b.bottema@gmail.com>; on behalf of; lollypop <b.bottema@projectnibble.org>
 		EmailAssert.assertThat(email).hasFromRecipient(new Recipient("lollypop", "b.bottema@projectnibble.org", null, null));
 		EmailAssert.assertThat(email).hasSubject("hey");
@@ -524,9 +483,7 @@ public class MailerSmtpIntegrationTest {
 				"<b>We should meet up!</b><img src=\"cid:thumbsup\">");
 		// the RTF was probably created by Outlook based on the HTML when the message was saved
 
-		assertThat(email.getAttachments()).hasSize(smimeSigned || smimeEncrypted
-				? (smimeSigned && smimeEncrypted ? 4 : 3)
-				: 2);
+		assertThat(email.getAttachments()).hasSize(2);
 		assertThat(email.getAttachments()).extracting(AttachmentResource::getName)
 				.contains("dresscode.txt", "location.txt");
 		final AttachmentResource attachment1 = email.getAttachments().stream()
@@ -550,7 +507,7 @@ public class MailerSmtpIntegrationTest {
 		assertAttachmentMetadata(embeddedImg, "image/png", "thumbsup");
 	}
 
-	private Email assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure, boolean skipChecksDueToSmime,
+	private ReceivedEmail assertSendingEmail(final EmailPopulatingBuilder originalEmailPopulatingBuilder, boolean compensateForDresscodeAttachmentNameOverrideErasure, boolean skipChecksDueToSmime,
 			boolean async, final boolean sentDateWasFixed, final boolean dynamicImageEmbeddingWasUsed)
 			throws MessagingException, ExecutionException, InterruptedException {
 		Email originalEmail = originalEmailPopulatingBuilder.buildEmail();
@@ -587,10 +544,6 @@ public class MailerSmtpIntegrationTest {
 		if (originalEmailPopulatingBuilder.getReplyToRecipients().isEmpty()) {
 			originalEmailPopulatingBuilder.withReplyTo(originalEmailPopulatingBuilder.getFromRecipient());
 		}
-		// received email will always have an id, so let's make sure we're able to compare to the original email object
-		if (originalEmailPopulatingBuilder.getHeaders().get("Message-ID") == null) {
-			originalEmailPopulatingBuilder.withHeader("Message-ID", originalEmail.getId());
-		}
 		// bounce recipient is not part of the Mimemessage, but the Envelope and is configured on the Session and is not received back on the MimeMessage
 		if (originalEmailPopulatingBuilder.getBounceToRecipient() != null) {
 			originalEmailPopulatingBuilder.clearBounceTo();
@@ -599,26 +552,11 @@ public class MailerSmtpIntegrationTest {
 		if (!originalEmailPopulatingBuilder.getAttachments().isEmpty()) {
 			val attachments = fixAttachmentResourcesWith7Bit(originalEmailPopulatingBuilder.getAttachments());
 			originalEmailPopulatingBuilder.clearAttachments().withAttachments(attachments);
-			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
-					.clearDecryptedAttachments()
-					.withDecryptedAttachments(attachments);
-		}
-		if (!originalEmailPopulatingBuilder.getDecryptedAttachments().isEmpty()) {
-			val decryptedAttachments = fixAttachmentResourcesWith7Bit(originalEmailPopulatingBuilder.getDecryptedAttachments());
-			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
-					.clearDecryptedAttachments()
-					.withDecryptedAttachments(decryptedAttachments);
 		}
 		// Ordinary MIME rendering adds the selected filename to each resource's retained Content-Type parameters.
 		val embeddedImages = originalEmailPopulatingBuilder.getEmbeddedImages().stream()
 				.map(image -> withExpectedWireContentType(image, false)).collect(toList());
 		originalEmailPopulatingBuilder.clearEmbeddedImages().withEmbeddedImages(embeddedImages);
-
-		if (originalEmailPopulatingBuilder.getOriginalSmimeDetails() instanceof PlainSmimeDetails) {
-			// because the S/MIME module is loaded, the default PLAIN version gets replaced with the one from the module
-			((InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder)
-					.withOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder().build());
-		}
 
 		if (compensateForDresscodeAttachmentNameOverrideErasure) {
 			TestDataHelper.retrofitLostOriginalAttachmentNames(receivedEmail);
@@ -646,6 +584,13 @@ public class MailerSmtpIntegrationTest {
 			final List<AttachmentResource> expectedImages = expectedInlineResourcesAfterWireEncoding(
 					originalEmailPopulatingBuilder.getEmbeddedImages(), receivedEmail.getEmbeddedImages());
 			originalEmailPopulatingBuilder.clearEmbeddedImages().withEmbeddedImages(expectedImages);
+			// Imported Sender remains readable and needs an explicit choice to appear on the outgoing wire.
+			final InternalEmailPopulatingBuilder expectedBuilder = (InternalEmailPopulatingBuilder) originalEmailPopulatingBuilder;
+			final Map<String, Collection<String>> expectedHeaders = expectedBuilder.getHeaders();
+			if (!expectedBuilder.getExplicitHeaderNames().contains("sender") && expectedHeaders.keySet().removeIf("Sender"::equalsIgnoreCase)) {
+				assertThat(receivedMimeMessage.getMimeMessage().getHeader("Sender")).isNull();
+				expectedBuilder.retainReceivedHeaders(expectedHeaders);
+			}
 			assertThat(receivedEmail).isEqualTo(originalEmailPopulatingBuilder.buildEmail());
 		} else {
 			val originalMail = originalEmailPopulatingBuilder.buildEmail();
@@ -660,7 +605,17 @@ public class MailerSmtpIntegrationTest {
 			EmailAssert.assertThat(receivedEmail).hasDispositionNotificationTo(originalMail.getDispositionNotificationToRecipients());
 		}
 
-		return receivedEmail;
+		return new ReceivedEmail(receivedMimeMessage.getMimeMessage(), receivedEmail);
+	}
+
+	private static final class ReceivedEmail {
+		private final MimeMessage wireMessage;
+		private final Email email;
+
+		private ReceivedEmail(final MimeMessage wireMessage, final Email email) {
+			this.wireMessage = wireMessage;
+			this.email = email;
+		}
 	}
 
 	private static List<AttachmentResource> expectedInlineResourcesAfterWireEncoding(final List<AttachmentResource> expected,
@@ -752,7 +707,7 @@ public class MailerSmtpIntegrationTest {
 
 		// send reply to initial mail
 		Email reply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
-				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false))
+				.replyingToAll(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false).email)
 				.from("dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -785,7 +740,7 @@ public class MailerSmtpIntegrationTest {
 
 		// send reply to initial mail
 		Email reply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
-				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false))
+				.replyingTo(assertSendingEmail(receivedEmailPopulatingBuilder, false, false, false, true, false).email)
 				.from("Moo Shmoo", "dummy@domain.com")
 				.withPlainText("This is the reply")
 				.buildEmail();
@@ -803,7 +758,7 @@ public class MailerSmtpIntegrationTest {
 		EmailPopulatingBuilder receivedEmailReplyPopulatingBuilder = mimeMessageToEmailBuilder(receivedMimeMessageReply);
 
 		Email replyToReply = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder()
-				.replyingTo(assertSendingEmail(receivedEmailReplyPopulatingBuilder, false, false, false, false, false))
+				.replyingTo(assertSendingEmail(receivedEmailReplyPopulatingBuilder, false, false, false, false, false).email)
 				.from("Pappa Moo", "dummy@domain.com")
 				.withPlainText("This is the reply to the reply")
 				.buildEmail();

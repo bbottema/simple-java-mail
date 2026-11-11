@@ -8,7 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import testutil.ConfigLoaderTestHelper;
 
@@ -59,15 +59,19 @@ class RootAttachmentDispositionImportTest {
 
 	@Test
 	void interpretsTheEffectiveRootAfterSignatureInspectionWithoutChangingProtectedBytes() throws Exception {
-		final Email signed = mail.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
-				.withPlainText(Body.PLAIN.content).withHeader("Content-Disposition", "attachment; filename=mail.txt")
-				.signWithSmime(SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build()).buildEmail();
-		final byte[] source = mail.converter().fromEmail(signed).toEmlBytes();
+		final jakarta.mail.internet.MimeMessage clear = EmailConverter.emlToMimeMessage(headers(Body.PLAIN.type)
+				+ "Content-Disposition: attachment; filename=mail.txt\r\n\r\n" + Body.PLAIN.content);
+		final Email identity = mail.emailBuilder().startingBlank().from("sender@example.org").buildEmail();
+		final jakarta.mail.internet.MimeMessage signed = org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule()
+				.createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY)
+				.signMessageWithSmime(clear.getSession(), identity, clear,
+						SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build());
+		final byte[] source = EmailConverter.mimeMessageToEMLByteArray(signed);
 		final MimeMultipart protectedParts = (MimeMultipart) EmailConverter.emlToMimeMessage(new java.io.ByteArrayInputStream(source)).getContent();
 		assertThat(protectedParts.getBodyPart(0).getDisposition()).isEqualTo("attachment");
 		final Email imported = mail.converter().fromEml(source).toEmail();
 		assertThat(imported.getPlainText()).isEqualTo(Body.PLAIN.content);
-		assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+		assertThat(imported.getInspection().getSmime().getSignatures()).extracting("status").containsOnly(SignatureVerification.VERIFIED);
 		final Email exact = mail.emailBuilder().startingFromExactEml(source).withEnvelopeRecipients("reader@example.org").buildEmail();
 		assertThat(mail.converter().fromEmail(exact).toEmlBytes()).isEqualTo(source);
 	}

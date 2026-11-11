@@ -9,15 +9,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.openpgpsupport.OpenPgpSupport;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
-
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -52,12 +50,12 @@ class OpenPgpHeaderSeparatorTest {
         final Email imported = route.read(incoming);
 
         if (fixture.startsWith("signed")) {
-            assertThat(imported.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+            assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         } else {
-            assertThat(imported.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+            assertThat(imported.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
         }
         assertReadableFixture(imported);
-        assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(incoming);
     }
 
     private static Stream<Arguments> protectedImports() {
@@ -79,11 +77,9 @@ class OpenPgpHeaderSeparatorTest {
         final byte[] incoming = EmailConverter.mimeMessageToEMLByteArray(encrypted);
 
         final Email imported = ImportRoute.FLUENT_BYTES.read(incoming);
-
-        assertThat(imported.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED_ENCRYPTED);
-        assertThat(imported.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-        assertThat(imported.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(imported.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(incoming);
         assertReadableFixture(imported);
     }
 

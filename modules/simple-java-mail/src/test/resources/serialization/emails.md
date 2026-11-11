@@ -27,3 +27,5 @@ both remain inspectable, while the library-created subtype retains its supported
 It contains one delivery recipient and explicit named disposition/return destinations (`Legacy read <read@example.org>`
 and `Legacy return <return@example.org>`), both requested. It tests upgrading the released scalar serialized fields to
 immutable singleton destination lists without changing the stored field types or Email serial identity.
+
+`email-9.3.10-signed-metadata.base64` was constructed with the published 9.3.10 core, main and S/MIME artifacts. It contains a readable body and a synthetic nonempty legacy S/MIME metadata object marked signed, with a fixture signer and validity flag. It is a wire-compatibility witness, not a cryptographic fixture or an assertion that those flags prove protection. It exercises the optional legacy details class and mode enum while the new field-inspection view remains unknown for history the old snapshot did not capture. The separate whole-Email optional-module portability question is unchanged.

@@ -34,7 +34,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BASE_64;
 import static org.simplejavamail.api.email.ContentTransferEncoding.BIT7;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
+import static org.simplejavamail.api.email.SignatureVerification.VERIFIED;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class InlineResourceMetadataTest {
@@ -172,8 +172,8 @@ class InlineResourceMetadataTest {
 				SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build());
 		final byte[] bytes = EmailConverter.mimeMessageToEMLByteArray(signed);
 		final Email imported = mail.converter().fromEml(bytes).toEmail();
-		assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-		assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).isEqualTo(bytes);
+		assertThat(imported.getInspection().getSmime().getSignatures()).extracting("status").containsOnly(VERIFIED);
+		assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(bytes);
 		assertLogo(imported.getEmbeddedImages().get(0));
 	}
 

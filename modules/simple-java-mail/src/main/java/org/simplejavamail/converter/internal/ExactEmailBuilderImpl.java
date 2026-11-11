@@ -303,10 +303,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 	public Email buildEmail() {
 		checkNonEmptyArgument(envelopeRecipients, "envelopeRecipients");
 		final MimeMessage mimeMessage = readExactMimeMessage();
-		final EmailPopulatingBuilder parsedEmailBuilder = parseEmlIntoEmailBuilder(mimeMessage);
-		ConfiguredEmailConverterImpl.populateExactProtectionDetails((InternalEmailPopulatingBuilder) parsedEmailBuilder, mimeMessage);
-        final InternalEmailPopulatingBuilder inspection = (InternalEmailPopulatingBuilder) parsedEmailBuilder;
-        InspectionAssembly.protection(inspection, () -> inspection.getSourceData().getOrigin());
+		final EmailPopulatingBuilder parsedEmailBuilder = new ConfiguredEmailConverterImpl(config).inspectExact(mimeMessage);
 		parsedEmailBuilder.withOverrideReceivers(envelopeRecipients);
 		parsedEmailBuilder.clearBounceTo();
 		if (envelopeSender != null) {
@@ -335,9 +332,7 @@ public final class ExactEmailBuilderImpl implements ExactEmailBuilder, org.simpl
 	@NotNull
 	private EmailPopulatingBuilder parseEmlIntoEmailBuilder(@NotNull final MimeMessage mimeMessage) {
 		try {
-			return MimeMessageEmailMapper.populate(
-					new EmailStartingBuilderImpl(config).startingBlank(),
-					MimeMessageParser.parseMimeMessage(mimeMessage, true));
+			return MimeMessageEmailMapper.populate(new EmailStartingBuilderImpl(config).startingBlank(), MimeMessageParser.parseMimeMessage(mimeMessage, true));
 		} catch (final RuntimeException invalidEml) {
 			throw new EmailConverterException("Unable to parse exact EML", invalidEml);
 		}

@@ -781,22 +781,30 @@ public interface EmailPopulatingBuilder {
 	 * Delegates to {@link #withHeader(String, Object, boolean)} with <em>replaceHeader</em> set to {@code false}.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
-	 * @param value The value of the header. Non-null values are stored using {@link String#valueOf(Object)}; null is retained in metadata
-	 *              and produces a present empty header when converting or sending, just as an explicit empty String does.
+	 * @param value The value of the header. Additional custom names store non-null values using {@link String#valueOf(Object)}; null remains
+	 *              in metadata and produces a present empty header. Known authored names follow the typed-field contract below.
 	 */
 	EmailPopulatingBuilder withHeader(@NotNull String name, @Nullable @Cli.Optional Object value);
 
 	/**
 	 * Adds a custom header to the email. Names ignore capitalization, so {@code X-Route} and {@code x-route} refer to the same header.
 	 * Pass {@code true} for {@code replaceHeader} when the new value should replace all earlier values for that header; otherwise it is added
-	 * to the existing collection if it is not already present. Non-null values are stored as Strings. Null remains a distinct stored choice
+	 * to the existing collection if it is not already present. For additional custom names, non-null values are stored as Strings. Null remains a distinct stored choice
 	 * and produces a present empty header when converting or sending, just as an explicit empty String does; it does not omit the header.
-	 * Raw custom To/Cc/Bcc headers are an expert escape from typed mailbox validation. General header injection scanning and mandatory
-	 * configuration locks still apply; use the typed recipient methods or {@link #withOverrideReceivers(List)} for ordinary address validation.
+	 * Known authored fields use the same value authority as their typed conveniences: Subject, From, To/Cc/Bcc, Reply-To, Message-ID and Date
+	 * update the corresponding ordinary getters and are emitted once. Address fields follow the ordinary address interpretation and validation;
+	 * this is not an escape from recipient validation. Prefer the typed methods for clear/reset choices. A Date must be interpretable as a stated
+	 * date; invalid or empty explicit dates are rejected without changing the earlier choice. Use {@link #clearSentDate()} to allow an outgoing default.
+	 * Disposition-Notification-To and Return-Receipt-To likewise update their typed request/destination choices; explicit generic values must contain
+	 * usable mailbox destinations. Use their named clear methods for absence. Received uninterpretable fallback values remain readable without
+	 * automatically creating a request on reconstructed output.
+	 * The MIME producer owns structure/encoding fields, and delivery/authentication/resend history is not a current claim on reconstructed output.
+	 * Explicit incompatible choices for those reserved roles fail clearly when producing MIME/EML. Retain exact/original input when those bytes
+	 * must survive. Additional custom names retain their null/empty and repeated-value rules above. General injection scanning and mandatory locks apply.
 	 *
 	 * @param name  The name of the header. Example: <code>withHeader("X-Priority", 2)</code>
-	 * @param value The value of the header. Non-null values are stored using {@link String#valueOf(Object)}; null is retained in metadata
-	 *              and produces a present empty header when converting or sending, just as an explicit empty String does.
+	 * @param value The value of the header. Additional custom names store non-null values using {@link String#valueOf(Object)}; null remains
+	 *              in metadata and produces a present empty header. Known authored names follow their typed-field contracts.
 	 * @param replaceHeader Whether to add the value to an existing collection of values (if any) or create a new collection with only the given value.
 	 *
 	 * @see #withHeaders(Map)
@@ -974,27 +982,7 @@ public interface EmailPopulatingBuilder {
 	@Cli.ExcludeApi(reason = "OpenPGP key material is Java-only")
 	EmailPopulatingBuilder encryptWithOpenPgp(@NotNull OpenPgpEncryptionConfig openPgpEncryptionConfig);
 
-	/**
-	 * When S/MIME processing extracts the content of a signed or encrypted attachment, the result is kept in a separate inspection list.
-	 * If this is the only attachment and its extracted content has MIME type {@code message/rfc822}, it is assumed to be the message
-	 * itself and by default is merged with the top level email. The inner message supplies plain text and HTML, including absent
-	 * alternatives and their specific encodings. A present inner calendar supplies its method, text and specific encoding together;
-	 * an absent inner calendar leaves the outer calendar and encoding intact. An empty String is present, and an omitted inner
-	 * specific encoding clears that choice when its content is selected. Attachments from both messages are retained.
-	 * Outer identity, addressing and outgoing policy remain; inspection facts stay with their source view.
-	 * Header names are compared case-insensitively: each inner header replaces the complete outer value list
-	 * with that name, retaining the first display spelling. Defaults and overrides still apply later during ordinary completion.
-	 * <p>
-	 * Calling this method keeps the extracted attachment separate instead of merging it with the email. It does not change S/MIME
-	 * extraction: if a key is missing or the payload cannot be converted to an attachment, the inspection list retains the original protected resource.
-	 * A copied Email already supplies its visible content to the builder: disabling merging there does not remove copied bodies or resources.
-	 * Later builder edits remain authoritative over the retained signed-content history.
-	 * Initial import builders apply merging at build time; copy the built Email before editing content that must take precedence,
-	 * or keep the views separate before editing.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 */
-	EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment();
+
 
 	/**
 	 * Requests a read receipt by adding the {@code Disposition-Notification-To} header. The destinations default to all
@@ -1273,7 +1261,8 @@ public interface EmailPopulatingBuilder {
 	EmailPopulatingBuilder clearEmailToForward();
 
 	/**
-	 * Resets <em>headers</em> to empty.
+	 * Clears additional headers and retained header occurrences. Current typed fields, including the subject,
+	 * recipients and receipt requests, retain their values. Use the corresponding typed clear methods to remove them.
 	 */
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearHeaders();
@@ -1368,18 +1357,7 @@ public interface EmailPopulatingBuilder {
 	@SuppressWarnings("unused")
 	EmailPopulatingBuilder clearSentDate();
 
-	/**
-	 * When reading and converting an email, this flag makes the behavior revert to the default merging
-	 * behavior for single S/MIME signed attachments, which is that it <em>is</em> merged into the root message.
-	 * <p>
-	 * When copying an {@link Email} that was not merged, this explicitly integrates its retained signed content once at this call.
-	 * Later body, header, resource and encoding edits remain authoritative. Repeating this call does not restore cleared copied content or
-	 * duplicate resources already represented by the copy. Use {@link #notMergingSingleSMIMESignedAttachment()} before opting in to keep
-	 * a separate copy separate; disabling the flag after materialization does not remove its visible content.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 */
-	EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior();
+
 
 	/**
 	 * @see #fixingMessageId(String)
@@ -1454,19 +1432,7 @@ public interface EmailPopulatingBuilder {
 	@NotNull
 	List<AttachmentResource> getAttachments();
 
-	/**
-	 * Returns the attachment inspection results retained during input conversion. The S/MIME module unwraps supported signed attachments
-	 * and uses the supplied decryption key for encrypted attachments. The extracted content takes
-	 * the original attachment's place in this list. If a key is missing or the extracted content cannot be converted to an attachment,
-	 * the original protected resource remains instead. An entry in this list therefore does not guarantee decryption or a valid signature.
-	 * <p>
-	 * This is a historical inspection list retained by conversion, ordinary copying and supported Java serialization. Defaults/overrides
-	 * completion does not carry it into the result. Ordinary outgoing attachments remain governed independently.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 */
-	@NotNull
-	List<AttachmentResource> getDecryptedAttachments();
+
 
 	/**
 	 * @see #withHeader(String, Object)
@@ -1525,21 +1491,7 @@ public interface EmailPopulatingBuilder {
 	@Nullable
 	MimeMessage getEmailToForward();
 
-	/**
-	 * If this Email instance was the result of a conversion in which the source message was S/MIME signed / encrypted,
-	 * this field will be filled for historical purpose.
-	 * <p>
-	 * For example, you can use it to determine if the message was encrypted or signed and also who did the signing.
-	 * <p>
-	 * These results describe the converted input. Defaults/overrides completion does not copy them or their original protected bytes;
-	 * it resolves the outgoing settings separately. Ordinary copying and supported Java serialization retain the source history.
-	 * <p>
-	 * Basic MIME recognition is available without the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 * Protected input then exposes unknown verification and decryption results rather than claiming plain content.
-	 * Cryptographic inspection requires the module; see {@link OriginalSmimeDetails} for the result states.
-	 */
-	@NotNull
-	OriginalSmimeDetails getOriginalSmimeDetails();
+
 
 	/**
 	 * Returns historical facts from a received delivery notification. Defaults/overrides completion omits this report and its nested facts;
@@ -1549,26 +1501,9 @@ public interface EmailPopulatingBuilder {
 	@Nullable
 	DeliveryStatusReport getDeliveryStatusReport();
 
-	/**
-	 * If the Email instance currently being built was the result of a conversion in which the source message was S/MIME
-	 * signed / encrypted, this field can contain the retained parsed Email for its signed content.
-	 * <p>
-	 * By default, this message is merged into the parent email, as it is actually the same message (this behavior can be
-	 * turned off with {@link #notMergingSingleSMIMESignedAttachment()}).
-	 * <p>
-	 * This retained view and its merge bookkeeping are conversion history. Ordinary copying and supported Java serialization preserve
-	 * them; defaults/overrides completion does not. Content already merged into ordinary body, header and resource fields remains outgoing content.
-	 * Explicit edits on a copied builder change that outgoing content without rewriting the retained historical view or reapplying it over the edits.
-	 * <p>
-	 * <strong>Note:</strong> this only works in combination with the {@value org.simplejavamail.internal.modules.SMIMEModule#NAME}.
-	 */
-	@Nullable
-	Email getSmimeSignedEmail();
 
-	/**
-	 * @see #notMergingSingleSMIMESignedAttachment()
-	 */
-	boolean isMergeSingleSMIMESignedAttachment();
+
+
 
 	/**
 	 * @see EmailPopulatingBuilder#signWithSmime(SmimeSigningConfig)
@@ -1592,13 +1527,7 @@ public interface EmailPopulatingBuilder {
 	@Nullable
 	OpenPgpEncryptionConfig getOpenPgpEncryptionConfig();
 
-	/**
-	 * Returns historical OpenPGP inspection results for the converted input. Defaults/overrides completion does not copy these results
-	 * or their original protected bytes; outgoing OpenPGP configuration is resolved separately. Ordinary copying and supported Java
-	 * serialization retain the source history.
-	 */
-	@NotNull
-	OriginalOpenPgpDetails getOriginalOpenPgpDetails();
+
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)

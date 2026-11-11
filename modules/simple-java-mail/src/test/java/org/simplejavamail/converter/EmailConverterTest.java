@@ -17,7 +17,6 @@ import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailAssert;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.outlook.OutlookEmailConversionResult;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -93,7 +92,9 @@ public class EmailConverterTest {
 		EmailAssert.assertThat(msg).hasOnlyRecipients(sven, niklas);
 		EmailAssert.assertThat(msg).hasNoAttachments();
 		assertThat(msg.getHeaders()).containsEntry("x-pmx-scanned", singletonList("Mail was scanned by Sophos Pure Message"));
-		assertThat(msg.getHeaders()).doesNotContainKeys("CC", "Cc", "cc", "BCC", "Bcc", "bcc", "TO", "To", "to");
+		assertThat(msg.getHeaders().get("to")).anySatisfy(value -> assertThat(value).contains("sielenkemper@otris.de"));
+		assertThat(msg.getHeaders().get("CC")).anySatisfy(value -> assertThat(value).contains("niklas.lindson@gmail.com"));
+		assertThat(msg.getHeaders()).doesNotContainKey("Bcc");
 		assertThat(msg.getPlainText()).isNotEmpty();
 		assertThat(normalizeNewlines(msg.getHTMLText())).isEqualTo("<div dir=\"auto\">Just a test to get an email with one cc recipient.</div>\n");
 		assertThat(normalizeNewlines(msg.getPlainText())).isEqualTo("Just a test to get an email with one cc recipient.\n");
@@ -108,7 +109,9 @@ public class EmailConverterTest {
 		final Email msg = result.buildEmail();
 
 		assertThat(msg.getHeaders()).containsEntry("x-pmx-scanned", singletonList("Mail was scanned by Sophos Pure Message"));
-		assertThat(msg.getHeaders()).doesNotContainKeys("CC", "Cc", "cc", "BCC", "Bcc", "bcc", "TO", "To", "to");
+		assertThat(msg.getHeaders().get("to")).anySatisfy(value -> assertThat(value).contains("sielenkemper@otris.de"));
+		assertThat(msg.getHeaders().get("CC")).anySatisfy(value -> assertThat(value).contains("niklas.lindson@gmail.com"));
+		assertThat(msg.getHeaders()).doesNotContainKey("Bcc");
 		assertThat(result.getOutlookMessageData().getHeaderValues("to")).isNotEmpty();
 		assertThat(result.getOutlookMessageData().getHeaderValues("cc")).isNotEmpty();
 		assertThat(result.getOutlookMessageData().getRawHeaders()).contains("To: \"Sven Sielenkemper\"", "niklas.lindson@gmail.com");
@@ -284,14 +287,21 @@ public class EmailConverterTest {
 	}
 
 	@Test
-	public void testOutlookMessageWithUndecryptableSmimeAttachment() {
-		final Email email = EmailConverter.outlookMsgToEmail(new File(RESOURCE_TEST_MESSAGES + "/#572 Nullpointer in SMIMESupport.isMimeMessageAttachment.msg"));
+	public void testOutlookSignedBodyEnvelopeIsReadableAndRetainsNativeOriginal() throws Exception {
+		final File source = new File(RESOURCE_TEST_MESSAGES + "/#572 Nullpointer in SMIMESupport.isMimeMessageAttachment.msg");
+		final OutlookEmailConversionResult converted = EmailConverter.outlookMsgToEmailBuilderWithOutlookData(source);
+		final Email email = converted.buildEmail();
 
-		assertThat(email.getAttachments()).hasSize(1);
-		assertThat(email.getAttachments()).extracting("name").containsExactly("smime.p7m");
-		assertThat(email.getDecryptedAttachments()).hasSize(1);
-		assertThat(email.getDecryptedAttachments()).extracting("name").containsExactly("smime.p7m");
-		assertThat(email.getSmimeSignedEmail()).isNull();
+		assertThat(converted.getOutlookMessageData().getMessageClass()).isEqualTo("IPM.Note.SMIME.MultipartSigned");
+		assertThat(converted.getOutlookMessageData().getHeaderValues("Content-Type"))
+				.anySatisfy(value -> assertThat(value).contains("multipart/signed", "application/pkcs7-signature"));
+		assertThat(email.getAttachments()).isEmpty();
+		assertThat(email.getPlainText()).isNotEmpty();
+		assertThat(email.getHTMLText()).isNotEmpty();
+		assertThat(email.getInspection().getSmime().getSignatures()).extracting("status")
+				.containsOnly(org.simplejavamail.api.email.SignatureVerification.VERIFIED);
+		assertThat(email.getInspection().getOriginalMessage().getDataSource().getContentType()).isEqualTo("application/vnd.ms-outlook");
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(Files.readAllBytes(source.toPath()));
 	}
 
 	@Test
@@ -365,7 +375,9 @@ public class EmailConverterTest {
 				new Recipient("to person", "to@example.com", TO, null),
 				new Recipient("cc person", "cc@example.com", CC, null),
 				new Recipient("bcc person", "bcc@example.com", BCC, null));
-		EmailAssert.assertThat(recipientsCamelcase).hasHeaders(new HashMap<>());
+		assertThat(recipientsCamelcase.getHeaders().get("to")).anySatisfy(value -> assertThat(value).contains("to@example.com"));
+		assertThat(recipientsCamelcase.getHeaders().get("CC")).anySatisfy(value -> assertThat(value).contains("cc@example.com"));
+		assertThat(recipientsCamelcase.getHeaders().get("bcc")).anySatisfy(value -> assertThat(value).contains("bcc@example.com"));
 
 		Email recipientsCapitals = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients capitals header.eml"));
 		Email recipientsLowercase = EmailConverter.emlToEmail(new File(RESOURCE_TEST_MESSAGES + "/#502 Recipients lowercase header.eml"));
@@ -380,7 +392,7 @@ public class EmailConverterTest {
 			String fileNameMsg = RESOURCES + "/secure-testdata/secure-testdata/nested-empty-outlook-msg/Outlook msg with empty nested msg attachment.msg";
 			Email email = EmailConverter.outlookMsgToEmail(new File(fileNameMsg));
 			EmailAssert.assertThat(email).hasNoAttachments();
-			EmailAssert.assertThat(email).hasNoDecryptedAttachments();
+			assertThat(email.getInspection().getSmime().getDecryptions()).isEmpty();
 		});
 	}
 
@@ -815,8 +827,8 @@ public class EmailConverterTest {
 		// The related image is embedded once; the separate explicitly attached JPG remains downloadable.
 		assertThat(emailMime.getAttachments()).areExactly(1, new Condition<>(at -> at.getName().contains(".jpg"), null));
 
-		assertThat(emailMime.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-		assertThat(emailOutlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
+		assertThat(emailMime.getInspection().getSmime().getSignatures()).isNotEmpty();
+		assertThat(emailOutlook.getInspection().getSmime().getSignatures()).isNotEmpty();
 
 		assertThat(emailOutlook.getFromRecipient()).isEqualTo(emailMime.getFromRecipient());
 		assertThat(emailOutlook.getId()).isEqualTo(emailMime.getId());

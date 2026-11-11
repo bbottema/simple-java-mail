@@ -22,7 +22,7 @@ import java.io.UnsupportedEncodingException;
  * @deprecated for internal use only. This class hides some methods from the public API that are used internally to implement the builder API.
  */
 @Deprecated
-@EqualsAndHashCode(callSuper = true, exclude = {"defaultsAndOverridesApplied", "deliveryStatusNotificationRequired"})
+@EqualsAndHashCode(callSuper = true, exclude = {"defaultsAndOverridesApplied", "deliveryStatusNotificationRequired", "publicSubject", "confidentialContentState"})
 @SuppressWarnings("DeprecatedIsStillUsed")
 public class InternalEmail extends Email {
 
@@ -34,6 +34,8 @@ public class InternalEmail extends Email {
     private boolean deliveryStatusNotificationRequired;
     @NotNull
     private EmailSource emailSource;
+    private ConfidentialContentState confidentialContentState;
+    private String publicSubject;
 
     public InternalEmail(@NotNull EmailPopulatingBuilder builder) {
         this(builder, ComposedEmailSource.INSTANCE);
@@ -44,17 +46,33 @@ public class InternalEmail extends Email {
     }
 
     private InternalEmail(@NotNull final EmailPopulatingBuilder builder, @NotNull final EmailSource emailSource) {
-        super(builder, copiedContentState(builder));
+        super(builder);
         this.emailSource = emailSource;
+        if (builder instanceof InternalEmailPopulatingBuilder) {
+            final InternalEmailPopulatingBuilder internal = (InternalEmailPopulatingBuilder) builder;
+            this.confidentialContentState = internal.getConfidentialContentState();
+            this.publicSubject = internal.getPublicSubject();
+        }
     }
 
-    private static SmimeContentState copiedContentState(final EmailPopulatingBuilder builder) {
-        if (builder instanceof EmailPopulatingBuilderImpl && ((EmailPopulatingBuilderImpl) builder).hasCopiedContent()) {
-            return ((EmailPopulatingBuilderImpl) builder).hasMergedCopiedSmimeContent()
-                    ? SmimeContentState.MATERIALIZED_MERGED : SmimeContentState.MATERIALIZED_SEPARATE;
-        }
-        return SmimeContentState.DEFERRED;
+    public ConfidentialContentState getConfidentialContentState() {
+        return confidentialContentState != null ? confidentialContentState : ConfidentialContentState.none();
     }
+
+    public String getPublicSubject() { return publicSubject; }
+    public org.simplejavamail.internal.email.OriginalMessageProtection getOriginalMessageProtection() {
+        return getInspection() instanceof org.simplejavamail.internal.email.ReceivedEmailInspection
+                ? ((org.simplejavamail.internal.email.ReceivedEmailInspection) getInspection()).getOriginalMessageProtection()
+                : org.simplejavamail.internal.email.OriginalMessageProtection.UNKNOWN;
+    }
+    public boolean isAuthoredHeaderViewUnavailable() {
+        return getInspection() instanceof org.simplejavamail.internal.email.ReceivedEmailInspection
+                && ((org.simplejavamail.internal.email.ReceivedEmailInspection) getInspection()).isAuthoredHeaderViewUnavailable();
+    }
+
+    public java.util.Set<String> getExplicitHeaderNames() { return explicitHeaderNames; }
+    public java.util.Set<String> getConfidentialHeaderNames() { return confidentialHeaderNames; }
+    public java.util.Set<String> getCapturedReceiptGroups() { return capturedReceiptGroups; }
 
     @NotNull
     public static InternalEmail requireInternalEmail(@NotNull final Email email) {
@@ -153,19 +171,12 @@ public class InternalEmail extends Email {
      * update the message id once a mail has been sent.
      */
     public void updateId(@NotNull final String id) {
+        final boolean generated = !java.util.Objects.equals(this.id, id);
         this.id = id;
+        if (generated) recordGeneratedMessageId();
         if (this.userProvidedEmail != null) {
             this.userProvidedEmail.updateId(id);
         }
-    }
-
-    /**
-     * @deprecated Don't use this method. This method is used internally when using the builder API to copy an email that
-     * contains an S/MIME signed message. It records whether the represented content already includes the retained inner view;
-     * copying materializes that content once instead of merging the history again after later builder edits.
-     */
-    public boolean wasMergedWithSmimeSignedMessage() {
-        return wasMergedWithSmimeSignedMessage;
     }
 
     public void markAsDefaultsAndOverridesApplied() {

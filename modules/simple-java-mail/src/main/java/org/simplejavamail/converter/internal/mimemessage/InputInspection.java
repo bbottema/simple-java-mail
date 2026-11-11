@@ -21,18 +21,22 @@ import static org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInter
 
 /** Captures one input's source evidence and observations during its selected conversion path. */
 public final class InputInspection {
+    private static final String LEGACY_GENERATED_MESSAGE_ID = "<generated-for-smime-signed-attachment@simple-java-mail>";
     private final EmailSourceIdentity origin;
     private final EmailSourceData.Format format;
     private final EmailSourceData.Representation representation;
     private final List<EmailSourceHeader> headers;
     private final List<EmailSourceProperty> properties;
     private final List<PendingProblem> problems = new ArrayList<>();
+    private final Set<String> failedFields = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
     private final List<MimePartCapture> parts = new ArrayList<>();
     private final List<EmailSourcePart> originalHtmlParts = new ArrayList<>();
     private boolean contentTypeReadUnavailable;
+    private boolean headerCaptureComplete = true;
     private EmailSourceData source;
     private ImportTraversal traversal = ImportTraversal.unlimited();
     private String contentStop;
+    private EmailProblem.Code contentStopCode = EmailProblem.Code.IMPORT_LIMIT_EXCEEDED;
     private boolean readableBodyMaterialized;
     private boolean importLimitStoppedContent;
     private boolean unvisitedStructure;
@@ -41,13 +45,17 @@ public final class InputInspection {
     public InputInspection withImportTraversal(final ImportTraversal scope) { traversal = scope; return this; }
     public ImportTraversal importTraversal() { return traversal; }
     public InputInspection withoutContent(final String reason) { contentStop = reason; return this; }
+    public InputInspection withoutContent(final EmailProblem.Code code, final String reason) { contentStopCode = code; contentStop = reason; return this; }
+    public boolean hasStoppedContent() { return contentStop != null; }
     String contentStop() { return contentStop; }
+    EmailProblem.Code contentStopCode() { return contentStopCode; }
     void noteReadableBody() { readableBodyMaterialized = true; }
     void noteImportLimit() { importLimitStoppedContent = true; }
     public boolean hasReadableBodyMaterialized() { return readableBodyMaterialized; }
     public boolean hasImportLimitStop() { return importLimitStoppedContent; }
     boolean needsCompleteProjection() { return traversal.hasLimits(); }
     void noteUnvisitedStructure() { unvisitedStructure = true; }
+    public boolean hasUnvisitedStructure() { return unvisitedStructure || importLimitStoppedContent || contentStop != null; }
     void finishTraversal() { traversalFinished = true; }
     /** Only a finished bounded walk with no opaque, failed or skipped structure permits fresh whole-message evidence. */
     public boolean hasCompleteProjection() {
@@ -91,12 +99,13 @@ public final class InputInspection {
         }
         values = captured;
         String messageId = firstHeader(values, "Message-ID");
-        if (generatedArtifact && org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult.GENERATED_MESSAGE_ID.equals(messageId)) {
+        if (generatedArtifact && LEGACY_GENERATED_MESSAGE_ID.equals(messageId)) {
             messageId = null;
         }
         final InputInspection inspection = new InputInspection(values, messageId, EmailSourceData.Format.MIME,
                 Objects.requireNonNull(representation, "representation"), null);
         if (failure != null) {
+            inspection.headerCaptureComplete = false;
             inspection.record(EmailProblem.Code.CONTENT_READ_FAILED, "source/headers", null, describe(failure));
         }
         return inspection;
@@ -145,6 +154,7 @@ public final class InputInspection {
     public EmailSourceIdentity getOrigin() {
         return origin;
     }
+    public boolean isHeaderCaptureComplete() { return headerCaptureComplete; }
 
     /** Transient import candidates; the normal source graph retains them only for an actual automatic rewrite. */
     public List<EmailSourcePart> originalHtmlParts() {
@@ -197,6 +207,7 @@ public final class InputInspection {
             return read.get();
         } catch (final MimeMessageParseException failure) {
             rethrowIfInterrupted(failure);
+            failedFields.add(field);
             if (causedBy(failure, UnsupportedEncodingException.class)) {
                 record(EmailProblem.Code.VALUE_NOT_DECODED, field, value, describe(failure));
             } else if (recognizedFailure(failure)) {
@@ -224,6 +235,8 @@ public final class InputInspection {
         return problems.stream().anyMatch(problem -> problem.code == EmailProblem.Code.VALUE_NOT_DECODED
                 && problem.location.equals(field) && Objects.equals(problem.value, value));
     }
+
+    public boolean interpretationFailed(final String field) { return failedFields.contains(field); }
 
     /** Retains one root declaration-read observation without retrying an unavailable metadata reader. */
     public void noteUnreadableContentType(final Throwable failure) {
@@ -384,6 +397,7 @@ public final class InputInspection {
     static String describe(final Throwable failure) {
         Throwable cause = failure.getCause() != null ? failure.getCause() : failure;
         if (cause instanceof CapturedMimeContent.Failure && cause.getCause() != null) cause = cause.getCause();
+        if (cause instanceof org.simplejavamail.internal.protection.ProtectionInputReadException && cause.getCause() != null) cause = cause.getCause();
         final StringBuilder description = new StringBuilder(failureDescription(cause));
         final Set<Throwable> visited = Collections.newSetFromMap(new IdentityHashMap<>());
         final Set<Throwable> reported = Collections.newSetFromMap(new IdentityHashMap<>());

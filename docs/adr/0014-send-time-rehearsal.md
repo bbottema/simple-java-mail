@@ -52,13 +52,19 @@ Share preparation rules with sending without calling public rehearsal from the s
 
 ### Typed delivery overrides and raw header control (accepted 29 October 2026)
 
+**11 November 2026.** Explicit generic To/Cc/Bcc setters on a composed Email now populate the corresponding typed recipient fields.
+Those values participate in the normal selected address validator, encoded-word and injection checks, warnings-only policy, and mandatory
+locks. This supersedes the former raw-header mailbox-validation escape. The exact source still carries its original bytes and its separately
+chosen envelope. [ADR 0035](0035-tolerant-reading-and-strict-production.md#readable-selected-headers-and-semantic-output-accepted-10-november-2026)
+owns the received-header and reconstructed-output distinction.
+
 Normal composed-message preparation validates typed `withOverrideReceivers` recipients with the selected Mailer's configured address validator,
 encoded-word address protection and name/address injection scanning. Visible typed fields remain validated too. Apply this after ordinary
 governance and applicable locks, retaining supplied order, duplicate occurrences and recipient metadata without reparsing or normalizing values.
 Validation, rehearsal and sending share this boundary; warnings-only mode still reports ordinary findings without blocking preparation.
 
-Raw custom To/Cc/Bcc headers retain their expert escape from typed mailbox validation. They still receive general header injection scanning and
-remain subject to mandatory configuration locks. Do not introduce universal mailbox validation or rewriting of raw recipient headers. Clearing
+The earlier development contract allowed raw custom To/Cc/Bcc headers to bypass typed mailbox validation. It still applied general header injection
+scanning and mandatory configuration locks to those choices. Clearing
 the configurable address validator leaves the existing encoded-word and injection checks active, under the same blocking/warnings-only mode.
 Exact EML retains its separate strict envelope validation and authoritative bytes, independently of the composed validator.
 
@@ -67,9 +73,10 @@ continues owning the templates and copied delivery choices; [ADR 0013](0013-exac
 
 ### Recipient addresses in a rehearsal (accepted 1 November 2026)
 
-The rehearsal's recipient list shows the addresses this Mailer would pass to the mail transport, in order. A named group in a raw To, Cc or Bcc
-header can remain one entry, so counting entries does not always count individual mailboxes. Ordinary recipient conveniences already expand
-group members. If override receivers are supplied, the list shows those instead of the recipients from the message headers. The returned list
+The rehearsal's recipient list shows the addresses this Mailer would pass to the mail transport, in order. Under the 11 November header
+authority clarification above, both ordinary recipient conveniences and explicit generic To/Cc/Bcc setters use typed interpretation and
+expand group members. The earlier raw-header route could retain a group as one planned entry. If override receivers are supplied, the list
+shows those instead of the recipients from the message headers. The returned list
 cannot be changed.
 
 Document this existing behavior without adding group expansion to the getter or changing preparation and sending. Rehearsal describes local
@@ -77,7 +84,7 @@ preparation before the transport handles those addresses. Explicit support for p
 [#727](https://github.com/bbottema/simple-java-mail/issues/727). This clarification applies to both rehearsal modes in unreleased 10.0.0.
 
 Accepted 5 November 2026: logging-only receipts use this same prepared recipient boundary rather than reconstructing a different list from
-typed Email recipients alone. Include raw recipient headers, preserve occurrence order and apply delivery overrides without another MIME
+typed Email recipients alone. Preserve prepared occurrence order and apply delivery overrides without another MIME
 render. This does not change rehearsal or imply SMTP acceptance. [ADR 0011](0011-transport-neutral-submission-outcomes.md#prepared-recipient-intent-without-transport-evidence-accepted-5-november-2026)
 and [#723](https://github.com/bbottema/simple-java-mail/issues/723) own the recipient-result correction.
 

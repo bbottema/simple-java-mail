@@ -17,6 +17,7 @@ import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.MailFailureKind;
+import org.simplejavamail.converter.internal.mimemessage.OutgoingHeaderRoles;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smime.SmimeMessageProtection;
 import org.simplejavamail.mailer.internal.MailerException;
@@ -208,7 +209,8 @@ public class MailerHelper {
 	 * Checks the following headers for suspicious content (newlines and characters):
 	 * <ol>
 	 *     <li>subject</li>
-	 *     <li>every header name and value</li>
+	 *     <li>message ID</li>
+	 *     <li>generic headers selected for output or explicitly supplied by the caller</li>
 	 *     <li>every attachment name, content ID, nested datasource name and description</li>
 	 *     <li>every embedded image name, content ID, nested datasource name and description</li>
 	 *     <li>from recipient name and address</li>
@@ -227,12 +229,13 @@ public class MailerHelper {
 	 * @see org.simplejavamail.api.email.config.SmtpDeliveryOptions.Builder#fixingEnvelopeId(String)
 	 */
 	public static void scanForInjectionAttacks(final @NotNull Email email) {
-		// check for illegal values
 		scanForInjectionAttack(email.getSubject(), "email.subject");
+		final String messageId = email.getId();
+		scanForInjectionAttack(messageId != null ? MimeUtility.unfold(messageId) : null, "email.header.[Message-ID]");
 		for (final Map.Entry<String, Collection<String>> headerEntry : email.getHeaders().entrySet()) {
+			if (!OutgoingHeaderRoles.shouldScanGenericHeader(email, headerEntry.getKey())) continue;
+			scanForInjectionAttack(headerEntry.getKey(), "email.header.headerName");
 			for (final String headerValue : headerEntry.getValue()) {
-				// TODO is this still needed?
-				scanForInjectionAttack(headerEntry.getKey(), "email.header.headerName");
 				scanForInjectionAttack(headerValue != null ? MimeUtility.unfold(headerValue) : "", format("email.header.[%s]", headerEntry.getKey()));
 			}
 		}

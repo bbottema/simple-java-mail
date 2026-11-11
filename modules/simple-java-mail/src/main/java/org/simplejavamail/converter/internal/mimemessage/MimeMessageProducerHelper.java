@@ -62,7 +62,15 @@ public final class MimeMessageProducerHelper {
 
     public static MimeMessage applyMessageProtection(final Email email, final Session session,
             final MimeMessage message, final FactorySmimeRuntime smimeRuntime) throws MessagingException {
-        return SpecializedMimeMessageProducer.applySecurity(email, session, message, smimeRuntime);
+		return applyMessageProtection(email, session, message, smimeRuntime, false);
+	}
+
+	/** Finalizes one output under explicit conversion-local consent without changing the source draft. */
+	public static MimeMessage applyMessageProtection(final Email email, final Session session, final MimeMessage message,
+			final FactorySmimeRuntime smimeRuntime, final boolean conversionPermission) throws MessagingException {
+		final MimeMessage completed = SpecializedMimeMessageProducer.applySecurity(email, session, message, smimeRuntime);
+		ConfidentialContentGuard.verifyFinalOutput(email, completed, conversionPermission);
+		return completed;
 	}
 
 	@SuppressWarnings("deprecation")

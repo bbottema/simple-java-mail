@@ -15,17 +15,23 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProperty;
 import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.email.ExactEmailBuilder;
+import org.simplejavamail.api.email.ReplyOptions;
+import org.simplejavamail.api.email.ForwardOptions;
+import org.simplejavamail.api.email.ContentTransferEncoding;
+import org.simplejavamail.converter.internal.mimemessage.ConfidentialContentGuard;
 import org.simplejavamail.api.converter.ConfiguredEmailConverter;
 import org.simplejavamail.converter.internal.ConfiguredEmailConverterImpl;
-import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.converter.internal.ExactEmailBuilderImpl;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageHelper;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.internal.util.JakartaMailImplementation;
+import org.simplejavamail.internal.util.MimeTypeUtil;
+import org.simplejavamail.internal.util.NamedDataSource;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,7 +46,7 @@ import static org.simplejavamail.internal.util.MiscUtil.readInputStreamToBytes;
 /**
  * @see EmailStartingBuilder
  */
-public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
+public final class EmailStartingBuilderImpl implements EmailStartingBuilder, org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder {
 
 	private final SimpleJavaMailConfig config;
 	private final FactorySmimeRuntime smimeRuntime;
@@ -99,7 +105,12 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final Email email) {
-		return replyingTo(email, false, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
+		return replyingTo(email, ReplyOptions.defaults());
+	}
+
+	@Override
+	public EmailPopulatingBuilder replyingTo(@NotNull final Email email, @NotNull final ReplyOptions options) {
+		return replyingTo(email, false, requireNonNull(options, "options"));
 	}
 	
 	/**
@@ -107,7 +118,12 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email) {
-		return replyingTo(email, true, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
+		return replyingToAll(email, ReplyOptions.defaults());
+	}
+
+	@Override
+	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email, @NotNull final ReplyOptions options) {
+		return replyingTo(email, true, requireNonNull(options, "options"));
 	}
 	
 	/**
@@ -115,7 +131,7 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingToAll(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
-		return replyingTo(email, true, customQuotingTemplate);
+		return replyingToAll(email, ReplyOptions.builder().withQuotingTemplate(customQuotingTemplate).build());
 	}
 	
 	/**
@@ -123,16 +139,17 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final Email email, @NotNull final String customQuotingTemplate) {
-		return replyingTo(email, false, customQuotingTemplate);
+		return replyingTo(email, ReplyOptions.builder().withQuotingTemplate(customQuotingTemplate).build());
 	}
 
-	private EmailPopulatingBuilder replyingTo(final Email email, final boolean replyToAll, final String htmlTemplate) {
+	private EmailPopulatingBuilder replyingTo(final Email email, final boolean replyToAll, final ReplyOptions options) {
 		if (InternalEmail.requireInternalEmail(email).isExactEml()) {
-			return replyingTo(converter().fromEmail(email).toMimeMessage(), replyToAll, htmlTemplate);
+			return replyingTo(converter().fromMimeMessage(converter().fromEmail(email).toMimeMessage()).toEmail(), replyToAll, options);
 		}
 		try {
-			final MimeMessage headers = MimeMessageHelper.createReplyHeaders(email, JakartaMailImplementation.createSession(new Properties()));
-			return primeReply(createReplyMessage(headers, replyToAll), email, MimeMessageHelper.replyEmbeddedImages(email), htmlTemplate);
+			final MimeMessage headers = MimeMessageHelper.createReplyHeaders(email, JakartaMailImplementation.createSession(new Properties()),
+					HelperContentReuse.privateThreading(email));
+			return primeReply(createReplyMessage(headers, replyToAll), email, options);
 		} catch (final MessagingException | UnsupportedEncodingException e) {
 			throw new EmailException("was unable to prepare email headers for a reply", e);
 		}
@@ -144,6 +161,11 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage message) {
 		return replyingTo(message, false, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
+	}
+
+	@Override
+	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage message, @NotNull final ReplyOptions options) {
+		return replyingTo(converter().fromMimeMessage(message).toEmail(), false, requireNonNull(options, "options"));
 	}
 	
 	/**
@@ -169,15 +191,26 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	public EmailPopulatingBuilder replyingToAll(@NotNull final MimeMessage message) {
 		return replyingTo(message, true, EmailStartingBuilder.DEFAULT_QUOTING_MARKUP);
 	}
+
+	@Override
+	public EmailPopulatingBuilder replyingToAll(@NotNull final MimeMessage message, @NotNull final ReplyOptions options) {
+		return replyingTo(converter().fromMimeMessage(message).toEmail(), true, requireNonNull(options, "options"));
+	}
 	
 	/**
 	 * @see EmailStartingBuilder#replyingTo(MimeMessage, boolean, String)
 	 */
 	@Override
 	public EmailPopulatingBuilder replyingTo(@NotNull final MimeMessage emailMessage, final boolean repyToAll, @NotNull final String htmlTemplate) {
-		final MimeMessage replyMessage = createReplyMessage(emailMessage, repyToAll);
-		final Email repliedTo = converter().fromMimeMessage(emailMessage).toEmail();
-		return primeReply(replyMessage, repliedTo, repliedTo.getEmbeddedImages(), htmlTemplate);
+		return replyingTo(converter().fromMimeMessage(emailMessage).toEmail(), repyToAll,
+				ReplyOptions.builder().withQuotingTemplate(htmlTemplate).build());
+	}
+
+	@Override
+	public EmailPopulatingBuilder replyingTo(final MimeMessage message, final boolean replyToAll,
+			final String quotationTemplate, final boolean allowUnencryptedContent) {
+		return replyingTo(converter().fromMimeMessage(message).toEmail(), replyToAll,
+				ReplyOptions.builder().withQuotingTemplate(quotationTemplate).withUnencryptedContentAllowed(allowUnencryptedContent).build());
 	}
 
 	private static MimeMessage createReplyMessage(final MimeMessage source, final boolean replyToAll) {
@@ -191,17 +224,26 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		}
 	}
 
-	private EmailPopulatingBuilder primeReply(final MimeMessage replyMessage, final Email repliedTo,
-			final List<AttachmentResource> embeddedImages, final String htmlTemplate) {
+	private EmailPopulatingBuilder primeReply(final MimeMessage replyMessage, final Email repliedTo, final ReplyOptions options) {
 		final Email generatedReply = converter().fromMimeMessage(replyMessage).toEmail();
+		final String quotedHtml = format(options.getQuotingTemplate(), htmlTextForReply(repliedTo));
+		final MimeMessageHelper.ReplyResources resources = MimeMessageHelper.prepareReplyResources(repliedTo, quotedHtml);
 
-		return startingBlank()
-				.withSubject(generatedReply.getSubject())
+		final EmailPopulatingBuilder builder = startingBlank()
+				.withSubject(HelperContentReuse.publicSubject(repliedTo, true))
 				.withRecipients(generatedReply.getRecipients())
 				.withPlainText(EmailStartingBuilder.LINE_START_PATTERN.matcher(plainTextForReply(repliedTo)).replaceAll("> "))
-				.withHTMLText(format(htmlTemplate, htmlTextForReply(repliedTo)))
-				.withHeaders(generatedReply.getHeaders())
-				.withEmbeddedImages(embeddedImages);
+				.withHTMLText(quotedHtml)
+				.withEmbeddedImages(resources.getResources());
+		final java.util.Map<String, java.util.Collection<String>> generatedHeaders = generatedReply.getHeaders();
+		for (String name : List.of("In-Reply-To", "References")) {
+			if (generatedHeaders.containsKey(name)) {
+				for (String value : generatedHeaders.get(name)) builder.withHeader(name, value);
+			}
+		}
+		((InternalEmailPopulatingBuilder) builder).retainConfidentialContentState(HelperContentReuse.reply(repliedTo,
+				options.getQuotingTemplate(), resources.getInspections(), options.isUnencryptedContentAllowed()));
+		return builder;
 	}
 
 	private static String plainTextForReply(final Email original) {
@@ -231,13 +273,84 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder forwarding(@NotNull final Email email) {
-		final org.simplejavamail.api.converter.EmailConversionResult<MimeMessage> converted = converter().fromEmail(email).toMimeMessageResult();
+		return forwarding(email, ForwardOptions.defaults());
+	}
+
+	@Override
+	public EmailPopulatingBuilder forwarding(@NotNull final Email email, @NotNull final ForwardOptions options) {
+		requireNonNull(options, "options");
+		// The enclosing forward can protect this representation later; a helper is not an early finalized output boundary.
+		final org.simplejavamail.api.converter.EmailConversionResult<MimeMessage> converted = converter().fromEmail(email)
+				.allowUnencryptedContent().toMimeMessageResult();
 		if (!converted.hasValue()) throw converted.getFailure();
-		final EmailPopulatingBuilder builder = forwarding(converted.getValue());
+		final EmailPopulatingBuilder builder = ((InternalEmailPopulatingBuilder) startingBlank()).withForward(converted.getValue())
+				.withSubject(HelperContentReuse.publicSubject(email, false));
+		try {
+			((InternalEmailPopulatingBuilder) builder).retainConfidentialContentState(HelperContentReuse.forward(email,
+					ConfidentialContentGuard.isEncryptedEnvelope(converted.getValue()), options.isUnencryptedContentAllowed()));
+		} catch (final MessagingException failure) {
+			throw new EmailException("was unable to inspect the prepared forward's protection envelope", failure);
+		}
 		if (!converted.getProblems().isEmpty()) {
 			((InternalEmailPopulatingBuilder) builder).retainInspection(sourceForForward(converted), converted.getProblems());
 		}
 		return builder;
+	}
+
+	@Override
+	public EmailPopulatingBuilder forwardingOriginal(@NotNull final Email email) {
+		final AttachmentResource original = requireNonNull(email, "email").getInspection().getOriginalMessage();
+		if (original == null) {
+			throw new IllegalStateException("Complete original input is unavailable for this Email. Use interpreted forwarding explicitly "
+					+ "or retain complete EML/MSG input when importing it.");
+		}
+		final AttachmentResource metadata = HelperContentReuse.neutralOriginalMetadata(email) ? neutralOriginalCarrier(original) : original;
+		final AttachmentResource carrier = binarySafeOriginalCarrier(metadata);
+		final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) startingBlank();
+		builder.withSubject(HelperContentReuse.publicSubject(email, false)).withAttachment(carrier);
+		if (HelperContentReuse.originalRequiresProtection(email)) {
+			builder.retainConfidentialContentState(ConfidentialContentState.requiring(
+					java.util.EnumSet.of(ConfidentialContentState.Component.ATTACHMENTS), EmailStartingBuilder.DEFAULT_ALLOW_UNENCRYPTED_CONTENT));
+		}
+		return builder;
+	}
+
+	/** Carrier metadata belongs to the new outer message; retained original bytes and historical metadata remain unchanged. */
+	private static AttachmentResource neutralOriginalCarrier(final AttachmentResource original) {
+		final jakarta.mail.internet.ContentType type = MimeTypeUtil.parseOrDefault(original.getDataSource().getContentType());
+		final String extension = type.match("message/rfc822") || type.match("message/global") ? ".eml"
+				: type.match("application/vnd.ms-outlook") || type.match("application/x-msg") ? ".msg"
+				: type.match("application/pkcs7-mime") || type.match("application/x-pkcs7-mime") ? ".p7m" : ".bin";
+		return original.toBuilder().withName("original-message" + extension).clearDescription().clearContentId().build();
+	}
+
+	/** Original files retain their byte syntax, including bare LF, through ordinary SMTP DATA line handling. */
+	private static AttachmentResource binarySafeOriginalCarrier(final AttachmentResource original) {
+		final jakarta.mail.internet.ContentType type = MimeTypeUtil.parseOrDefault(original.getDataSource().getContentType());
+		final String carrierType;
+		if (type.match("message/*") || type.match("multipart/*")) {
+			// RFC 2046 forbids base64 on message/rfc822 and multipart; preserve these originals as uninterpreted files.
+			carrierType = "application/octet-stream";
+		} else {
+			if (type.getParameterList() != null) {
+				type.getParameterList().remove("name");
+				type.getParameterList().remove("filename");
+			}
+			carrierType = type.toString();
+		}
+		return original.toBuilder().withDataSource(new OriginalFileDataSource(original, carrierType))
+				.clearPreEncodedContentTransferEncoding().withContentTransferEncoding(ContentTransferEncoding.BASE_64).build();
+	}
+
+	private static final class OriginalFileDataSource extends NamedDataSource {
+		private final String contentType;
+		private OriginalFileDataSource(final AttachmentResource original, final String contentType) {
+			super(original.getName(), original.getDataSource());
+			this.contentType = contentType;
+		}
+		@Override public String getContentType() { return contentType; }
+		@Override public String getEncoding() { return ContentTransferEncoding.BASE_64.getEncoder(); }
+		@Override public OutputStream getOutputStream() throws IOException { throw new IOException("Retained original files are read-only"); }
 	}
 
 	/** New conversion observations belong to this forward; the source Email's unrelated received history does not. */
@@ -279,9 +392,23 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 	 */
 	@Override
 	public EmailPopulatingBuilder forwarding(@NotNull final MimeMessage message) {
-		return ((InternalEmailPopulatingBuilder) startingBlank())
+		return forwarding(message, ForwardOptions.defaults());
+	}
+
+	@Override
+	public EmailPopulatingBuilder forwarding(@NotNull final MimeMessage message, @NotNull final ForwardOptions options) {
+		requireNonNull(options, "options");
+		final InternalEmailPopulatingBuilder builder = (InternalEmailPopulatingBuilder) startingBlank();
+		builder.retainConfidentialContentState(ConfidentialContentState.requiring(
+				java.util.Collections.emptySet(), options.isUnencryptedContentAllowed()));
+		return builder
 				.withForward(message)
 				.withSubject("Fwd: " + MimeMessageParser.parseSubject(message));
+	}
+
+	@Override
+	public EmailPopulatingBuilder forwarding(final MimeMessage message, final boolean allowUnencryptedContent) {
+		return forwarding(message, ForwardOptions.builder().withUnencryptedContentAllowed(allowUnencryptedContent).build());
 	}
 	
 	/**
@@ -363,8 +490,6 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getCalendarTextContentTransferEncoding() != null) {
 			((InternalEmailPopulatingBuilder) builder).withCalendarTextContentTransferEncoding(email.getCalendarTextContentTransferEncoding());
 		}
-		// A merged copy already represents the inner headers; preserve them now instead of restoring them during a later merge.
-		builder.withHeaders(email.getHeaders(), !internalEmail.wasMergedWithSmimeSignedMessage());
 		if (email.getSentDate() != null) {
 			builder.fixingSentDate(email.getSentDate());
 		}
@@ -391,16 +516,17 @@ public final class EmailStartingBuilderImpl implements EmailStartingBuilder {
 		if (email.getEmailToForward() != null) {
 			((InternalEmailPopulatingBuilder) builder).withForward(email.getEmailToForward());
 		}
-		builder.withDecryptedAttachments(email.getDecryptedAttachments());
-		if (email.getSmimeSignedEmail() != null) {
-			((InternalEmailPopulatingBuilder) builder).withSmimeSignedEmail(email.getSmimeSignedEmail());
-		}
-		((InternalEmailPopulatingBuilder) builder).withOriginalSmimeDetails(email.getOriginalSmimeDetails());
-		((InternalEmailPopulatingBuilder) builder).withOriginalOpenPgpDetails(email.getOriginalOpenPgpDetails());
 		((InternalEmailPopulatingBuilder) builder).withDeliveryStatusReport(email.getDeliveryStatusReport());
+		// A literal copy restores the selected read occurrences after typed setters clear any previous associations.
+		((InternalEmailPopulatingBuilder) builder).retainReceivedHeaders(email.getHeaders());
+		((InternalEmailPopulatingBuilder) builder).retainCapturedReceiptGroups(internalEmail.getCapturedReceiptGroups());
         ((InternalEmailPopulatingBuilder) builder).retainInspection(email.getSourceData(), email.getProblems());
-
-		builder.retainCopiedSmimeContent(internalEmail.wasMergedWithSmimeSignedMessage());
+		((InternalEmailPopulatingBuilder) builder).retainSelectionInspection(email.getInspection());
+		((InternalEmailPopulatingBuilder) builder).retainOriginalMessageProtection(internalEmail.getOriginalMessageProtection());
+		((InternalEmailPopulatingBuilder) builder).retainPublicSubject(internalEmail.getPublicSubject());
+		((InternalEmailPopulatingBuilder) builder).retainExplicitHeaderNames(internalEmail.getExplicitHeaderNames());
+		((InternalEmailPopulatingBuilder) builder).retainConfidentialHeaderNames(internalEmail.getConfidentialHeaderNames());
+		((InternalEmailPopulatingBuilder) builder).retainConfidentialContentState(internalEmail.getConfidentialContentState());
 		return builder;
 	}
 

@@ -1134,7 +1134,6 @@ public class EmailPopulatingBuilderImpl1Test {
 	@Test
 	public void testClearingValues() {
 		EmailPopulatingBuilder emailBuilder = EmailHelper.createDummyEmailBuilder("<id>", true, false, true, true, true, false, false)
-				.notMergingSingleSMIMESignedAttachment()
 				.signWithDomainKey(DkimConfig.builder()
 						.dkimPrivateKeyData("dkim_key")
 						.dkimSigningDomain("dkim_domain")
@@ -1145,7 +1144,6 @@ public class EmailPopulatingBuilderImpl1Test {
 						.build())
 				.encryptWithSmime(mock(SmimeEncryptionConfig.class));
 
-		assertThat(emailBuilder.isMergeSingleSMIMESignedAttachment()).isFalse();
 
 		Email emailNormal = emailBuilder.buildEmail();
 
@@ -1186,10 +1184,7 @@ public class EmailPopulatingBuilderImpl1Test {
 				.clearReplyTo()
 				.clearReturnReceiptTo()
 				.clearSentDate()
-				.clearSmime()
-				.clearSMIMESignedAttachmentMergingBehavior();
-
-		assertThat(emailBuilder.isMergeSingleSMIMESignedAttachment()).isTrue();
+				.clearSmime();
 
 		Email emailCleared = emailBuilder.buildEmail();
 

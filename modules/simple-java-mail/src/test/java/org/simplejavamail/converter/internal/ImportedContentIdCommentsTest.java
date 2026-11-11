@@ -10,6 +10,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceHeader;
+import org.simplejavamail.api.email.EmailSourcePart;
 import org.simplejavamail.converter.EmailConverter;
 import testutil.ConfigLoaderTestHelper;
 
@@ -154,26 +157,35 @@ class ImportedContentIdCommentsTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void preservesExistingOccurrenceRulesWhenCommentsDescribeTheSameId(final boolean referenced) {
+    void retainsBothOccurrencesWhenCommentsDescribeTheSameId(final boolean referenced) {
         final String html = referenced ? HTML : "<p>No image references</p>";
         final String first = message("<" + ID + "> (first)", html, "inline");
         final String eml = first.replace("--b--\r\n", "--b\r\nContent-Type: image/png; name=\"second.png\"\r\n"
                 + "Content-Disposition: inline; filename=\"second.png\"\r\nContent-ID: (second) <" + ID + ">\r\n"
                 + "Content-Transfer-Encoding: base64\r\n\r\nc2Vjb25k\r\n--b--\r\n");
         final Email imported = mail.converter().fromEml(eml).toEmail();
+        assertThat(imported.getEmbeddedImages()).isEmpty();
+        assertThat(imported.getAttachments()).extracting(AttachmentResource::getName).containsExactly(NAME, "second.png");
+        assertThat(imported.getAttachments().get(0).readAllBytes()).isEqualTo("image".getBytes(UTF_8));
+        assertThat(imported.getAttachments().get(1).readAllBytes()).isEqualTo("second".getBytes(UTF_8));
         if (referenced) {
-            assertThat(imported.getAttachments()).isEmpty();
-            assertThat(imported.getEmbeddedImages()).singleElement().satisfies(resource -> {
-                assertThat(resource.getName()).isEqualTo("second.png");
-                assertThat(resource.getContentId()).isEqualTo(ID);
-                assertThat(resource.readAllBytes()).isEqualTo("second".getBytes(UTF_8));
+            assertThat(imported.getAttachments()).extracting(AttachmentResource::getContentId).containsOnlyNulls();
+            final EmailSourcePart firstPart = (EmailSourcePart) imported.getInspection().getAttachment(0).getSources().get(0);
+            final EmailSourcePart secondPart = (EmailSourcePart) imported.getInspection().getAttachment(1).getSources().get(0);
+            assertThat(firstPart.getLocation()).isNotEqualTo(secondPart.getLocation());
+            assertThat(firstPart.getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-ID"))
+                    .extracting(EmailSourceHeader::getRawValue).containsExactly("<" + ID + "> (first)");
+            assertThat(secondPart.getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-ID"))
+                    .extracting(EmailSourceHeader::getRawValue).containsExactly("(second) <" + ID + ">");
+            assertThat(imported.getProblems()).singleElement().satisfies(problem -> {
+                assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_NOT_REPRESENTED);
+                assertThat(problem.getSourceValue()).isEqualTo(ID);
+                assertThat(problem.getLocation()).isEqualTo(firstPart.getLocation());
+                assertThat(problem.getSources()).contains(firstPart);
             });
         } else {
-            assertThat(imported.getEmbeddedImages()).isEmpty();
             assertThat(imported.getAttachments()).extracting(AttachmentResource::getContentId).containsExactly(ID, ID);
-            assertThat(imported.getAttachments()).extracting(AttachmentResource::getName).containsExactly(NAME, "second.png");
-            assertThat(imported.getAttachments().get(0).readAllBytes()).isEqualTo("image".getBytes(UTF_8));
-            assertThat(imported.getAttachments().get(1).readAllBytes()).isEqualTo("second".getBytes(UTF_8));
+            assertThat(imported.getProblems()).isEmpty();
         }
     }
 

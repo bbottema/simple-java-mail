@@ -32,7 +32,7 @@ class EmailHeaderCollectionInputTest {
         final Email email = builder.buildEmail();
         builder.withHeader("X-Route", "later");
 
-        assertThat(email.getHeaders()).containsOnlyKeys("X-Route");
+        assertThat(email.getHeaders()).containsOnlyKeys("From", "To", "X-Route");
         assertThat(email.getHeaders().get("X-Route")).containsExactly("existing", "first", "second", null, "");
         assertThat(mail.converter().fromEmail(email).toMimeMessage().getHeader("X-Route"))
             .containsExactly("existing", "first", "second", "", "");

@@ -96,7 +96,8 @@ class CliConfigurationInputContractTest {
         final Arguments arguments = sample(option, files);
         final List<String> tokens = new ArrayList<>(List.of("send"));
         final boolean mailer = option.getName().startsWith("--mailer:");
-        final boolean starting = option.getSourceMethod().getDeclaringClass().getSimpleName().equals("EmailStartingBuilder");
+        final boolean starting = option.getSourceMethod().getDeclaringClass() == org.simplejavamail.api.email.EmailStartingBuilder.class
+                || option.getSourceMethod().getDeclaringClass() == org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder.class;
         final boolean exact = ExactEmailBuilder.class.isAssignableFrom(option.getSourceMethod().getDeclaringClass())
                 || CliExactEmailConfigurationBuilder.class.isAssignableFrom(option.getSourceMethod().getDeclaringClass());
         if (exact) { tokens.addAll(List.of("--email:startingFromExactEml", files.eml.toString(), "--email:withEnvelopeRecipients", "before@example.test")); }

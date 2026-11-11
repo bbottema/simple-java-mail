@@ -11,7 +11,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 
@@ -29,19 +32,10 @@ import java.util.Properties;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.FAILED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED_ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.ERROR;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.INVALID;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.NOT_SIGNED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static org.simplejavamail.api.email.DecryptionStatus.UNAVAILABLE;
+import static org.simplejavamail.api.email.DecryptionStatus.FAILED;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.*;
 
 class SmimeIncomingOutcomeTest {
 
@@ -51,14 +45,14 @@ class SmimeIncomingOutcomeTest {
 		final Path file = Files.write(directory.resolve("signed-and-encrypted.eml"), source);
 		final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(file).toEmail();
 
-		assertUnopened(email, KEY_MISSING, source);
-		assertThat(email.getOriginalSmimeDetails().getFailureReason()).contains("No PKCS12 decryption key");
-		final byte[] borrowed = email.getOriginalSmimeDetails().getOriginalProtectedMessage();
+		assertUnopened(email, UNAVAILABLE, source);
+		assertThat(email.getInspection().getSmime().getDecryptions()).singleElement().satisfies(attempt -> assertThat(attempt.getFailureReason()).isNotEmpty());
+		final byte[] borrowed = email.getInspection().getOriginalMessage().readAllBytes();
 		borrowed[0] ^= 1;
-		assertUnopened(email, KEY_MISSING, source);
+		assertUnopened(email, UNAVAILABLE, source);
 		final Email copied = SimpleJavaMail.fromDefaults().emailBuilder().copying(email).buildEmail();
-		assertUnopened(copied, KEY_MISSING, source);
-		assertUnopened(roundTrip(copied), KEY_MISSING, source);
+		assertUnopened(copied, UNAVAILABLE, source);
+		assertUnopened(roundTrip(copied), UNAVAILABLE, source);
 	}
 
 	@Test
@@ -66,8 +60,8 @@ class SmimeIncomingOutcomeTest {
 		final byte[] source = encrypted(signedFixture());
 		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(source));
 
-		assertUnopened(EmailConverter.mimeMessageToEmail(message), KEY_MISSING, source);
-		assertUnopened(SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).toEmail(), KEY_MISSING, source);
+		assertUnopened(EmailConverter.mimeMessageToEmail(message), UNAVAILABLE, null);
+		assertUnopened(SimpleJavaMail.fromDefaults().converter().fromMimeMessage(message).toEmail(), UNAVAILABLE, null);
 	}
 
 	@Test
@@ -78,7 +72,7 @@ class SmimeIncomingOutcomeTest {
 		final Email email = importWithKeys(source);
 
 		assertUnopened(email, FAILED, source);
-		assertThat(email.getOriginalSmimeDetails().getFailureReason()).contains("Error decrypting S/MIME content");
+		assertThat(email.getInspection().getSmime().getDecryptions()).singleElement().satisfies(attempt -> assertThat(attempt.getFailureReason()).isNotEmpty());
 		assertUnopened(roundTrip(email), FAILED, source);
 	}
 
@@ -90,11 +84,11 @@ class SmimeIncomingOutcomeTest {
 		final Email email = importWithKeys(source);
 
 		assertThat(email.getPlainText()).contains("Readable unsigned content");
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(NOT_SIGNED);
-		assertThat(email.getOriginalSmimeDetails().getFailureReason()).isNull();
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+		assertDecryptionObservation(email, DecryptionStatus.DECRYPTED);
+		assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+		assertThat(email.getInspection().getSmime().getSignatures()).allSatisfy(signature -> assertThat(signature.getFailureReason()).isNull());
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
 	}
 
 	@Test
@@ -103,11 +97,11 @@ class SmimeIncomingOutcomeTest {
 		final Email email = importWithKeys(source);
 
 		assertThat(email.getPlainText()).contains("For testing purposes");
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(SIGNED_ENCRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-		assertThat(email.getSmimeSignedEmail().getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
+		assertDecryptionObservation(email, DecryptionStatus.DECRYPTED);
+		assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		assertSignatureObservation(email, SignatureVerification.VERIFIED);
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
 	}
 
 	@Test
@@ -120,13 +114,13 @@ class SmimeIncomingOutcomeTest {
 		final byte[] source = encrypted(new MimeBodyPart(new ByteArrayInputStream(tampered.getBytes(UTF_8))));
 		final Email email = importWithKeys(source);
 
-		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(INVALID);
-		assertThat(email.getOriginalSmimeDetails().getSmimeSignatureValid()).isFalse();
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(SIGNED_ENCRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getFailureReason()).contains("does not match");
+		assertDecryptionObservation(email, DecryptionStatus.DECRYPTED);
+		assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+		assertSignatureObservation(email, SignatureVerification.INVALID);
+		assertThat(email.getInspection().getSmime().getSignatures()).singleElement().satisfies(signature -> assertThat(signature.getFailureReason()).isNotEmpty());
 		assertThat(email.getPlainText()).contains("BROKEN attachment");
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
 	}
 
 	@Test
@@ -146,10 +140,9 @@ class SmimeIncomingOutcomeTest {
 		final byte[] source = encrypted(signed);
 		final Email email = importWithKeys(source);
 
-		assertVerificationError(email, source, "Readable content despite missing signer certificate");
-		assertThat(email.getSmimeSignedEmail().getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(ERROR);
+		assertVerificationError(email, source, "Readable content despite missing signer certificate", SignatureStatus.UNVERIFIED);
 		assertVerificationError(roundTrip(SimpleJavaMail.fromDefaults().emailBuilder().copying(email).buildEmail()),
-				source, "Readable content despite missing signer certificate");
+				source, "Readable content despite missing signer certificate", SignatureStatus.UNVERIFIED);
 	}
 
 	@Test
@@ -164,8 +157,8 @@ class SmimeIncomingOutcomeTest {
 		final byte[] source = encrypted(signed);
 		final Email email = importWithKeys(source);
 
-		assertVerificationError(email, source, "For testing purposes");
-		assertThat(email.getAttachments()).extracting("name").contains("smime.p7m", "smime.p7s");
+		assertVerificationError(email, source, "For testing purposes", SignatureStatus.UNKNOWN);
+		assertThat(email.getAttachments()).extracting("name").doesNotContain("smime.p7m", "smime.p7s");
 	}
 
 	@Test
@@ -173,31 +166,34 @@ class SmimeIncomingOutcomeTest {
 		final Email email = EmailConverter.emlToEmail("From: sender@example.org\r\n\r\nPlain message");
 
 		assertThat(email.getPlainText()).isEqualTo("Plain message");
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(PLAIN);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(NOT_SIGNED);
-		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(NOT_ENCRYPTED);
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+		assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
 	}
 
-	private static void assertUnopened(final Email email, final OriginalSmimeDetails.DecryptionStatus decryption, final byte[] source) {
-		final OriginalSmimeDetails details = email.getOriginalSmimeDetails();
-		assertThat(details.getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(details.getDecryptionStatus()).isEqualTo(decryption);
-		assertThat(details.getVerificationStatus()).isEqualTo(UNKNOWN);
-		assertThat(details.getSmimeSignatureValid()).isNull();
-		assertThat(details.getFailureReason()).isNotEmpty();
-		assertThat(details.getOriginalProtectedMessage()).containsExactly(source);
-		assertThat(email.getAttachments()).extracting("name").contains("smime.p7m");
-	}
+	private static void assertUnopened(final Email email, final DecryptionStatus decryption, final byte[] source) {
+        assertUnopenedFamily(email, decryption);
+        assertThat(email.getInspection().getSmime().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getFailureReason()).isNotEmpty());
+        if (source == null) assertThat(email.getInspection().getOriginalMessage()).isNull();
+        else assertOriginal(email, source);
+        assertThat(email.getAttachments()).isEmpty();
+    }
 
-	private static void assertVerificationError(final Email email, final byte[] source, final String content) {
-		final OriginalSmimeDetails details = email.getOriginalSmimeDetails();
-		assertThat(details.getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(details.getVerificationStatus()).isEqualTo(ERROR);
-		assertThat(details.getSmimeMode()).isEqualTo(SIGNED_ENCRYPTED);
-		assertThat(details.getFailureReason()).isNotEmpty();
-		assertThat(details.getOriginalProtectedMessage()).containsExactly(source);
-		assertThat(email.getPlainText()).contains(content);
-	}
+    private static void assertVerificationError(final Email email, final byte[] source, final String content,
+            final SignatureStatus expected) {
+        assertDecryptionObservation(email, DecryptionStatus.DECRYPTED);
+        assertPlainProtection(email, expected, EncryptionStatus.DECRYPTED);
+        if (expected == SignatureStatus.UNVERIFIED) {
+            assertSignatureObservation(email, SignatureVerification.UNVERIFIED);
+            assertThat(email.getInspection().getSmime().getSignatures()).singleElement()
+                    .satisfies(signature -> assertThat(signature.getFailureReason()).isNotEmpty());
+        } else {
+            assertThat(email.getInspection().getSmime().getSignatures()).isEmpty();
+            assertThat(email.getInspection().getSmime().isInspectionComplete()).isFalse();
+        }
+        assertOriginal(email, source);
+        assertThat(email.getPlainText()).contains(content);
+    }
 
 	private static Email importWithKeys(final byte[] source) {
 		return SimpleJavaMail.fromDefaults().converter().fromEml(new ByteArrayInputStream(source))

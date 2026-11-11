@@ -45,6 +45,7 @@ class RecipientConverterRouteContractTest {
     static Stream<Method> routes() {
         final Set<ConfigurationAdoptionCatalogue.Owner> legacyOwners = EnumSet.allOf(ConfigurationAdoptionCatalogue.Owner.class);
         legacyOwners.remove(ConfigurationAdoptionCatalogue.Owner.CONVERTER_IMPORT_LIMITS);
+        legacyOwners.remove(ConfigurationAdoptionCatalogue.Owner.CONVERTER_CONTENT_PERMISSION);
         return EmailContractTestSupport.routes(legacyOwners, IRecipientBuilder.class, IRecipientsBuilder.class,
                 ConfiguredEmailConverter.EmailConversion.class, ConfiguredEmailConverter.EmlConversion.class,
                 ConfiguredEmailConverter.IncomingConversion.class, ConfiguredEmailConverter.OutlookConversion.class);
@@ -170,7 +171,7 @@ class RecipientConverterRouteContractTest {
         final Object receiver;
         if (method.getDeclaringClass() == ConfiguredEmailConverter.EmailConversion.class) {
             receiver = converter.fromEmail(fixture.mail.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
-                    .withSubject("Source").withPlainText("Body").buildEmail());
+                    .withSubject("Source").withPlainText("Body").fixingMessageId("<converter-route@example.org>").buildEmail());
         } else if (outlook) { receiver = converter.fromOutlookMsg(input); }
         else { receiver = converter.fromEml(input); }
         final Session session = Session.getInstance(new Properties());

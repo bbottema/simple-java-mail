@@ -92,8 +92,15 @@ class MimeTransferDeclarationRecoveryTest {
         }
         assertThat(email.getPlainText()).isEqualTo("Reader interpreted content");
         assertThat(email.getContentTransferEncoding()).isNull();
+        assertThat(email.getPlainTextContentTransferEncoding()).isNull();
+        assertThat(email.getSourceData().getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-Transfer-Encoding"))
+                .extracting(EmailSourceHeader::getRawValue).containsExactly("x-reader-codec");
         assertThat(email.getProblems()).isEmpty();
         assertThat(retained(email.getSourceData())).isEmpty();
+
+        final MimeMessage exported = MAIL.converter().fromEmail(email).toMimeMessage();
+        assertThat(exported.getContent()).isEqualTo("Reader interpreted content");
+        assertThat(exported.getEncoding()).isNotEqualTo("x-reader-codec");
     }
 
     @Test

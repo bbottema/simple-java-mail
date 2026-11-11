@@ -104,6 +104,14 @@ public final class FinalizedMimeMessage extends MimeMessage {
         return serialized.length;
     }
 
+    /** Shares immutable captured storage with an original-input resource, without retaining this parser/message object. */
+    @NotNull
+    @ApiStatus.Internal
+    public org.simplejavamail.api.email.AttachmentResource retainedInputResource() {
+        return org.simplejavamail.api.email.AttachmentResource.builder().withName("message.eml")
+                .withDataSource(AttachmentDataSources.fromOwnedBytes(serialized, "message.eml", "message/rfc822")).build();
+    }
+
     @NotNull
     public ProtectionState getProtectionState() {
         return protectionState;

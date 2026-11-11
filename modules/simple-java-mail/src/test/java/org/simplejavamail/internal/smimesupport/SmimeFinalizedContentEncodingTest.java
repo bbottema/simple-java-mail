@@ -21,6 +21,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.ValueInspection;
 import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
@@ -44,9 +45,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.NOT_SIGNED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
+import static org.simplejavamail.api.email.EncryptionStatus.DECRYPTED;
+import static org.simplejavamail.api.email.SignatureStatus.UNSIGNED;
+import static org.simplejavamail.api.email.SignatureStatus.VERIFIED;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class SmimeFinalizedContentEncodingTest {
@@ -222,10 +223,10 @@ class SmimeFinalizedContentEncodingTest {
         final byte[] firstWrite = write(message);
         assertThat(write(message)).containsExactly(firstWrite);
         final Email imported = MAIL.converter().fromEml(firstWrite).withSmimeDecryption(receivingKeys).toEmail();
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(protection.signed ? VALID : NOT_SIGNED);
-        if (protection.encrypted) {
-            assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-        }
+        assertThat(imported.getPlainText() != null || imported.getHTMLText() != null || imported.getCalendarText() != null).isTrue();
+        if (imported.getPlainText() != null) assertSelectedBodyProtection(imported.getInspection().getPlainText(), protection);
+        if (imported.getHTMLText() != null) assertSelectedBodyProtection(imported.getInspection().getHTMLText(), protection);
+        if (imported.getCalendarText() != null) assertSelectedBodyProtection(imported.getInspection().getCalendar(), protection);
         MimeBodyPart content = new MimeBodyPart(new ByteArrayInputStream(firstWrite));
         if (protection.encrypted) {
             content = SmimeCryptoSupport.decrypt(content, decryptionKey);
@@ -235,6 +236,11 @@ class SmimeFinalizedContentEncodingTest {
             content = (MimeBodyPart) ((MimeMultipart) content.getContent()).getBodyPart(0);
         }
         return content;
+    }
+
+    private static void assertSelectedBodyProtection(final ValueInspection value, final Protection protection) {
+        assertThat(value.getSignatureStatus()).isEqualTo(protection.signed ? VERIFIED : UNSIGNED);
+        assertThat(value.getEncryptionStatus()).isEqualTo(protection.encrypted ? DECRYPTED : org.simplejavamail.api.email.EncryptionStatus.NOT_ENCRYPTED);
     }
 
     private static byte[] write(final MimeMessage message) throws Exception {

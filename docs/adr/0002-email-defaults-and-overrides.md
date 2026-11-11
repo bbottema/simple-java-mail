@@ -40,6 +40,14 @@ This is a configuration-resolution contract, not a new promise about every runti
 
 ### Completion resolves outgoing data (clarified 21 October 2026)
 
+The [received-message amendment accepted 10 November 2026](0037-repeatable-email-completion.md#preserve-helper-requirements-without-inheriting-consent-accepted-10-november-2026)
+supersedes this section's blanket input-history reset for source/Problems/originals and captured protection evidence. Completion preserves
+the submitted draft's historical input and unchanged field associations; defaults/overrides replacements have caller-supplied/unknown
+incoming facts, and templates cannot supply inspection claims or disclosure consent. Historical facts do not attest to newly rendered
+MIME. The earlier clarification below remains decision history, while ordinary outgoing policy, typed received-report projection and
+collection/suppression/lock ownership retain their separate rules. [#961](https://github.com/bbottema/simple-java-mail/issues/961) owns this
+unreleased continuation.
+
 Completion carries outgoing content and configuration. S/MIME, OpenPGP and DKIM protection settings and outgoing
 `DeliveryStatusNotification` requests retain their ordinary value resolution, suppression and lock rules. Completing an Email does not
 perform signing, encryption, verification or decryption; protection is applied during later MIME preparation.

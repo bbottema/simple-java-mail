@@ -3,9 +3,10 @@ package org.simplejavamail.internal.smimesupport;
 import jakarta.activation.DataSource;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.simplejavamail.api.email.AttachmentResource;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-
+import jakarta.activation.DataHandler;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
+import org.simplejavamail.internal.protection.ProtectionLayerResult;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -13,58 +14,48 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 import java.util.concurrent.CancellationException;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED;
-import static org.simplejavamail.api.mailer.MailFailureKind.PREPARATION;
 
 class SmimeAttachmentReadFailureTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void openingFailureRetainsTheSmimeBoundary(final boolean decrypt) {
+    void openingFailureRemainsAnEncounteredInputFailure(final boolean encrypted) throws Exception {
         final IOException opening = new IOException("opening failed");
         final FailingSource source = new FailingSource(opening, null, null);
-        assertFailure(source, decrypt, opening);
+        assertFailure(source, encrypted, opening);
         assertThat(source.closed).isZero();
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void readingFailureRetainsItsSuppressedClosingFailure(final boolean decrypt) {
+    void readingFailureRetainsItsSuppressedClosingFailure(final boolean encrypted) throws Exception {
         final IOException reading = new IOException("reading failed");
         final IOException closing = new IOException("closing failed");
         final FailingSource source = new FailingSource(null, reading, closing);
-        assertFailure(source, decrypt, reading);
+        assertFailure(source, encrypted, reading);
         assertThat(reading.getSuppressed()).containsExactly(closing);
         assertThat(source.closed).isEqualTo(1);
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void closingFailurePreventsSuccessfulSmimeProcessing(final boolean decrypt) {
+    void closingFailurePreventsSuccessfulSmimeProcessing(final boolean encrypted) throws Exception {
         final IOException closing = new IOException("closing failed");
         final FailingSource source = new FailingSource(null, null, closing);
-        assertFailure(source, decrypt, closing);
+        assertFailure(source, encrypted, closing);
         assertThat(source.closed).isEqualTo(1);
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void interruptedResourceReadingIsNotAnOrdinarySignatureFailure(final boolean decrypt) {
+    void interruptedResourceReadingIsNotAnOrdinarySignatureFailure(final boolean encrypted) throws Exception {
         final InterruptedIOException interrupted = new InterruptedIOException("S/MIME content read interrupted");
         final FailingSource source = new FailingSource(null, interrupted, null);
-        final AttachmentResource attachment = AttachmentResource.builder().withName("smime.p7m").withDataSource(source).build();
-        final SMIMESupport smime = new SMIMESupport();
+        final MimeMessage message = message(source, encrypted);
         try {
-            assertThatThrownBy(() -> {
-                if (decrypt) {
-                    smime.decryptAttachments(singletonList(attachment), null,
-                            OriginalSmimeDetailsImpl.builder().smimeMode(SIGNED).build());
-                } else {
-                    smime.getSignedByAddress(attachment);
-                }
-            }).isInstanceOf(CancellationException.class).hasCause(interrupted);
+            assertThatThrownBy(() -> new SMIMESupport().openIncomingLayer(message.getSession(), message, null))
+                    .isInstanceOf(CancellationException.class).hasRootCause(interrupted);
             assertThat(source.opened).isEqualTo(1);
             assertThat(source.closed).isEqualTo(1);
         } finally {
@@ -72,20 +63,27 @@ class SmimeAttachmentReadFailureTest {
         }
     }
 
-    private static void assertFailure(final FailingSource source, final boolean decrypt, final IOException cause) {
-        final AttachmentResource attachment = AttachmentResource.builder().withName("smime.p7m").withDataSource(source).build();
-        final SMIMESupport smime = new SMIMESupport();
-        assertThat(smime.isSmimeAttachment(attachment)).as("the fixture enters S/MIME attachment processing").isTrue();
-        assertThatThrownBy(() -> {
-            if (decrypt) {
-                smime.decryptAttachments(singletonList(attachment), null,
-                        OriginalSmimeDetailsImpl.builder().smimeMode(SIGNED).build());
-            } else {
-                smime.getSignedByAddress(attachment);
-            }
-        }).isInstanceOfSatisfying(SmimeException.class, failure -> assertThat(failure.getKind()).isEqualTo(PREPARATION))
-                .hasRootCause(cause);
+    private static void assertFailure(final FailingSource source, final boolean encrypted, final IOException cause) throws Exception {
+        final MimeMessage message = message(source, encrypted);
+        final ProtectionLayerResult result = new SMIMESupport().openIncomingLayer(message.getSession(), message, null);
+        assertThat(result.isRecognized()).isTrue();
+        assertThat(result.isOpened()).isFalse();
+        assertThat(result.getProcessingFailure()).isNotNull();
+        assertThat(result.getInputReadFailure()).isSameAs(source.opening != null ? source.opening : source.reading);
+        assertThat(result.getInputCloseFailure()).isSameAs(source.opening == null ? source.closing : null);
+        Throwable original = result.getProcessingFailure();
+        while (original.getCause() != null) original = original.getCause();
+        assertThat(original).isSameAs(cause);
         assertThat(source.opened).isEqualTo(1);
+    }
+
+    private static MimeMessage message(final FailingSource source, final boolean encrypted) throws Exception {
+        final MimeMessage message = new MimeMessage(Session.getInstance(new java.util.Properties()));
+        message.setDataHandler(new DataHandler(source));
+        message.setHeader("Content-Type", "application/pkcs7-mime; smime-type=" + (encrypted ? "enveloped-data" : "signed-data"));
+        message.setHeader("Content-Transfer-Encoding", "base64");
+        message.saveChanges();
+        return message;
     }
 
     private static final class FailingSource implements DataSource {

@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class CliEnvelopeValidationHelpTest {
 
     @Test
-    void rawHeaderHelpExplainsItsMailboxValidationEscapeAndRemainingProtections() {
+    void genericHeaderHelpExplainsTypedAuthorityAndRemainingProtections() {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         final PrintStream originalOut = System.out;
         try (PrintStream capturedOut = new PrintStream(output)) {
@@ -22,8 +22,10 @@ class CliEnvelopeValidationHelpTest {
         }
 
         assertThat(new String(output.toByteArray(), UTF_8).replaceAll("\\s+", " "))
-                .contains("expert escape from typed mailbox validation")
+                .contains("same value authority as their typed conveniences")
+                .contains("ordinary address interpretation and validation")
                 .contains("injection scanning")
-                .contains("mandatory configuration locks");
+                .contains("mandatory locks")
+                .doesNotContain("expert escape from typed mailbox validation");
     }
 }

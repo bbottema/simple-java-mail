@@ -1,19 +1,17 @@
 package org.simplejavamail.internal.smimesupport;
 
 import org.junit.jupiter.api.Test;
-import org.simplejavamail.api.internal.smimesupport.model.AttachmentDecryptionResult;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.EmailAssert;
-import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
-import org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import testutil.SecureTestDataHelper;
-
 import jakarta.mail.Session;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeMessage;
@@ -31,7 +29,6 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
@@ -62,19 +59,12 @@ public class ReadSmimeSelfSignedTest {
 		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.6C435E18.EC121991@bennybottema.com");
 		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
-		assertThat(emailParsedFromMsg.getAttachments()).hasSize(2);
-		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
-		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
-		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromMsg.getAttachments()).hasSize(1);
+		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-512")
-				.smimeSignedBy("Benny Bottema")
-				.smimeSignatureValid(true)
-				.build());
+		assertProtectedBody(emailParsedFromMsg, SignatureStatus.VERIFIED, EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(emailParsedFromMsg.getInspection().getSmime().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getSignerName()).contains("Benny Bottema"));
 	}
 
 	@Test
@@ -97,21 +87,14 @@ public class ReadSmimeSelfSignedTest {
 		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.6C435E18.EC121991@bennybottema.com");
 		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
-		assertThat(emailParsedFromEml.getAttachments()).hasSize(2);
-		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
-		assertThat(emailParsedFromEml.getDecryptedAttachments()).hasSize(2);
-		assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromEml.getAttachments()).hasSize(1);
+		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-512")
-				.smimeSignedBy("Benny Bottema")
-				.smimeSignatureValid(true)
-				.build());
-		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
-		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getOriginalProtectedMessage())
+		assertProtectedBody(emailParsedFromEml, SignatureStatus.VERIFIED, EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(emailParsedFromEml.getInspection().getSmime().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getSignerName()).contains("Benny Bottema"));
+		assertThat(emailParsedFromEml.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		assertThat(emailParsedFromEml.getInspection().getOriginalMessage().readAllBytes())
 				.containsExactly(readFile(source));
 	}
 
@@ -130,16 +113,12 @@ public class ReadSmimeSelfSignedTest {
 				+ "For testing purposes in the Simple Java Mail project.\n"
 				+ "\n");
 
-		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-512")
-				.smimeSignedBy("Benny Bottema")
-				.smimeSignatureValid(false)
-				.build());
-		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.INVALID);
-		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getFailureReason()).contains("does not match");
+		assertProtectedBody(emailParsedFromEml, SignatureStatus.INVALID, EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(emailParsedFromEml.getInspection().getSmime().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getSignerName()).contains("Benny Bottema"));
+		assertThat(emailParsedFromEml.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+		assertThat(emailParsedFromEml.getInspection().getSmime().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getFailureReason()).contains("does not match"));
 	}
 
 	@Test
@@ -148,12 +127,14 @@ public class ReadSmimeSelfSignedTest {
 
 		final Email email = EmailConverter.emlToEmail(source);
 
-		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.UNKNOWN);
-		assertThat(email.getOriginalSmimeDetails().getSmimeSignatureValid()).isNull();
-		assertThat(email.getOriginalSmimeDetails().getFailureReason()).contains("No PKCS12 decryption key");
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(readFile(source));
-		assertThat(email.getAttachments()).extracting("name").contains("smime.p7m");
+        assertThat(email.getInspection().getSmime().getDecryptions()).singleElement().satisfies(attempt -> {
+            assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE);
+            assertThat(attempt.getFailureReason()).contains("decryption key");
+        });
+        assertThat(email.getInspection().getSmime().getSignatures()).isEmpty();
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(readFile(source));
+        assertThat(email.getPlainText()).isNull();
+
 	}
 
 	@Test
@@ -164,7 +145,7 @@ public class ReadSmimeSelfSignedTest {
 
 		final Email email = EmailConverter.emlToEmail(invalidSignedEmlWithoutProtocol);
 
-		assertThat(email.getOriginalSmimeDetails().getSmimeSignatureValid()).isFalse();
+		assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
 	}
 
 	@Test
@@ -174,40 +155,28 @@ public class ReadSmimeSelfSignedTest {
 		unsignedMessage.setText("Not signed");
 		unsignedMessage.saveChanges();
 
-		final boolean signatureValid = new SMIMESupport().verifyValidSignature(unsignedMessage,
-				OriginalSmimeDetailsImpl.builder().smimeMode(SmimeMode.SIGNED).build());
+        final var inspected = new SMIMESupport().openIncomingLayer(unsignedMessage.getSession(), unsignedMessage, null);
+        assertThat(inspected.isRecognized()).isFalse();
+        assertThat(inspected.getSignatures()).isEmpty();
 
-		assertThat(signatureValid).isFalse();
 	}
 
 	@Test
 	public void testSignedAttachmentWithInvalidSignatureStillUnwrapsContent()
 			throws Exception {
-		final String invalidSignedEml = createInvalidSignedEml();
-		final AttachmentResource signedAttachment = AttachmentResource.builder().withName("smime.p7s").withDataSource(new ByteArrayDataSource(extractMessageBody(invalidSignedEml).getBytes(UTF_8), "multipart/signed")).build();
-
-		final List<AttachmentDecryptionResult> decryptedAttachments = new SMIMESupport().decryptAttachments(singletonList(signedAttachment), null,
-				OriginalSmimeDetailsImpl.builder()
-						.smimeMode(SmimeMode.SIGNED)
-						.smimeMime("multipart/signed")
-						.smimeProtocol("application/pkcs7-signature")
-						.smimeMicalg("sha-512")
-						.build());
-
-		assertThat(decryptedAttachments).hasSize(1);
-		assertThat(decryptedAttachments.get(0).getSmimeMode()).isEqualTo(SmimeMode.SIGNED);
-		assertThat(decryptedAttachments.get(0).getAttachmentResource().getName()).isEqualTo("signed-email.eml");
-
-		final Email unwrappedEmail;
-		try (InputStream input = decryptedAttachments.get(0).getAttachmentResource().openStream()) {
-			unwrappedEmail = EmailConverter.emlToEmail(input);
-		}
-		assertThat(normalizeNewlines(unwrappedEmail.getPlainText())).isEqualTo("This is an encrypted message, with one embedded image and one dummy \n"
-				+ "BROKEN attachment.\n"
-				+ "\n"
-				+ "For testing purposes in the Simple Java Mail project.\n"
-				+ "\n");
-	}
+        final String invalidSignedEml = createInvalidSignedEml();
+        final Email parent = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank()
+                .from("sender@example.test").to("reader@example.test").withPlainText("Independent parent body")
+                .withAttachment("signed-message.eml", new ByteArrayDataSource(invalidSignedEml.getBytes(UTF_8), "message/rfc822"))
+                .buildEmail();
+        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(EmailConverter.emailToEMLByteArray(parent)).toEmail();
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(parsed.getAttachments()).singleElement();
+        final Email unwrappedEmail = parsed.getAttachments().get(0).getEmail();
+        assertThat(unwrappedEmail).isNotNull();
+        assertThat(unwrappedEmail.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+        assertThat(normalizeNewlines(unwrappedEmail.getPlainText())).contains("BROKEN attachment.");
+    }
 
 	@Test
 	public void testEncryptedMessageMsg() {
@@ -228,17 +197,10 @@ public class ReadSmimeSelfSignedTest {
 		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.EDA02623.55A510EE@bennybottema.com");
 		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
-		assertThat(emailParsedFromMsg.getAttachments()).hasSize(2);
-		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "03-07-2005 errata SharnErrata.pdf");
-		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(2);
-		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromMsg.getAttachments()).hasSize(1);
+		assertThat(emailParsedFromMsg.getAttachments()).extracting("name").containsExactlyInAnyOrder("03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.build());
+		assertProtectedBody(emailParsedFromMsg, SignatureStatus.UNSIGNED, EncryptionStatus.DECRYPTED);
 	}
 
 	@Test
@@ -260,18 +222,11 @@ public class ReadSmimeSelfSignedTest {
 		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.EDA02623.55A510EE@bennybottema.com");
 		assertThat(emailParsedFromEml.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
-		assertThat(emailParsedFromEml.getAttachments()).hasSize(2);
-		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7m", "03-07-2005 errata SharnErrata.pdf");
-		assertThat(emailParsedFromEml.getDecryptedAttachments()).hasSize(2);
-		assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+		assertThat(emailParsedFromEml.getAttachments()).hasSize(1);
+		assertThat(emailParsedFromEml.getAttachments()).extracting("name").containsExactlyInAnyOrder("03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.build());
-		assertThat(emailParsedFromEml.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertProtectedBody(emailParsedFromEml, SignatureStatus.UNSIGNED, EncryptionStatus.DECRYPTED);
+		assertThat(emailParsedFromEml.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
 	}
 
 	@Test
@@ -294,24 +249,13 @@ public class ReadSmimeSelfSignedTest {
 			assertThat(emailParsedFromEml.getEmbeddedImages()).isEmpty();
 
 			assertThat(emailParsedFromEml.getAttachments()).extracting("name")
-					.containsExactlyInAnyOrder("smime.p7m",
+					.containsExactlyInAnyOrder(
 							"PDmembran_m_Stuelement_pdf_3373833.pdf",
 							"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
 							"389390_Pruefung_des_Entwurfs_3493097.doc"
 					);
-			assertThat(emailParsedFromEml.getDecryptedAttachments()).extracting("name")
-					.containsExactlyInAnyOrder("signed-email.eml",
-							"PDmembran_m_Stuelement_pdf_3373833.pdf",
-							"IN_COVER_SHEET_3374652_pdf_3374715.pdf",
-							"389390_Pruefung_des_Entwurfs_3493097.doc");
 
-			EmailAssert.assertThat(emailParsedFromEml).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-					.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
-					.smimeMime("application/pkcs7-mime")
-					.smimeType("enveloped-data")
-					.smimeName("smime.p7m")
-					.smimeSignatureValid(true)
-					.build());
+			assertProtectedBody(emailParsedFromEml, SignatureStatus.VERIFIED, EncryptionStatus.DECRYPTED);
 		});
 	}
 
@@ -347,30 +291,19 @@ public class ReadSmimeSelfSignedTest {
 		assertEmbeddedModuleArchitectureImage(embeddedImg, "part1.0B245DA7.F5872CD5@bennybottema.com");
 		assertThat(emailParsedFromMsg.getHTMLText()).contains(format("<img src=\"cid:%s\"", embeddedImg.getContentId()));
 
-		assertThat(emailParsedFromMsg.getAttachments()).hasSize(3);
+		assertThat(emailParsedFromMsg.getAttachments()).hasSize(1);
 		assertThat(emailParsedFromMsg.getAttachments()).extracting("name")
-				.containsExactlyInAnyOrder("smime.p7m", "smime.p7s", "03-07-2005 errata SharnErrata.pdf");
-		assertThat(emailParsedFromMsg.getDecryptedAttachments()).hasSize(3);
-		assertThat(emailParsedFromMsg.getDecryptedAttachments()).extracting("name").containsExactlyInAnyOrder("smime.p7s", "signed-email.eml", "03-07-2005 errata SharnErrata.pdf");
+				.containsExactlyInAnyOrder("03-07-2005 errata SharnErrata.pdf");
 
-		EmailAssert.assertThat(emailParsedFromMsg).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED_ENCRYPTED)
-				.smimeMime("application/pkcs7-mime")
-				.smimeType("enveloped-data")
-				.smimeName("smime.p7m")
-				.smimeSignatureValid(true)
-				.verificationStatus(VerificationStatus.VALID)
-				.decryptionStatus(DecryptionStatus.DECRYPTED)
-				.build());
-		EmailAssert.assertThat(emailParsedFromMsg.getSmimeSignedEmail()).hasOriginalSmimeDetails(OriginalSmimeDetailsImpl.builder()
-				.smimeMode(SmimeMode.SIGNED)
-				.smimeMime("multipart/signed")
-				.smimeProtocol("application/pkcs7-signature")
-				.smimeMicalg("sha-512")
-				.smimeSignatureValid(true)
-				.smimeSignedBy("Benny Bottema")
-				.build());
+		assertProtectedBody(emailParsedFromMsg, SignatureStatus.VERIFIED, EncryptionStatus.DECRYPTED);
+        assertThat(emailParsedFromMsg.getInspection().getSmime().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getSignerName()).contains("Benny Bottema"));
 	}
+
+    private static void assertProtectedBody(final Email email, final SignatureStatus signature, final EncryptionStatus encryption) {
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(signature);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(encryption);
+    }
 
 	private static String assumeSystemVariablePresent(String name) {
 		final String systemVariable = System.getenv(name);

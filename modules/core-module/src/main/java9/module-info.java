@@ -23,9 +23,6 @@ module org.simplejavamail.core {
 	exports org.simplejavamail.api.internal.clisupport;
 	exports org.simplejavamail.api.internal.general;
 	exports org.simplejavamail.api.internal.outlooksupport.model;
-	exports org.simplejavamail.api.internal.openpgpsupport.model;
-	exports org.simplejavamail.api.internal.protectionsupport.model;
-	exports org.simplejavamail.api.internal.smimesupport.builder;
 	exports org.simplejavamail.api.internal.smimesupport.model;
 	exports org.simplejavamail.api.mailer;
 	exports org.simplejavamail.api.mailer.config;
@@ -36,6 +33,7 @@ module org.simplejavamail.core {
 	exports org.simplejavamail.internal.configresolution;
 	exports org.simplejavamail.internal.converter to org.simplejavamail, org.simplejavamail.outlook;
 	exports org.simplejavamail.internal.email;
+	exports org.simplejavamail.internal.protection to org.simplejavamail, org.simplejavamail.smime, org.simplejavamail.openpgp;
 	exports org.simplejavamail.internal.modules;
 	exports org.simplejavamail.internal.telemetry;
 	exports org.simplejavamail.internal.util;

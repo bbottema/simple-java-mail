@@ -8,30 +8,29 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED_ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.assertOriginal;
 
-/** Calendar content follows the retained inner view when legacy S/MIME content merging is selected. */
+/** Calendar method, text and encoding follow one selected received representation. */
 class RetainedCalendarMergeTest {
     private static Path resources;
     private static byte[] msg;
@@ -44,132 +43,94 @@ class RetainedCalendarMergeTest {
         msg = ProtectedCalendarFixture.outlook(resources, eml);
     }
 
-    @ParameterizedTest(name = "default imported merge, fluent={0}")
+    @ParameterizedTest(name = "native protected calendar, fluent={0}")
     @ValueSource(booleans = {true, false})
-    void defaultNativeMsgImportProjectsTheInnerCalendar(boolean fluent) throws Exception {
+    void nativeMsgImportSelectsTheProtectedCalendarAsOneUnit(boolean fluent) {
         Email result = read(fluent).buildEmail();
-        assertRealProtectedInner(result);
         assertCalendarProjection(result);
+        assertProtectedCalendar(result);
+        assertOriginal(result, msg);
     }
 
-    @ParameterizedTest(name = "explicit copied merge reset, fluent={0}")
-    @ValueSource(booleans = {true, false})
-    void copiedSeparateViewProjectsCalendarWhenMergeIsExplicitlyRestored(boolean fluent) throws Exception {
-        Email separate = read(fluent).notMergingSingleSMIMESignedAttachment().buildEmail();
-        assertRealProtectedInner(separate);
-        assertThat(separate.getCalendarText()).isNull();
-        Email result = ProtectedCalendarFixture.MAIL.emailBuilder().copying(separate)
-                .clearSMIMESignedAttachmentMergingBehavior().buildEmail();
-        assertCalendarProjection(result);
-    }
-
-    @ParameterizedTest(name = "separate native view, fluent={0}")
-    @ValueSource(booleans = {true, false})
-    void explicitSeparateViewRetainsCalendarInTheInnerViewOnly(boolean fluent) throws Exception {
-        Email separate = read(fluent).notMergingSingleSMIMESignedAttachment().buildEmail();
-        assertRealProtectedInner(separate);
-        assertThat(separate.getCalendarText()).isNull();
-        assertThat(separate.getCalendarMethod()).isNull();
-        assertThat(separate.getSmimeSignedEmail().getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR);
-    }
-
-    @ParameterizedTest(name = "empty calendar and unset inner encoding, copied reset={0}")
+    @ParameterizedTest(name = "present empty calendar, protected={0}")
     @ValueSource(booleans = {false, true})
-    void anEmptyInnerCalendarIsPresentAndItsOmittedEncodingClearsTheOuterChoice(boolean copied) {
-        Email result = mergeCalendar("", null, copied);
-        assertAll("empty calendar is present; omitted encoding is a real selection",
-                () -> assertThat(result.getCalendarText()).isEmpty(),
-                () -> assertThat(result.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST),
-                () -> assertThat(result.getCalendarTextContentTransferEncoding()).isNull());
+    void presentEmptyCalendarDoesNotBecomeAnAbsentAlternative(boolean protectedInput) throws Exception {
+        byte[] raw = ("From: sender@example.org\r\nContent-Type: text/calendar; method=REQUEST; charset=utf-8\r\n\r\n")
+                .getBytes(StandardCharsets.UTF_8);
+        Email result;
+        if (protectedInput) {
+            MimeMessage clear = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(raw));
+            result = ProtectedCalendarFixture.MAIL.converter().fromEml(ProtectedCalendarFixture.encryptedMessage(resources, clear))
+                    .withSmimeDecryption(ProtectedCalendarFixture.keys(resources)).toEmail();
+        } else {
+            result = ProtectedCalendarFixture.MAIL.converter().fromEml(raw).toEmail();
+            assertThat(result.getCalendarTextContentTransferEncoding()).isNull();
+        }
+        assertThat(result.getCalendarText()).isEmpty();
+        assertThat(result.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
+        assertThat(result.getInspection().getCalendar().getAvailability()).isEqualTo(org.simplejavamail.api.email.ValueAvailability.PRESENT);
     }
 
-    @ParameterizedTest(name = "conflicting calendar values, copied reset={0}")
+    @ParameterizedTest(name = "ordinary calendar export, copied={0}")
     @ValueSource(booleans = {false, true})
-    void anInnerCalendarReplacesTheOuterCalendarAndSpecificEncodingTogether(boolean copied) {
-        assertCalendarProjection(mergeCalendar(ProtectedCalendarFixture.CALENDAR, ContentTransferEncoding.BASE_64, copied));
-    }
-
-    @ParameterizedTest(name = "ordinary exported calendar, copied reset={0}")
-    @ValueSource(booleans = {false, true})
-    void ordinaryExportIncludesTheSelectedCalendarBody(boolean copied) throws Exception {
-        MimeMessage exported = ProtectedCalendarFixture.MAIL.converter().fromEmail(merged(copied)).toMimeMessage();
+    void ordinaryExportIncludesOneSelectedCalendarBody(boolean copied) throws Exception {
+        Email received = read(true).buildEmail();
+        if (copied) received = ProtectedCalendarFixture.MAIL.emailBuilder().copying(received).buildEmail();
+        MimeMessage exported = ProtectedCalendarFixture.MAIL.converter().fromEmail(received).toMimeMessage();
         assertThat(calendarBodyParts(exported)).isEqualTo(1);
         assertCalendarProjection(ProtectedCalendarFixture.MAIL.converter().fromMimeMessage(exported).toEmail());
     }
 
-    @ParameterizedTest(name = "copied and serialized selected calendar, copied reset={0}")
-    @ValueSource(booleans = {false, true})
-    void copiesAndSerializationRetainTheSelectedCalendarWithoutRemerging(boolean copied) throws Exception {
-        Email current = roundTrip(merged(copied));
-        for (int i = 0; i < 3; i++) {
+    @Test
+    void copiesAndSerializationRetainTheSelectedCalendarAndItsEvidenceWithoutReprocessing() throws Exception {
+        Email current = roundTrip(read(true).buildEmail());
+        for (int index = 0; index < 3; index++) {
             assertCalendarProjection(current);
-            assertThat(current.getSmimeSignedEmail().getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR);
+            assertProtectedCalendar(current);
+            assertOriginal(current, msg);
             current = ProtectedCalendarFixture.MAIL.emailBuilder().copying(current).buildEmail();
         }
     }
 
     @Test
-    void equivalentEncryptedEmlAlreadyExposesTheCalendar() {
-        Email converted = ProtectedCalendarFixture.MAIL.converter().fromEml(eml)
+    void equivalentEncryptedEmlExposesTheSameCalendarAndRetainsActualEmlInput() {
+        Email received = ProtectedCalendarFixture.MAIL.converter().fromEml(eml)
                 .withSmimeDecryption(ProtectedCalendarFixture.keys(resources)).toEmail();
-        assertThat(converted.getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR);
-        assertThat(converted.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
+        assertCalendarProjection(received);
+        assertProtectedCalendar(received);
+        assertOriginal(received, eml);
     }
 
     @Test
-    void theRetainedSignedRepresentationIndependentlyVerifiesAndKeepsItsCalendar() throws Exception {
-        Email merged = read(true).buildEmail();
-        AttachmentResource retained = merged.getDecryptedAttachments().stream()
-                .filter(r -> "signed-email.eml".equals(r.getName())).findFirst().orElseThrow();
-        byte[] bytes = retained.readAllBytes();
-        assertThat(SmimeCryptoSupport.checkSignature(new MimeMessage(Session.getInstance(new Properties()),
-                new ByteArrayInputStream(bytes)))).isTrue();
-        assertThat(ProtectedCalendarFixture.MAIL.converter().fromEml(bytes).toEmail().getCalendarText())
-                .isEqualTo(ProtectedCalendarFixture.CALENDAR);
+    void completeRetainedNativeOriginalCanBeReimportedWithoutReconstructingTheSignedContent() {
+        Email received = read(true).buildEmail();
+        byte[] original = received.getInspection().getOriginalMessage().readAllBytes();
+        assertThat(original).containsExactly(msg);
+        Email again = ProtectedCalendarFixture.MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(original))
+                .withSmimeDecryption(ProtectedCalendarFixture.keys(resources)).toEmail();
+        assertCalendarProjection(again);
+        assertProtectedCalendar(again);
     }
 
     @Test
-    void editsAndClearsAfterExplicitCopiedMergeRemainAuthoritative() throws Exception {
-        Email separate = read(true).notMergingSingleSMIMESignedAttachment().buildEmail();
-        EmailPopulatingBuilder copy = ProtectedCalendarFixture.MAIL.emailBuilder().copying(separate)
-                .clearSMIMESignedAttachmentMergingBehavior();
+    void editsAndClearsOnACopyReplaceCurrentCalendarEvidenceWithoutResurrectingHistory() {
+        Email received = read(true).buildEmail();
+        EmailPopulatingBuilder copy = ProtectedCalendarFixture.MAIL.emailBuilder().copying(received);
         Email edited = copy.withCalendarText(CalendarMethod.CANCEL, "caller calendar")
                 .withContentEncodingConfig(ContentEncodingConfig.builder()
                         .withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build()).buildEmail();
         assertThat(edited.getCalendarText()).isEqualTo("caller calendar");
         assertThat(edited.getCalendarMethod()).isEqualTo(CalendarMethod.CANCEL);
         assertThat(edited.getCalendarTextContentTransferEncoding()).isEqualTo(ContentTransferEncoding.QUOTED_PRINTABLE);
-        Email cleared = copy.clearCalendarText().withContentEncodingConfig(ContentEncodingConfig.builder().build())
-                .clearSMIMESignedAttachmentMergingBehavior().buildEmail();
+        assertThat(edited.getInspection().getCalendar().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertOriginal(edited, msg);
+        Email cleared = copy.clearCalendarText().withContentEncodingConfig(ContentEncodingConfig.builder().build()).buildEmail();
         assertThat(cleared.getCalendarText()).isNull();
         assertThat(cleared.getCalendarMethod()).isNull();
         assertThat(cleared.getCalendarTextContentTransferEncoding()).isNull();
-        assertThat(cleared.getSmimeSignedEmail().getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR);
-    }
-
-    private static Email mergeCalendar(String text, ContentTransferEncoding encoding, boolean copied) {
-        ContentEncodingConfig.Builder innerEncoding = ContentEncodingConfig.builder();
-        if (encoding != null) innerEncoding.withCalendarTextContentTransferEncoding(encoding);
-        Email inner = ProtectedCalendarFixture.MAIL.emailBuilder().startingBlank()
-                .withCalendarText(CalendarMethod.REQUEST, text)
-                .withContentEncodingConfig(innerEncoding.build())
-                .buildEmail();
-        InternalEmailPopulatingBuilder outer = (InternalEmailPopulatingBuilder) ProtectedCalendarFixture.MAIL.emailBuilder().startingBlank();
-        outer.withCalendarText(CalendarMethod.CANCEL, "outer calendar")
-                .withContentEncodingConfig(ContentEncodingConfig.builder()
-                        .withCalendarTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build());
-        outer.withSmimeSignedEmail(inner);
-        if (!copied) return outer.buildEmail();
-        Email separate = outer.notMergingSingleSMIMESignedAttachment().buildEmail();
-        return ProtectedCalendarFixture.MAIL.emailBuilder().copying(separate)
-                .clearSMIMESignedAttachmentMergingBehavior().buildEmail();
-    }
-
-    private static Email merged(boolean copied) {
-        if (!copied) return read(true).buildEmail();
-        Email separate = read(true).notMergingSingleSMIMESignedAttachment().buildEmail();
-        return ProtectedCalendarFixture.MAIL.emailBuilder().copying(separate)
-                .clearSMIMESignedAttachmentMergingBehavior().buildEmail();
+        assertOriginal(cleared, msg);
+        assertCalendarProjection(received);
+        assertProtectedCalendar(received);
     }
 
     private static int calendarBodyParts(Part part) throws Exception {
@@ -177,7 +138,7 @@ class RetainedCalendarMergeTest {
         int count = 0;
         if (part.isMimeType("multipart/*")) {
             Multipart content = (Multipart) part.getContent();
-            for (int i = 0; i < content.getCount(); i++) count += calendarBodyParts(content.getBodyPart(i));
+            for (int index = 0; index < content.getCount(); index++) count += calendarBodyParts(content.getBodyPart(index));
         }
         return count;
     }
@@ -185,9 +146,7 @@ class RetainedCalendarMergeTest {
     private static Email roundTrip(Email email) throws Exception {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ObjectOutputStream output = new ObjectOutputStream(bytes)) { output.writeObject(email); }
-        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
-            return (Email) input.readObject();
-        }
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) { return (Email) input.readObject(); }
     }
 
     private static EmailPopulatingBuilder read(boolean fluent) {
@@ -196,20 +155,15 @@ class RetainedCalendarMergeTest {
                 : EmailConverter.outlookMsgToEmailBuilder(new ByteArrayInputStream(msg), ProtectedCalendarFixture.keys(resources)).getEmailBuilder();
     }
 
-    private static void assertRealProtectedInner(Email outer) {
-        assertThat(outer.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(SIGNED_ENCRYPTED);
-        assertThat(outer.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(outer.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-        assertThat(outer.getSmimeSignedEmail()).isNotNull();
-        assertThat(outer.getSmimeSignedEmail().getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR);
-        assertThat(outer.getSmimeSignedEmail().getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
-        assertThat(outer.getSmimeSignedEmail().getCalendarTextContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64);
+    private static void assertProtectedCalendar(Email email) {
+        assertThat(email.getInspection().getCalendar().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(email.getInspection().getCalendar().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
     }
 
-    private static void assertCalendarProjection(Email outer) {
-        assertAll("calendar text, method and encoding must follow the selected inner calendar",
-                () -> assertThat(outer.getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR),
-                () -> assertThat(outer.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST),
-                () -> assertThat(outer.getCalendarTextContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64));
+    private static void assertCalendarProjection(Email email) {
+        assertAll("calendar text, method and encoding follow one selected representation",
+                () -> assertThat(email.getCalendarText()).isEqualTo(ProtectedCalendarFixture.CALENDAR),
+                () -> assertThat(email.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST),
+                () -> assertThat(email.getCalendarTextContentTransferEncoding()).isEqualTo(ContentTransferEncoding.BASE_64));
     }
 }

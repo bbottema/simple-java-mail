@@ -17,6 +17,8 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.ValueAvailability;
+import org.simplejavamail.api.email.ValueInspection;
 import org.simplejavamail.config.ConfigLoader;
 
 import java.io.ByteArrayInputStream;
@@ -52,6 +54,7 @@ class AbsentFieldRecoveryTest {
         assertThat(email.getFromRecipient()).isNull();
         assertThat(email.getReplyToRecipients()).isEmpty();
         assertThat(email.getRecipients()).isEmpty();
+        assertThat(inspection(email, field).getAvailability()).isEqualTo(ValueAvailability.UNAVAILABLE);
         assertThat(email.getProblems()).anySatisfy(problem -> {
             assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.CONTENT_READ_FAILED);
             assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
@@ -76,6 +79,7 @@ class AbsentFieldRecoveryTest {
         final Email email = MAIL.converter().fromMimeMessage(source).toEmail();
 
         assertThat(addresses(email, field)).isEmpty();
+        assertThat(inspection(email, field).getAvailability()).isEqualTo(ValueAvailability.UNAVAILABLE);
         assertThat(email.getPlainText()).isEqualTo("Readable body");
         assertThat(email.getProblems()).anySatisfy(problem -> {
             assertThat(problem.getLocation()).isEqualTo(field);
@@ -96,6 +100,7 @@ class AbsentFieldRecoveryTest {
                 new MessagingException("selected address unavailable"))).toEmail();
 
         assertThat(addresses(email, field)).isEmpty();
+        assertThat(inspection(email, field).getAvailability()).isEqualTo(ValueAvailability.UNAVAILABLE);
         for (final String neighbor : List.of("From", "Reply-To", "To", "Cc", "Bcc")) {
             if (!neighbor.equals(field)) assertThat(addresses(email, neighbor)).containsExactly("healthy@example.org");
         }
@@ -111,6 +116,7 @@ class AbsentFieldRecoveryTest {
                 field, false, failure)).toEmail();
 
         assertThat(addresses(email, field)).containsExactly(raw);
+        assertThat(inspection(email, field).getAvailability()).isEqualTo(ValueAvailability.PRESENT);
         assertThat(email.getPlainText()).isEqualTo("Readable body");
         assertThat(email.getProblems()).anySatisfy(problem -> {
             assertThat(problem.getLocation()).isEqualTo(field);
@@ -142,9 +148,10 @@ class AbsentFieldRecoveryTest {
         final Email email = MAIL.converter().fromMimeMessage(source).toEmail();
 
         assertThat(email.getPlainText()).isEqualTo("Readable body");
-        assertThat(email.getSubject()).isEqualTo(field.equals("Subject") ? "" : "Readable mail");
+        assertThat(email.getSubject()).isEqualTo(field.equals("Subject") ? null : "Readable mail");
         assertThat(email.getId()).isNull();
         assertThat(email.getSentDate()).isNull();
+        assertThat(inspection(email, field).getAvailability()).isEqualTo(ValueAvailability.UNAVAILABLE);
         assertThat(email.getProblems()).anySatisfy(problem -> {
             assertThat(problem.getLocation()).isEqualTo(field);
             assertThat(problem.getMessage()).contains(failure.getMessage());
@@ -196,6 +203,21 @@ class AbsentFieldRecoveryTest {
     }
 
     @Test
+    void establishedAbsenceAndPresentEmptySubjectRemainDistinctFromFailedProcessing() {
+        final Email absent = MAIL.converter().fromEml(CONTENT).toEmail();
+        for (String field : List.of("From", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID")) {
+            assertThat(inspection(absent, field).getAvailability()).as(field).isEqualTo(ValueAvailability.ABSENT);
+        }
+        final Email missingSubject = MAIL.converter().fromEml(CONTENT.replace("Subject: Readable mail\r\n", "")).toEmail();
+        assertThat(missingSubject.getSubject()).isNull();
+        assertThat(missingSubject.getInspection().getSubject().getAvailability()).isEqualTo(ValueAvailability.ABSENT);
+        final Email empty = MAIL.converter().fromEml(CONTENT.replace("Subject: Readable mail", "Subject:")).toEmail();
+        assertThat(empty.getSubject()).isEmpty();
+        assertThat(empty.getInspection().getSubject().getAvailability()).isEqualTo(ValueAvailability.PRESENT);
+        assertThat(empty.getProblems()).isEmpty();
+    }
+
+    @Test
     void copiesAndSerializationPreserveUnavailableFactsAndProblemsWithoutReinspection() throws Exception {
         final AtomicInteger reads = new AtomicInteger();
         final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(CONTENT.getBytes(UTF_8))) {
@@ -212,6 +234,7 @@ class AbsentFieldRecoveryTest {
         try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) { restored = (Email) input.readObject(); }
         for (final Email email : List.of(MAIL.emailBuilder().copying(imported).buildEmail(), restored)) {
             assertThat(email.getFromRecipient()).isNull();
+            assertThat(email.getInspection().getFromRecipient().getAvailability()).isEqualTo(ValueAvailability.UNAVAILABLE);
             assertThat(email.getReplyToRecipients()).isEmpty();
             assertThat(email.getPlainText()).isEqualTo("Readable body");
             assertThat(email.getProblems()).hasSameSizeAs(imported.getProblems());
@@ -264,6 +287,20 @@ class AbsentFieldRecoveryTest {
     private static Stream<Arguments> metadataCases() {
         return Stream.of("Content-ID", "filename", "Content-Disposition", "Content-Description")
                 .flatMap(field -> Stream.of(false, true).map(eager -> Arguments.of(field, eager)));
+    }
+
+    private static ValueInspection inspection(final Email email, final String field) {
+        switch (field) {
+            case "From": return email.getInspection().getFromRecipient();
+            case "Reply-To": return email.getInspection().getReplyToRecipients();
+            case "To": return email.getInspection().getToRecipients();
+            case "Cc": return email.getInspection().getCcRecipients();
+            case "Bcc": return email.getInspection().getBccRecipients();
+            case "Subject": return email.getInspection().getSubject();
+            case "Message-ID": return email.getInspection().getId();
+            case "Date": return email.getInspection().getSentDate();
+            default: throw new AssertionError(field);
+        }
     }
 
     private static List<String> addresses(final Email email, final String field) {

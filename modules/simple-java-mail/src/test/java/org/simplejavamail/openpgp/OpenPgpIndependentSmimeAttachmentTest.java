@@ -19,14 +19,16 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourcePart;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.ProtectionFamily;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -76,14 +78,20 @@ class OpenPgpIndependentSmimeAttachmentTest {
         final byte[] wire = protectedMail(parent, ciphertext, "enveloped-data", true);
         final Email unsigned = readUnsigned(ciphertext);
         final byte[] expected = opened(unsigned).readAllBytes();
+        assertThat(unsigned.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(expected).isNotEmpty().isNotEqualTo(ciphertext);
 
         final Email imported = read(wire, route, receiving(), loadPkcs12KeyStore());
 
-        assertParent(imported, wire, parent);
-        assertThat(resource(imported.getAttachments(), CHILD).readAllBytes()).containsExactly(ciphertext);
+        assertParent(imported, wire, parent, route == Route.EML_EAGER || route == Route.EML_LAZY);
+        assertThat(imported.getAttachments()).extracting(AttachmentResource::getName).containsExactly(CHILD, NOTE);
+        final AttachmentResource selected = imported.getAttachments().get(0);
+        assertThat(selected.readAllBytes()).containsExactly(expected);
+        assertThat(imported.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(ciphertext);
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertIndependentFileDecryption(imported, DecryptionStatus.DECRYPTED);
         assertThat(resource(imported.getAttachments(), NOTE).readAllData(UTF_8)).isEqualTo("Readable neighbor");
-        assertThat(decodedBody(opened(imported).readAllBytes())).containsExactly(decodedBody(expected));
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        assertThat(selected.getEmail()).isNull();
         assertThat(imported.getProblems()).isEmpty();
     }
 
@@ -93,12 +101,13 @@ class OpenPgpIndependentSmimeAttachmentTest {
         final byte[] ciphertext = encryptedChild();
         final byte[] wire = protectedMail(parent, ciphertext, "enveloped-data", true);
 
-        final Email imported = read(wire, Route.EML_LAZY, receiving(), null);
+        final Email imported = read(wire, Route.EML_EAGER, receiving(), null);
 
         assertParent(imported, wire, parent);
-        assertThat(resource(imported.getDecryptedAttachments(), CHILD).readAllBytes()).containsExactly(ciphertext);
-        assertThat(imported.getDecryptedAttachments()).noneMatch(OpenPgpIndependentSmimeAttachmentTest::isOpenedMessage);
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        assertThat(resource(imported.getAttachments(), CHILD).readAllBytes()).containsExactly(ciphertext);
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.ENCRYPTED);
+        assertThat(imported.getInspection().getAttachment(0).getDecryptions()).anySatisfy(attempt ->
+                assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
     }
 
     @ParameterizedTest
@@ -110,7 +119,7 @@ class OpenPgpIndependentSmimeAttachmentTest {
                 .keyAlias(keys.getKeyAlias()).keyPassword(keys.getKeyPassword()).build();
 
         assertThatThrownBy(() -> read(wire, Route.MIME_EAGER, receiving(), wrong)).isInstanceOf(MailException.class)
-                .hasMessageContaining(CHILD).hasCauseInstanceOf(MailException.class);
+                .hasMessageContaining("PKCS12");
     }
 
     @ParameterizedTest
@@ -119,11 +128,10 @@ class OpenPgpIndependentSmimeAttachmentTest {
         final byte[] original = "not a CMS signature".getBytes(UTF_8);
         final byte[] wire = protectedMail(parent, original, "signed-data", true);
 
-        final Email imported = read(wire, Route.MIME_LAZY, receiving(), null);
+        final Email imported = read(wire, Route.EML_EAGER, receiving(), null);
 
         assertParent(imported, wire, parent);
         assertThat(resource(imported.getAttachments(), CHILD).readAllBytes()).containsExactly(original);
-        assertThat(resource(imported.getDecryptedAttachments(), CHILD).readAllBytes()).containsExactly(original);
         assertThat(resource(imported.getAttachments(), NOTE).readAllData(UTF_8)).isEqualTo("Readable neighbor");
         assertThat(imported.getProblems()).filteredOn(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED)
                 .singleElement().satisfies(problem -> {
@@ -150,8 +158,8 @@ class OpenPgpIndependentSmimeAttachmentTest {
         for (Email value : List.of(first, builder.buildEmail(), mail().emailBuilder().copying(first).buildEmail(), serializedCopy(first))) {
             assertParent(value, wire, Parent.SIGNED);
             assertThat(opened(value).readAllBytes()).containsExactly(opened(first).readAllBytes());
-            assertThat(value.getDecryptedAttachments()).hasSameSizeAs(first.getDecryptedAttachments());
-            assertThat(value.getSmimeSignedEmail()).isNull();
+            assertThat(value.getAttachments()).hasSameSizeAs(first.getAttachments());
+            assertThat(opened(value).getEmail()).isNull();
         }
     }
 
@@ -163,15 +171,14 @@ class OpenPgpIndependentSmimeAttachmentTest {
         final String changed = "Changed OpenPGP parent body";
         final byte[] tampered = source.replace(BODY, changed).getBytes(ISO_8859_1);
 
-        final Email imported = read(tampered, Route.EML_LAZY, receiving(), loadPkcs12KeyStore());
+        final Email imported = read(tampered, Route.EML_EAGER, receiving(), loadPkcs12KeyStore());
 
         assertThat(imported.getPlainText()).isEqualTo(changed);
-        assertThat(imported.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.INVALID);
-        assertThat(imported.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(tampered);
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+        assertThat(imported.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(tampered);
         assertThat(imported.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.SIGNATURE_INVALID);
         assertThat(opened(imported).readAllBytes()).isNotEmpty();
-        assertThat(imported.getSmimeSignedEmail()).isNull();
     }
 
     @Test
@@ -182,9 +189,10 @@ class OpenPgpIndependentSmimeAttachmentTest {
 
         final Email imported = read(wire, Route.EML_LAZY, noDecryptionKey, loadPkcs12KeyStore());
 
-        assertThat(imported.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.KEY_MISSING);
-        assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(wire);
-        assertThat(imported.getDecryptedAttachments()).isEmpty();
+        assertThat(imported.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(wire);
+        assertThat(imported.getInspection().getSmime().getDecryptions()).isEmpty();
     }
 
     @ParameterizedTest
@@ -195,25 +203,32 @@ class OpenPgpIndependentSmimeAttachmentTest {
 
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::smimeModuleAvailable).thenReturn(false);
-            final Email imported = read(wire, Route.EML_LAZY, receiving(), null);
-            assertParent(imported, wire, parent);
-            assertThat(resource(imported.getAttachments(), CHILD).readAllBytes()).containsExactly(ciphertext);
-            assertThat(imported.getDecryptedAttachments()).isEmpty();
+            for (Route route : List.of(Route.EML_EAGER, Route.EML_LAZY)) {
+                final Email imported = read(wire, route, receiving(), null);
+                assertParent(imported, wire, parent);
+                assertThat(imported.getAttachments()).extracting(AttachmentResource::getName).containsExactly(CHILD, NOTE);
+                assertThat(imported.getAttachments().get(0).readAllBytes()).containsExactly(ciphertext);
+                assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.ENCRYPTED);
+                if (route == Route.EML_EAGER) {
+                    assertThat(imported.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(ciphertext);
+                    assertIndependentFileDecryption(imported, DecryptionStatus.UNAVAILABLE);
+                } else {
+                    assertThat(imported.getInspection().getOriginalAttachment(0)).isNull();
+                    assertIndependentFileDecryption(imported, DecryptionStatus.DEFERRED);
+                }
+            }
         }
     }
 
     @Test
-    void aFurtherSmimeEnvelopeAtTheEffectiveRootIsNotAnIndependentFile() throws Exception {
+    void aFurtherSmimeEnvelopeAtTheEffectiveRootIsTheSameLogicalMessagesContent() throws Exception {
         final byte[] protectedRoot = Files.readAllBytes(encryptedPath());
         final byte[] wire = OpenPgpSignatureFixtures.detached(protectedRoot, -1, OpenPgpSignatureFixtures.first);
-
-        final Email imported = read(wire, Route.EML_LAZY, receiving(), loadPkcs12KeyStore());
-
-        assertThat(imported.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.VALID);
-        assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(wire);
-        assertThat(imported.getPlainText()).isNull();
-        assertThat(imported.getDecryptedAttachments()).isEmpty();
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        final Email imported = read(wire, Route.EML_EAGER, receiving(), loadPkcs12KeyStore());
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(imported.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(imported.getPlainText()).contains("This is an encrypted message");
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(wire);
     }
 
     private static EmailPopulatingBuilder composed(final byte[] content, final String smimeType, final boolean note) {
@@ -254,29 +269,47 @@ class OpenPgpIndependentSmimeAttachmentTest {
     }
 
     private static void assertParent(final Email email, final byte[] original, final Parent parent) {
+        assertParent(email, original, parent, true);
+    }
+
+    private static void assertParent(final Email email, final byte[] original, final Parent parent, final boolean retainedOriginal) {
         assertThat(email.getPlainText()).isEqualTo(BODY);
         assertThat(email.getHTMLText()).isEqualTo(HTML);
         assertThat(email.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
         assertThat(email.getCalendarText()).isEqualTo(CALENDAR);
         assertThat(email.getHeaders()).containsEntry("X-Parent", List.of("retained"));
-        final OriginalOpenPgpDetails details = email.getOriginalOpenPgpDetails();
-        assertThat(details.getOpenPgpMode()).isEqualTo(parent == Parent.SIGNED
-                ? OriginalOpenPgpDetails.OpenPgpMode.SIGNED : OriginalOpenPgpDetails.OpenPgpMode.SIGNED_ENCRYPTED);
-        assertThat(details.getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.VALID);
-        assertThat(details.getDecryptionStatus()).isEqualTo(parent == Parent.SIGNED
-                ? OriginalOpenPgpDetails.DecryptionStatus.NOT_ENCRYPTED : OriginalOpenPgpDetails.DecryptionStatus.DECRYPTED);
-        assertThat(details.getOriginalProtectedMessage()).containsExactly(original);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(parent == Parent.SIGNED
+                ? EncryptionStatus.NOT_ENCRYPTED : EncryptionStatus.DECRYPTED);
+        assertThat(email.getInspection().getPlainText().getDecryptions()).noneMatch(attempt -> attempt.getFamily() == ProtectionFamily.SMIME);
+        assertThat(email.getInspection().getSmime().getSignatures()).isEmpty();
+        if (retainedOriginal) {
+            assertThat(email.getInspection().getOriginalMessage()).isNotNull();
+            assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(original);
+        } else {
+            assertThat(email.getInspection().getOriginalMessage()).isNull();
+        }
+    }
+
+    private static void assertIndependentFileDecryption(final Email email, final DecryptionStatus status) {
+        assertThat(email.getInspection().getAttachment(0).getDecryptions())
+                .filteredOn(attempt -> attempt.getFamily() == ProtectionFamily.SMIME)
+                .singleElement().satisfies(attempt -> {
+                    assertThat(attempt.getStatus()).isEqualTo(status);
+                    assertThat(attempt.getSources()).singleElement().satisfies(source -> {
+                        assertThat(source).isInstanceOf(EmailSourcePart.class);
+                        assertThat(((EmailSourcePart) source).getHeaders()).anySatisfy(header -> {
+                            assertThat(header.getName()).isEqualToIgnoringCase("Content-Disposition");
+                            assertThat(header.getRawValue()).contains(CHILD);
+                        });
+                    });
+                    assertThat(email.getInspection().getSmime().getDecryptions()).singleElement()
+                            .satisfies(historical -> assertThat(historical.getReference()).isEqualTo(attempt.getReference()));
+                });
     }
 
     private static AttachmentResource opened(final Email email) {
-        final List<AttachmentResource> opened = email.getDecryptedAttachments().stream()
-                .filter(OpenPgpIndependentSmimeAttachmentTest::isOpenedMessage).collect(Collectors.toList());
-        assertThat(opened).as("independent file has an opened representation").hasSize(1);
-        return opened.get(0);
-    }
-
-    private static boolean isOpenedMessage(final AttachmentResource resource) {
-        return "message/rfc822".equalsIgnoreCase(resource.getDataSource().getContentType());
+        return resource(email.getAttachments(), CHILD);
     }
 
     private static AttachmentResource resource(final List<AttachmentResource> resources, final String name) {

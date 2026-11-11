@@ -18,14 +18,18 @@ import org.mockito.MockedStatic;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.ExactEmailBuilder;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.DecryptionInspection;
+import org.simplejavamail.api.email.ProtectionFamily;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.SignatureObservation;
+import org.simplejavamail.internal.email.SignatureObservationImpl;
+import org.simplejavamail.internal.email.DecryptionInspectionImpl;
+import org.simplejavamail.internal.protection.ProtectionLayerResult;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.simplejavamail.internal.smimesupport.SMIMESupport;
-import org.simplejavamail.internal.smimesupport.SmimePreprocessingResultImpl;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.ConnectionConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -71,13 +75,13 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.ENCRYPTED);
-        assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING);
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-        assertThat(exact.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getSmime().getDecryptions()).isNotEmpty();
+        assertThat(exact.getInspection().getSmime().getDecryptions()).extracting(DecryptionInspection::getStatus).contains(DecryptionStatus.UNAVAILABLE);
+        assertThat(exact.getInspection().getSmime().getSignatures()).noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED || signature.getStatus() == SignatureVerification.INVALID);
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(exact.getPlainText()).isNull();
-        assertThat(exact.getSmimeSignedEmail()).isNull();
-        assertThat(exact.getDecryptedAttachments()).isEmpty();
+
+
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -87,13 +91,14 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
-        assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(exact.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getSmime().getSignatures()).isNotEmpty();
+        assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.VERIFIED);
+        assertThat(exact.getInspection().getSmime().getDecryptions()).isEmpty();
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(exact.getPlainText()).contains("For testing purposes");
-        assertThat(exact.getSmimeSignedEmail()).isNull();
-        assertThat(exact.getDecryptedAttachments()).isEmpty();
+        assertThat(exact.getInspection().getPlainText().getSignatureStatus()).isEqualTo(org.simplejavamail.api.email.SignatureStatus.VERIFIED);
+
+
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -103,10 +108,10 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.SIGNED);
-        assertThat(exact.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.KEY_MISSING);
-        assertThat(exact.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(exact.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getOpenPgp().getSignatures()).isNotEmpty();
+        assertThat(exact.getInspection().getOpenPgp().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.UNVERIFIED);
+        assertThat(exact.getInspection().getOpenPgp().getDecryptions()).isEmpty();
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -116,10 +121,10 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.ENCRYPTED);
-        assertThat(exact.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.KEY_MISSING);
-        assertThat(exact.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.UNKNOWN);
-        assertThat(exact.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getOpenPgp().getDecryptions()).isNotEmpty();
+        assertThat(exact.getInspection().getOpenPgp().getDecryptions()).extracting(DecryptionInspection::getStatus).contains(DecryptionStatus.UNAVAILABLE);
+        assertThat(exact.getInspection().getOpenPgp().getSignatures()).noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED || signature.getStatus() == SignatureVerification.INVALID);
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(exact.getPlainText()).isNull();
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
@@ -133,9 +138,9 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.INVALID);
-        assertThat(exact.getOriginalSmimeDetails().getSmimeSignatureValid()).isFalse();
-        assertThat(exact.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.INVALID);
+        assertThat(exact.getInspection().getSmime().getSignatures()).noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED);
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -146,10 +151,10 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.ENCRYPTED);
-        assertThat(exact.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.FAILED);
-        assertThat(exact.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.UNKNOWN);
-        assertThat(exact.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getOpenPgp().getDecryptions()).isNotEmpty();
+        assertThat(exact.getInspection().getOpenPgp().getDecryptions()).extracting(DecryptionInspection::getStatus).contains(DecryptionStatus.FAILED);
+        assertThat(exact.getInspection().getOpenPgp().getSignatures()).noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED || signature.getStatus() == SignatureVerification.INVALID);
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -159,10 +164,12 @@ class ExactEmailProtectionInspectionTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             final Email exact = exact(source);
 
-            assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
-            assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-            assertThat(exact.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.PLAIN);
-            assertThat(exact.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.NOT_PRESENT);
+            assertThat(exact.getInspection().getSmime().getSignatures()).isEmpty();
+            assertThat(exact.getInspection().getSmime().getDecryptions()).isEmpty();
+            assertThat(exact.getInspection().getSmime().getSignatures()).isEmpty();
+            assertThat(exact.getInspection().getOpenPgp().getSignatures()).isEmpty();
+            assertThat(exact.getInspection().getOpenPgp().getDecryptions()).isEmpty();
+            assertThat(exact.getInspection().getOpenPgp().getSignatures()).isEmpty();
             modules.verifyNoInteractions();
         }
     }
@@ -177,8 +184,9 @@ class ExactEmailProtectionInspectionTest {
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             final Email exact = exact(source);
 
-            assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
-            assertThat(exact.getDecryptedAttachments()).isEmpty();
+            assertThat(exact.getInspection().getSmime().getSignatures()).isEmpty();
+            assertThat(exact.getInspection().getSmime().getDecryptions()).isEmpty();
+
             assertThat(exact.getAttachments()).singleElement().satisfies(attachment ->
                     assertThat(attachment.readAllBytes()).containsExactly(1, 2, 3));
             assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
@@ -209,10 +217,10 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.UNKNOWN);
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-        assertThat(exact.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.UNKNOWN);
-        assertThat(exact.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.UNKNOWN);
+        assertThat(exact.getInspection().getSmime().isInspectionComplete()).isFalse();
+        assertThat(exact.getInspection().getSmime().getSignatures()).noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED || signature.getStatus() == SignatureVerification.INVALID);
+        assertThat(exact.getInspection().getOpenPgp().isInspectionComplete()).isFalse();
+        assertThat(exact.getInspection().getOpenPgp().getDecryptions()).noneMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED);
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -226,13 +234,13 @@ class ExactEmailProtectionInspectionTest {
             modules.verify(ModuleLoader::loadSmimeModule, never());
 
             final Email first = builder.buildEmail();
-            assertThat(first.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
-            first.getOriginalSmimeDetails().getSmimeSignatureValid();
-            first.getOriginalSmimeDetails().getOriginalProtectedMessage();
+            assertThat(first.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.VERIFIED);
+            first.getInspection().getSmime().getSignatures();
+            first.getInspection().getOriginalMessage().readAllBytes();
             modules.verify(ModuleLoader::loadSmimeModule, times(1));
 
-            assertThat(builder.buildEmail().getOriginalSmimeDetails().getVerificationStatus())
-                    .isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+            assertThat(builder.buildEmail().getInspection().getSmime().getSignatures())
+                    .extracting(SignatureObservation::getStatus).contains(SignatureVerification.VERIFIED);
             modules.verify(ModuleLoader::loadSmimeModule, times(2));
         }
     }
@@ -273,14 +281,14 @@ class ExactEmailProtectionInspectionTest {
         }
         builder.withEnvelopeRecipients("receiver@example.org");
         final Email first = builder.buildEmail();
-        final byte[] exposed = first.getOriginalSmimeDetails().getOriginalProtectedMessage();
+        final byte[] exposed = first.getInspection().getOriginalMessage().readAllBytes();
         exposed[0] ^= 1;
         final Email second = builder.buildEmail();
         final Email restored = roundTrip(first);
         final Email copied = MAIL.emailBuilder().copying(first).buildEmail();
         for (Email snapshot : new Email[] {first, second, restored, copied}) {
-            assertThat(snapshot.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
-            assertThat(snapshot.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(original);
+            assertThat(snapshot.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.VERIFIED);
+            assertThat(snapshot.getInspection().getOriginalMessage().readAllBytes()).containsExactly(original);
         }
         for (Email exact : new Email[] {first, second, restored}) {
             assertThat(((InternalEmail) exact).isExactEml()).isTrue();
@@ -324,22 +332,23 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED_ENCRYPTED);
-        assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.UNKNOWN);
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(tampered
-                ? OriginalSmimeDetails.VerificationStatus.INVALID : OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-        assertThat(exact.getOriginalSmimeDetails().getSmimeSignedBy()).isNotEmpty();
-        assertThat(exact.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getSmime().getSignatures()).isNotEmpty();
+        assertThat(exact.getInspection().getSmime().getDecryptions()).noneMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED);
+        assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus)
+                .contains(tampered ? SignatureVerification.INVALID : SignatureVerification.VERIFIED);
+        assertThat(exact.getInspection().getSmime().getSignatures()).anySatisfy(signature -> assertThat(signature.getSignerName()).isNotBlank());
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(exact.getPlainText()).isNull();
-        assertThat(exact.getSmimeSignedEmail()).isNull();
-        assertThat(exact.getDecryptedAttachments()).isEmpty();
+        assertThat(exact.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(org.simplejavamail.api.email.EncryptionStatus.ENCRYPTED);
+
+
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
 
-        // The exact facts-only hook does not broaden ordinary conversion's existing inspection scope.
+        // Known outer verification remains visible without claiming that unopened inner content was decrypted.
         final Email ordinary = MAIL.converter().fromEml(source).toEmail();
-        assertThat(ordinary.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(tampered
-                ? OriginalSmimeDetails.VerificationStatus.INVALID : OriginalSmimeDetails.VerificationStatus.VALID);
-        assertThat(ordinary.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
+        assertThat(ordinary.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus)
+                .contains(tampered ? SignatureVerification.INVALID : SignatureVerification.VERIFIED);
+        assertThat(ordinary.getInspection().getSmime().getDecryptions()).noneMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED);
     }
 
     @Test
@@ -365,12 +374,13 @@ class ExactEmailProtectionInspectionTest {
             final Email exact = configured.emailBuilder().startingFromExactEml(source)
                     .withEnvelopeRecipients("receiver@example.org").buildEmail();
 
-            assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+            assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.VERIFIED);
             assertThat(exact.getPlainText()).isNull();
             assertThat(exact.getHTMLText()).isNull();
             assertThat(exact.getAttachments()).hasSize(1);
-            assertThat(exact.getSmimeSignedEmail()).isNull();
-            assertThat(exact.getDecryptedAttachments()).isEmpty();
+            assertThat(exact.getInspection().getAttachment(0).getSignatureStatus()).isNotEqualTo(org.simplejavamail.api.email.SignatureStatus.VERIFIED);
+
+
             assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
             assertThat(imageRequests).hasValue(0);
             assertThat(MAIL.converter().fromEml(source).toEmail().getHTMLText()).contains("Opaque content is inspection-only");
@@ -388,9 +398,9 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(sign(signedInner, false));
 
-        assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
-        assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
+        assertThat(exact.getInspection().getSmime().getSignatures()).isNotEmpty();
+        assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.VERIFIED);
+        assertThat(exact.getInspection().getSmime().getDecryptions()).isEmpty();
     }
 
     @Test
@@ -407,10 +417,9 @@ class ExactEmailProtectionInspectionTest {
             final Email exact = exact(source);
 
             modules.verify(ModuleLoader::loadSmimeModule, times(1));
-            assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.UNKNOWN);
-            assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-            assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.UNKNOWN);
-            assertThat(exact.getOriginalSmimeDetails().getFailureReason()).contains("did not establish");
+            assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus)
+                    .contains(SignatureVerification.VERIFIED);
+            assertThat(exact.getInspection().getSmime().getDecryptions()).isEmpty();
             assertThat(exact.getPlainText()).isNull();
             assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
         }
@@ -424,12 +433,12 @@ class ExactEmailProtectionInspectionTest {
 
         final Email exact = exact(source);
 
-        assertThat(exact.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED_ENCRYPTED);
-        assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.ERROR);
-        assertThat(exact.getOriginalSmimeDetails().getSmimeSignatureValid()).isFalse();
-        assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.UNKNOWN);
-        assertThat(exact.getOriginalSmimeDetails().getFailureReason()).contains("Unable to verify");
-        assertThat(exact.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(exact.getInspection().getSmime().getSignatures()).isNotEmpty();
+        assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(SignatureVerification.UNVERIFIED);
+        assertThat(exact.getInspection().getSmime().getSignatures()).noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED);
+        assertThat(exact.getInspection().getSmime().getDecryptions()).noneMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED);
+        assertThat(exact.getInspection().getSmime().getSignatures()).anySatisfy(signature -> assertThat(signature.getFailureReason()).isNotBlank());
+        assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(EmailConverter.emailToEMLByteArray(exact)).containsExactly(source);
     }
 
@@ -438,42 +447,33 @@ class ExactEmailProtectionInspectionTest {
     void ambiguousDeclarationCannotEraseAnEstablishedFeatureResult(final EstablishedResult result) {
         final byte[] source = ("Content-Type: application/pkcs7-mime; smime-type=unsupported\r\n"
                 + "Content-Transfer-Encoding: base64\r\n\r\nAQID\r\n").getBytes(US_ASCII);
-        final OriginalSmimeDetails facts = OriginalSmimeDetailsImpl.builder()
-                .smimeMode(result == EstablishedResult.DECRYPTION_FAILED ? OriginalSmimeDetails.SmimeMode.ENCRYPTED : OriginalSmimeDetails.SmimeMode.SIGNED)
-                .verificationStatus(result.verification).decryptionStatus(result.decryption)
-                .failureReason(result == EstablishedResult.VERIFICATION_VALID ? null : "An established feature failure")
-                .originalProtectedMessage(source).build();
+        final String failure = result == EstablishedResult.VERIFICATION_VALID ? null : "An established feature failure";
+        final List<SignatureObservation> signatures = result.signature == null ? List.of() : List.of(SignatureObservationImpl.builder()
+                .family(ProtectionFamily.SMIME).status(result.signature).failureReason(failure).build());
+        final List<DecryptionInspection> decryptions = result == EstablishedResult.DECRYPTION_FAILED
+                ? List.of(DecryptionInspectionImpl.builder().family(ProtectionFamily.SMIME).status(DecryptionStatus.FAILED).failureReason(failure).build()) : List.of();
         final SMIMESupport support = spy(new SMIMESupport());
-        doAnswer(invocation -> SmimePreprocessingResultImpl.builder().recognized(true)
-                .effectiveMimeMessage(invocation.getArgument(1)).details(facts)
-                .protectedAttachments(List.of()).decryptedArtifacts(List.of()).build())
-                .when(support).processIncoming(any(Session.class), any(MimeMessage.class), isNull());
+        doAnswer(invocation -> ProtectionLayerResult.builder().recognized(true).effectiveMimeMessage(invocation.getArgument(1))
+                .signatures(signatures).decryptions(decryptions).failureReason(failure).inspectionComplete(true).build())
+                .when(support).openIncomingLayer(any(Session.class), any(MimeMessage.class), isNull());
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::smimeModuleAvailable).thenReturn(true);
             modules.when(ModuleLoader::loadSmimeModule).thenReturn(support);
-
             final Email exact = exact(source);
-
-            assertThat(exact.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(result.verification);
-            assertThat(exact.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(result.decryption);
-            assertThat(exact.getOriginalSmimeDetails().getFailureReason()).isEqualTo(facts.getFailureReason());
-            assertThat(exact.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+            if (result.signature != null) {
+                assertThat(exact.getInspection().getSmime().getSignatures()).extracting(SignatureObservation::getStatus).contains(result.signature);
+            } else {
+                assertThat(exact.getInspection().getSmime().getDecryptions()).extracting(DecryptionInspection::getStatus).contains(DecryptionStatus.FAILED);
+            }
+            assertThat(exact.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         }
     }
 
     private enum EstablishedResult {
-        VERIFICATION_VALID(OriginalSmimeDetails.VerificationStatus.VALID, OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED),
-        VERIFICATION_INVALID(OriginalSmimeDetails.VerificationStatus.INVALID, OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED),
-        VERIFICATION_ERROR(OriginalSmimeDetails.VerificationStatus.ERROR, OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED),
-        DECRYPTION_FAILED(OriginalSmimeDetails.VerificationStatus.UNKNOWN, OriginalSmimeDetails.DecryptionStatus.FAILED);
-
-        private final OriginalSmimeDetails.VerificationStatus verification;
-        private final OriginalSmimeDetails.DecryptionStatus decryption;
-
-        EstablishedResult(final OriginalSmimeDetails.VerificationStatus verification, final OriginalSmimeDetails.DecryptionStatus decryption) {
-            this.verification = verification;
-            this.decryption = decryption;
-        }
+        VERIFICATION_VALID(SignatureVerification.VERIFIED), VERIFICATION_INVALID(SignatureVerification.INVALID),
+        VERIFICATION_ERROR(SignatureVerification.UNVERIFIED), DECRYPTION_FAILED(null);
+        private final SignatureVerification signature;
+        EstablishedResult(final SignatureVerification signature) { this.signature = signature; }
     }
 
     private static byte[] sign(final MimeBodyPart content, final boolean opaque) throws Exception {

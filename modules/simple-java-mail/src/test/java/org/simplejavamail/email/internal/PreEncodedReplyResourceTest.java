@@ -6,12 +6,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
+import org.simplejavamail.api.email.ReplyOptions;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.mailer.MailFailureKind;
 import testutil.ConfigLoaderTestHelper;
@@ -73,7 +75,7 @@ class PreEncodedReplyResourceTest {
         assertThat(borrowed.closes).hasValue(representation.borrowed ? 1 : 0);
         assertThat(unrelated.opens).hasValue(0);
 
-        final MimeMessage rendered = MAIL.converter().fromEmail(reply).toMimeMessage();
+        final MimeMessage rendered = MAIL.converter().fromEmail(reply).allowUnencryptedContent().toMimeMessage();
         final byte[] first = MAIL.converter().fromMimeMessage(rendered).toEmlBytes();
         final byte[] second = MAIL.converter().fromMimeMessage(rendered).toEmlBytes();
         assertThat(second).containsExactly(first);
@@ -91,6 +93,24 @@ class PreEncodedReplyResourceTest {
         return Stream.of(BASE_64, QUOTED_PRINTABLE).flatMap(encoding -> Arrays.stream(Representation.values())
                 .flatMap(representation -> Arrays.stream(ReplyRoute.values())
                         .map(route -> Arguments.of(encoding, representation, route))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"No original quotation", "Progress 100%%", "%n", "%1$.0s"})
+    void finalQuotedHtmlOmitsUnreferencedSourceImagesWithoutReadingThem(final String template) {
+        final CountingSource borrowed = new CountingSource("AQID".getBytes(StandardCharsets.US_ASCII));
+        final Email source = original().withPreEncodedEmbeddedImage(CID, borrowed, BASE_64)
+                .encryptWithOpenPgp(OpenPgpEncryptionConfig.builder().addRecipientPublicKeyRing(new byte[] {1, 2, 3}).build()).buildEmail();
+        final Email reply = MAIL.emailBuilder().replyingTo(source, ReplyOptions.builder().withQuotingTemplate(template).build())
+                .clearPlainText().from("bob@example.org").buildEmail();
+        assertThat(reply.getEmbeddedImages()).isEmpty();
+        assertThat(borrowed.opens).hasValue(0);
+        final Email emitted = MAIL.converter().fromEml(MAIL.converter().fromEmail(reply).toEmlBytes()).toEmail();
+        assertThat(emitted.getEmbeddedImages()).isEmpty();
+        assertThat(emitted.getAttachments()).isEmpty();
+        assertThat(emitted.getHTMLText()).isEqualTo(String.format(template, HTML));
+        assertThat(borrowed.opens).hasValue(0);
+        assertThat(borrowed.closes).hasValue(0);
     }
 
     @Test

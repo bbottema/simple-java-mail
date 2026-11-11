@@ -146,6 +146,18 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
+    # BEGIN received-email-overhaul-20261110 retirement (#961)
+    # Active until accepted delivery and maintainer inspection; scheduling does not authorize deletion.
+    'docs/plans/received-email-api-design-20261109.md'
+    'docs/plans/received-email-overhaul-implementation-20261110.md'
+    'docs/plans/received-email-core-inventory-20261110.md'
+    'docs/plans/received-email-inbound-inventory-20261110.md'
+    'docs/plans/received-email-crypto-inventory-20261110.md'
+    'docs/plans/received-email-output-inventory-20261110.md'
+    'docs/plans/received-email-migration-inventory-20261110.md'
+    'docs/plans/received-email-website-inventory-20261110.md'
+    'docs/plans/received-email-lead-ledger-20261110.md'
+    # END received-email-overhaul-20261110 retirement
     # #976: retire this task's plan after delivery.
     'docs/plans/976-cli-integer-input.md'
     # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
@@ -234,6 +246,12 @@ $relativeFileTargets = @(
 )
 # External directories require both the exact absolute path and its direct parent.
 $externalDirectoryTargets = @(
+    # #961: retire only after accepted delivery, evidence inspection and explicit retirement of its Git worktrees.
+    # Existing worktree/nested-repository/reparse guards remain binding; this is a later cleanup schedule.
+    @{
+        Path = 'C:\workstation\sjm-received-email-overhaul-20261110'
+        Parent = 'C:\workstation'
+    }
     # #976: unlink only this task's dependency junction, then retire clean worktrees through Git.
     # Automatic approval review rejected task retirement before execution: "blocked by policy".
     # No restore or deletion ran. Preserve both registered worktrees and do not retry through another method.

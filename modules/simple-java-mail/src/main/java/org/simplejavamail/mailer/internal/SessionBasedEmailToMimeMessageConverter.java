@@ -29,6 +29,7 @@ import org.simplejavamail.api.mailer.spi.DeliveryRecipient;
 import org.simplejavamail.api.mailer.spi.MailTransportCompatibilityException;
 import org.simplejavamail.api.mailer.spi.PreparedMail;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.converter.internal.mimemessage.ConfidentialContentGuard;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.util.SessionLogger;
 import org.slf4j.Logger;
@@ -176,7 +177,9 @@ public class SessionBasedEmailToMimeMessageConverter {
     @NotNull
     MailRehearsal rehearseMimeMessage(final Email email, final boolean processSecurityAndValidateSize, final FactorySmimeRuntime smimeRuntime)
             throws MessagingException {
+        if (!processSecurityAndValidateSize) ConfidentialContentGuard.verifyBasePreview(email);
         val mimeMessage = convertMimeMessage(email, session, processSecurityAndValidateSize, smimeRuntime);
+        ConfidentialContentGuard.verifyFinalOutput(email, mimeMessage, false);
         final byte[] emlBytes = serializeMimeMessage(mimeMessage);
         if (processSecurityAndValidateSize) {
             validateMaximumEmailSize(emlBytes.length);
@@ -257,8 +260,8 @@ public class SessionBasedEmailToMimeMessageConverter {
             throw new MailTransportCompatibilityException("The final SMTP recipient list has " + envelopeRecipients.length
                     + " entries, but the Email recipient list has " + emailRecipients.size()
                     + ". Simple Java Mail cannot safely match the per-recipient notification settings. "
-                    + "Add recipients with withRecipients(...) instead of adding To/Cc/Bcc headers with withHeader(...), "
-                    + "or use withOverrideReceivers(...) to set a separate delivery list. No message was submitted.", envelopeRecipients);
+                    + "Use SMTP mailbox recipients and remove non-SMTP destinations such as Newsgroups, "
+                    + "or use withOverrideReceivers(...) to set a separate SMTP delivery list. No message was submitted.", envelopeRecipients);
         }
     }
 

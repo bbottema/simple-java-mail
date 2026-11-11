@@ -13,7 +13,8 @@ import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourceContent;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -44,7 +45,8 @@ class ImportLimitsTest {
         assertThat(input.read).isEqualTo(65);
         assertThat(input.closed).isFalse();
         assertThat(result.getPlainText()).isNull();
-        assertThat(result.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.UNKNOWN);
+        assertThat(result.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(result.getInspection().getOriginalMessage()).isNull();
         assertThat(result.getProblems()).singleElement().satisfies(problem ->
                 assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
         final EmailSourceContent prefix = result.getSourceData().getParts().get(0).getContent();
@@ -175,7 +177,8 @@ class ImportLimitsTest {
 
         assertThat(result.getPlainText()).contains("Readable signed body");
         assertThat(result.getAttachments()).noneMatch(resource -> "not-admitted.txt".equals(resource.getName()));
-        assertThat(result.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(result.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(result.getInspection().getSmime().getSignatures()).extracting("status").containsOnly(SignatureVerification.VERIFIED);
         assertThat(result.getProblems()).anySatisfy(problem ->
                 assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
     }

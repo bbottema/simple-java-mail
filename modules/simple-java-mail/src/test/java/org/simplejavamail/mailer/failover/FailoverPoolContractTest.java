@@ -18,6 +18,7 @@ import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
 import testutil.smtp.RecordingSmtpServer;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -54,7 +55,8 @@ class FailoverPoolContractTest {
             assertSelectedTemplate(first, "first");
             assertSelectedTemplate(second, "second");
             assertThat(original.getFromRecipient()).isNull();
-            assertThat(original.getHeaders()).isEmpty();
+            assertThat(original.getHeaders()).containsEntry("To", List.of("receiver@example.test"))
+                    .doesNotContainKeys("From", "Bcc", "X-Relay");
             assertThat(original.getRecipients()).hasSize(1);
         }
     }

@@ -3,6 +3,8 @@ package org.simplejavamail.converter;
 import jakarta.mail.MessagingException;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeBodyPart;
+import jakarta.mail.internet.MimeMultipart;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
 import org.simplejavamail.api.SimpleJavaMail;
@@ -33,7 +35,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 class UnavailableSmimeInterruptionTest {
 
     @TestFactory
-    Stream<DynamicTest> lateDeclarationInterruptionCancelsBothImportRoutes() {
+    Stream<DynamicTest> selectedMetadataInterruptionAfterAReadableSiblingCancelsBothImportRoutes() {
         return importRoutes().flatMap(route -> Stream.<Supplier<Exception>>of(
                 () -> new InterruptedIOException("Metadata read interrupted"),
                 ClosedByInterruptException::new,
@@ -48,8 +50,7 @@ class UnavailableSmimeInterruptionTest {
 
                         assertThat(bodyRead).as("ordinary body retrieval completed before the metadata failure").isTrue();
                         assertThat(failure).isInstanceOf(CancellationException.class);
-                        assertThat(failure.getCause().getCause()).isSameAs(original);
-                        assertThat(failure.getCause().getCause().getSuppressed()).containsExactly(original.getSuppressed());
+                        assertThat(causes(failure)).contains(original);
                         assertThat(Thread.currentThread().isInterrupted()).isFalse();
                     }
                 })));
@@ -65,7 +66,7 @@ class UnavailableSmimeInterruptionTest {
 
                 assertThat(bodyRead).isTrue();
                 assertThat(failure).isInstanceOf(CancellationException.class);
-                assertThat(failure.getCause().getCause()).isSameAs(original);
+                assertThat(causes(failure)).contains(original);
                 assertThat(Thread.currentThread().isInterrupted()).isTrue();
             } finally {
                 Thread.interrupted();
@@ -84,7 +85,7 @@ class UnavailableSmimeInterruptionTest {
                         final String[] observed = convert(runtime, route, cause.get(), false, bodyRead);
 
                         assertThat(bodyRead).isTrue();
-                        assertThat(observed).containsExactly("Readable body", "UNKNOWN", "UNKNOWN", "UNKNOWN");
+                        assertThat(observed).containsExactly("Readable body", "UNSIGNED", "NOT_ENCRYPTED", "true");
                         assertThat(Thread.currentThread().isInterrupted()).isFalse();
                     }
                 })));
@@ -108,6 +109,12 @@ class UnavailableSmimeInterruptionTest {
         final IOException original = new IOException("Metadata cleanup failed");
         original.addSuppressed(new InterruptedIOException("Metadata cleanup interrupted"));
         return original;
+    }
+
+    private static java.util.List<Throwable> causes(final Throwable failure) {
+        final java.util.List<Throwable> causes = new java.util.ArrayList<>();
+        for (Throwable cause = failure; cause != null && !causes.contains(cause); cause = cause.getCause()) causes.add(cause);
+        return causes;
     }
 
     private static Stream<Route> importRoutes() {
@@ -175,30 +182,43 @@ class UnavailableSmimeInterruptionTest {
         public static String[] convert(final boolean fluent, final boolean eager, final Throwable original,
                 final boolean interruptAtFailure, final AtomicBoolean bodyRead) throws Exception {
             if (ModuleLoader.smimeModuleAvailable()) throw new AssertionError("The S/MIME implementation must be absent");
-            final String eml = "From: sender@example.org\r\nSubject: Readable message\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nReadable body";
-            final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(eml.getBytes(UTF_8))) {
+            final MimeBodyPart readable = new MimeBodyPart() {
                 @Override
                 public Object getContent() {
                     bodyRead.set(true);
                     return "Readable body";
                 }
-
+            };
+            readable.setText("Readable body", "UTF-8");
+            final MimeBodyPart unavailable = new MimeBodyPart() {
                 @Override
-                public String getContentType() throws MessagingException {
-                    if (bodyRead.get()) {
+                public String[] getHeader(final String name) throws MessagingException {
+                    if (bodyRead.get() && name.equalsIgnoreCase("Content-Transfer-Encoding")) {
                         if (interruptAtFailure) Thread.currentThread().interrupt();
                         if (original instanceof RuntimeException) throw (RuntimeException) original;
                         if (original instanceof Error) throw (Error) original;
-                        throw new MessagingException("Late MIME metadata read failed", (Exception) original);
+                        throw new MessagingException("Selected sibling metadata read failed", (Exception) original);
                     }
-                    return super.getContentType();
+                    return super.getHeader(name);
                 }
             };
+            unavailable.setText("Unavailable sibling", "UTF-8");
+            unavailable.setDisposition("attachment");
+            unavailable.setFileName("unavailable.txt");
+            final MimeMultipart mixed = new MimeMultipart("mixed");
+            mixed.addBodyPart(readable);
+            mixed.addBodyPart(unavailable);
+            final MimeMessage source = new MimeMessage(Session.getInstance(new Properties()));
+            source.setFrom("sender@example.org");
+            source.setSubject("Readable message");
+            source.setContent(mixed);
+            source.setHeader("Content-Type", mixed.getContentType());
             final Email imported = fluent
                     ? SimpleJavaMail.fromDefaults().converter().fromMimeMessage(source).withFetchAttachmentData(eager).toEmail()
                     : EmailConverter.mimeMessageToEmail(source, null, eager);
-            return new String[] {imported.getPlainText(), imported.getOriginalSmimeDetails().getSmimeMode().name(),
-                    imported.getOriginalSmimeDetails().getVerificationStatus().name(), imported.getOriginalSmimeDetails().getDecryptionStatus().name()};
+            return new String[] {imported.getPlainText(), imported.getInspection().getPlainText().getSignatureStatus().name(),
+                    imported.getInspection().getPlainText().getEncryptionStatus().name(),
+                    Boolean.toString(imported.getProblems().stream().anyMatch(problem -> !problem.getSources().isEmpty()))};
         }
     }
 }

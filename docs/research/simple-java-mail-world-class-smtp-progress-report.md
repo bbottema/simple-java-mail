@@ -1,6 +1,7 @@
 # Simple Java Mail 10.0.0 competitive progress report
 
 - Assessment date: 2026-10-18.
+- Received-message implementation assessment: 2026-11-11. The further overhaul is implemented for unreleased 10.0.0, extending ordinary usable protected content with selected-value evidence, pure protection requirements and deliberate interpreted/original reuse. The scoped assessment includes the measured retention case below. [#961](https://github.com/bbottema/simple-java-mail/issues/961) owns review and delivery status, while the recorded competitor survey dates and rankings retain their existing scope.
 - Source-inspection refresh: 2026-11-04. The source/content/result overhaul is implemented for unreleased 10.0.0; [#961](https://github.com/bbottema/simple-java-mail/issues/961) tracks review and delivery. Calendar merge correction #960 is delivered on the 10.0.0 development branches. This scoped update preserves earlier competitor baselines and rankings.
 - Configuration and documentation refresh: 2026-10-27, recording the completed #867 work for unreleased 10.0.0. This is a scoped SJM product assessment; the competitor baseline and comparative rankings below have not been refreshed. Implementation [e73c5432d](https://github.com/bbottema/simple-java-mail/commit/e73c5432daa2ef740142a2e9c54a1fc4a42bbd2a) and validation guidance [68d3af98c](https://github.com/bbottema/simple-java-mail/commit/68d3af98cf6844ccb4f8ac7a55a325da02aad5ef) are recorded in local commits; publication remains pending.
 - Implementation refresh: 2026-10-15, adding accepted live progress under [#760](https://github.com/bbottema/simple-java-mail/issues/760), detailed connection/SMTP stages under [#761](https://github.com/bbottema/simple-java-mail/issues/761), retention corrections and a repeatable memory-pressure workbench. Safe retries under #756, connection failover under #755, selected-Mailer ownership corrections under #757 and earlier recipient-rejection/managed-transport updates remain part of the assessment.
@@ -50,11 +51,11 @@ The PDF described a broad and approachable library with important operational an
 | Operating a mail workload | Measurements of actual sends, configurable message/recipient sending limits, and internal content-inspection/provider-discovery optimizations. | [#750](https://github.com/bbottema/simple-java-mail/issues/750), [#751](https://github.com/bbottema/simple-java-mail/issues/751), [#749](https://github.com/bbottema/simple-java-mail/issues/749) |
 | Optional application telemetry | Typed adaptation of the application's SDK, ordinary Mailer/property configuration, request-linked logical/invocation spans, portable phase timings/failure location, useful duration histograms and sampling-independent metrics. Accepted for unreleased 10.0.0, with private-by-default endpoint reporting. | [#762](https://github.com/bbottema/simple-java-mail/issues/762) |
 | Incoming delivery feedback | Structured DSN facts through the ordinary converted Email: ENVID, ordered recipient actions, checked status-code components, reported recipients/servers, typed diagnostics and dates. Optional mailbox/SMTP views avoid caller-side parsing without losing unfamiliar formats. Tolerant reading recovers clear formatting defects and retains completed facts after optional extraction fails, with warnings; ambiguous facts remain unavailable. Applications retain trust, correlation and business decisions. | [#763](https://github.com/bbottema/simple-java-mail/issues/763) |
+| Received source inspection and conversion diagnostics (major feature) | One readable Email exposes selected protected content and passive child messages. Field/resource inspection binds protection and source evidence to the consumed value, with reusable approved-key requirements, complete acquired originals and explicit interpreted/original forwarding. Helper reuse carries outgoing confidentiality requirements. Actual Problems and optional artifact results retain the source/content foundation. Whole-Email optional-module restoration remains deferred. | [#961](https://github.com/bbottema/simple-java-mail/issues/961), [ADR 0041](../adr/0041-email-source-inspection-and-problems.md), deferred [#965](https://github.com/bbottema/simple-java-mail/issues/965) |
 
 These capabilities work together. An application can configure and rehearse mail, submit it through managed resources, inspect what SMTP accepted, and decide what to do after a failure without treating every exception as proof that nothing was sent.
 
 An advertised extension in a probe is not evidence that Simple Java Mail implements that sending mode. In particular, PIPELINING and CHUNKING must not be counted as delivered capabilities merely because a server advertises them.
-| Received source inspection and conversion diagnostics (major feature) | Email exposes normal usable content, selectively retained originals and actual Problems. Generic source nodes, honest partial capture and optional artifact results preserve inspectable evidence without wrapping Email or inventing Problems for successful expected transformations. Whole-Email optional-module restoration remains deferred. | [#961](https://github.com/bbottema/simple-java-mail/issues/961), [ADR 0041](../adr/0041-email-source-inspection-and-problems.md), deferred [#965](https://github.com/bbottema/simple-java-mail/issues/965) |
 
 ## What the recent additions contribute
 
@@ -164,42 +165,53 @@ measurements were repeated for this addition; PIPELINING/CHUNKING remains a sepa
 
 ### Source inspection and recoverable conversion
 
-The unreleased 10.0.0 feature under [#961](https://github.com/bbottema/simple-java-mail/issues/961) strengthens message inspection: Email
-provides convenient interpreted values together with received evidence that explains imperfect input. Generic diagnostic processing
-can enumerate headers, native properties, source parts and actually materialized derived views. Normal bodies, attachments and embedded
-images remain usable content rather than recovery-state containers.
+The further overhaul agreed on 10 November 2026 is implemented for unreleased 10.0.0. Supported decryption supplies usable bodies and
+files through the ordinary Email model. Independent attached messages keep their own materialized child views, and field/resource
+inspection explains the source, derivation and protection of each selected value. A readable native fallback can coexist with a protected
+alternative while retaining its own coverage. This extends the source/content/result foundation within the same feature. [#961](https://github.com/bbottema/simple-java-mail/issues/961)
 
-Available originals are retained when the root Email no longer exposes the received content, except for different representations of
-the same canonical value. Original reader-provided RTF remains alongside generated HTML; successful Base64 decoding needs no duplicate
-payload. Retaining an original does not require a Problem. Actual interpretation, read and protection issues have observations with stable
-input identities and affected-source links, while expected successful transformations can leave the Problems list empty.
-[ADR 0041's source-content decision](../adr/0041-email-source-inspection-and-problems.md#generic-source-structure-and-selective-original-content)
-records that distinction, and [EmailSourceData](../../modules/core-module/src/main/java/org/simplejavamail/api/email/EmailSourceData.java)
-defines the public enumerable view.
+Reusable `ProtectionRequirements` give an application a direct decision over its selected document or field. A qualifying signature binds
+full verification, coverage and explicitly approved signing-key identity to one observation. Unmet and indeterminate outcomes retain
+explanatory reasons. Applications own partner approval and process/hold decisions. The receiving use case, tactical partner-document
+recipe and protected-partners application present that workflow together. Their contribution is the application of the same content and
+evidence model. [Protected partner documents](../../tools/integration-patterns/protected-partners/README.md)
 
-Captured source bytes, reader-supplied content and partial captures remain distinguishable. Diagnostic getters read captured data without
-reopening resources, retrying interpretation or running crypto. Copies and later setters preserve the received snapshot and historical
-observations. Memory assessment must account for retained backing storage and selected large-input paths; an older outbound soak does
-not establish the cost of this graph, and no exact N-KB heap equivalence is claimed. Raw evidence must not flow automatically into ordinary
-logs, protocol transcripts, telemetry or default summaries.
+The overall advance is meaningful but moderate, with a larger direct gain for protected-mail usability and coherent reuse. It deepens
+SJM's integrated client experience and reduces caller-side interpretation. Established competitors already offer the underlying content
+protection operations. MimeKit documents decryption, signed-content extraction and individual signature verification. This comparison
+credits the coordination of readable content, scoped evidence, requirements and deliberate reuse in SJM. [MimeKit's S/MIME guide](https://mimekit.net/docs/html/Working-With-SMime.htm)
 
-Email itself remains the direct non-null inspection result, including source-only/problem-only cases. Optional diagnostic envelopes belong
-to compatible non-Email artifacts such as EML bytes/text and MimeMessage. They expose newly observed Problems and available sources without
-mutating the input or changing the best-effort conversion behavior. Ordinary copies do not invent new processing failures. The permanent
-[artifact-result decision](../adr/0041-email-source-inspection-and-problems.md#diagnostic-results-for-non-email-artifacts) and
-[EmailConversionResult](../../modules/core-module/src/main/java/org/simplejavamail/api/converter/EmailConversionResult.java) define that surface.
-An unfinished output buffer is not a usable artifact, and retained sources are not automatically rendered into outgoing content.
+Complete acquired EML/MSG input is retained automatically in its actual format. Independently transformed files retain their originals,
+and reader-provided RTF remains available alongside selected HTML. Incomplete prefixes stay diagnostic evidence. Native/MIME reader
+objects supply the useful facts they expose, with complete original-file access dependent on actual capture. Source identities and links
+keep interpretation, read and protection Problems attached to the input that produced them. Expected transformations can leave Problems
+empty. [Original-input ownership](../adr/0041-email-source-inspection-and-problems.md#complete-original-input-and-selected-value-inspection-accepted-10-november-2026)
 
-The Calendar merge correction remains separately delivered under [#960](https://github.com/bbottema/simple-java-mail/issues/960) and
-[ADR 0040](../adr/0040-retained-protected-content-merging.md). The source/content/result overhaul is implemented for unreleased 10.0.0;
-[#961](https://github.com/bbottema/simple-java-mail/issues/961) records review and delivery state. Core-owned source snapshots do not remove
-existing optional producer classes elsewhere in a whole Email's Java serialized graph. That portability work is deferred to child
-[#965](https://github.com/bbottema/simple-java-mail/issues/965), outside this feature's completion. Historical Problems are not a current send-validity verdict.
+Ordinary copies and supported snapshots preserve history and unchanged selected associations. Explicit replacements acquire caller-supplied
+current facts, while retained originals remain historical input. Interpreted forwarding renders current usable content. Original forwarding
+carries the actual retained bytes and format, including the confidentiality requirement when an extracted child lacks its parent's encryption.
+Reply/forward helpers require suitable final outgoing protection for automatically reused confidential content, with explicit operation or
+conversion-local consent and safe public subjects/carrier metadata. These boundaries make content reuse more deliberate. [Logical selection](../adr/0040-retained-protected-content-merging.md#one-logical-readable-email-accepted-10-november-2026)
 
-This contributes to interoperability, understandable conversion failures and API coherence. It complements the original PDF's integrity,
-diagnostic and evidence agenda while extending beyond its principal outbound SMTP focus. It adds no SMTP extension, delivery guarantee
-or competitive-performance result. Claims remain bounded by the formats, providers and failure paths actually covered; this assessment
-refreshes no competitor sources, black-box comparison or cross-library benchmark. The original PDF and recorded comparison dates remain the baseline.
+Original retention has a measurable storage cost alongside decoded content. A bounded synthetic EML containing a 6 MiB binary document
+retained one 8,609,827-byte raw archive and one 6,291,456-byte decoded resource, totaling 14,901,283 reachable payload bytes, about 14.21 MiB.
+The original Email and twelve unchanged copies shared those two buffers. Restoring their shared serialization graph also retained two
+buffers with the same total payload size. In the associated deferred-input exercise, copying and passive inspection kept the resource
+unopened, and shared snapshot capture acquired it once. A parsed child's captured history retained its own original input. These observations
+cover the sampled reachable payload arrays and their lifecycle. Object headers, String storage and peak temporary buffers have additional
+costs. Raw evidence can contain confidential input and belongs behind deliberate application access.
+
+Email remains the direct inspection result for usable, partial and source-only input. Optional artifact results carry newly observed
+Problems and available sources with compatible MIME/EML outputs. They retain useful diagnostics when a completed output is refused or
+unavailable. The current source and protection observations are core-owned. Other parts of a whole Email graph can still require optional
+producer classes when restored. [Artifact results](../adr/0041-email-source-inspection-and-problems.md#diagnostic-results-for-non-email-artifacts),
+[snapshot portability follow-up](https://github.com/bbottema/simple-java-mail/issues/965)
+
+The earlier calendar-pairing correction under #960 is carried forward in logical selection. Released flat inspection and merge APIs need
+semantic migration choices over current values, children and originals. The production OpenRewrite recipes and report companion remain
+release work under #766. The competitive assessment here covers message handling and retains the original PDF's protocol/competitor
+comparison scope and dates. [Calendar ownership](../adr/0040-retained-protected-content-merging.md),
+[migration tooling](https://github.com/bbottema/simple-java-mail/issues/766)
 
 ### Per-email recipient rejection handling
 

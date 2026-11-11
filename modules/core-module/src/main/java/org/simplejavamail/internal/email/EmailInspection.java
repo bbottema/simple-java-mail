@@ -65,6 +65,11 @@ public final class EmailInspection {
 		return new Content(bytes, representation, fullyCaptured);
 	}
 
+    /** Shares storage already exclusively controlled by library-owned read-only content; the array must never be changed afterward. */
+    public static EmailSourceContent ownedContent(final byte[] bytes, final EmailSourceContent.Representation representation, final boolean fullyCaptured) {
+        return new Content(bytes, representation, fullyCaptured, false);
+    }
+
 	@NotNull
 	public static EmailSourcePart part(@NotNull final EmailSourceIdentity origin, @NotNull final String location,
 			@NotNull final List<? extends EmailSourceHeader> headers, @NotNull final List<? extends EmailSourceProperty> properties,
@@ -131,6 +136,13 @@ public final class EmailInspection {
 		if (problems == null) return Collections.emptyList();
 		final Snapshot snapshot = new Snapshot();
 		return snapshot.list(problems, snapshot::problem);
+	}
+
+	/** Detach source references while sharing already owned immutable occurrences. */
+	@NotNull
+	public static List<EmailSourceElement> elements(@NotNull final List<? extends EmailSourceElement> sources) {
+		final Snapshot snapshot = new Snapshot();
+		return snapshot.list(sources, snapshot::element);
 	}
 
 	/** Detach foreign read-contract implementations once; library-owned captured values need no duplicate storage. */
@@ -336,7 +348,11 @@ public final class EmailInspection {
 		private final boolean fullyCaptured;
 
 		private Content(final byte[] bytes, final Representation representation, final boolean fullyCaptured) {
-			this.bytes = Objects.requireNonNull(bytes, "bytes").clone();
+            this(bytes, representation, fullyCaptured, true);
+        }
+
+        private Content(final byte[] bytes, final Representation representation, final boolean fullyCaptured, final boolean copy) {
+			this.bytes = copy ? Objects.requireNonNull(bytes, "bytes").clone() : Objects.requireNonNull(bytes, "bytes");
 			this.representation = Objects.requireNonNull(representation, "representation");
 			this.fullyCaptured = fullyCaptured;
 		}

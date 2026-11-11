@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.converter.EmailConverter;
@@ -95,8 +96,10 @@ class SigningDependencyIntegrationTest {
         assertThat(parsed.getHeader("X-Trace")).containsExactly("first", "second");
 
         final Email restored = EmailConverter.mimeMessageToEmail(parsed);
-        assertThat(restored.getOriginalSmimeDetails().getSmimeSignatureValid()).isTrue();
+        assertThat(restored.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         assertThat(restored.getPlainText()).isEqualTo(text);
+        assertThat(restored.getAttachments()).hasSize(1);
+        assertThat(restored.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         assertThat(restored.getAttachments().stream()
                 .filter(attachment -> "note.txt".equals(attachment.getName()))
                 .findFirst().orElseThrow(() -> new AssertionError("Missing signed attachment"))

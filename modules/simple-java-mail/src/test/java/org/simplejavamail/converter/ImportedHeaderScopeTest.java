@@ -14,7 +14,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.ContentTransferEncoding;
-import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageParser;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -76,7 +76,7 @@ class ImportedHeaderScopeTest {
 			final Email email = MAIL.converter().fromEml(multipart(ROOT_CHOICES, "Return-Path: " + value + "\r\n"))
 					.withFetchAttachmentData(eager).toEmail();
 			assertRootFacts(email);
-			assertThat(email.getHeaders()).doesNotContainKey("Return-Path");
+			assertThat(email.getHeaders().get("Return-Path")).containsExactly("<bounces@shop.example>");
 		}
 	}
 
@@ -183,8 +183,8 @@ class ImportedHeaderScopeTest {
 		assertRootFacts(email);
 		assertThat(email.getPlainText()).isEqualTo("Invoice body");
 		assertThat(email.getAttachments()).extracting("name").contains("payload.bin");
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).isEqualTo(source);
+		assertThat(email.getInspection().getSmime().getSignatures()).extracting("status").containsOnly(SignatureVerification.VERIFIED);
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(source);
 	}
 
 	@Test

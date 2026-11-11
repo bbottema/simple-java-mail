@@ -22,6 +22,7 @@ import org.simplejavamail.api.mailer.MailFailureKind;
 import org.simplejavamail.converter.internal.mimemessage.InputInspection;
 import org.simplejavamail.converter.internal.mimemessage.MimeMessageProducerHelper;
 import org.simplejavamail.email.internal.InternalEmail;
+import org.simplejavamail.email.internal.ConfidentialContentState;
 import org.simplejavamail.email.internal.InternalEmailPopulatingBuilder;
 import org.simplejavamail.internal.email.EmailInspection;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
@@ -120,7 +121,8 @@ final class ArtifactConversions {
         }
 
         MimeMessage render(final Email input, final Session session, final EmailGovernance governance,
-                final Function<Email, EmailPopulatingBuilder> copy, final boolean writingContent, final FactorySmimeRuntime smimeRuntime) {
+                final Function<Email, EmailPopulatingBuilder> copy, final boolean writingContent, final FactorySmimeRuntime smimeRuntime,
+                final boolean conversionPermission) {
             try {
                 final Email effective = InternalEmail.requireInternalEmail(input).prepareForConversion(governance);
                 final InternalEmail internal = InternalEmail.requireInternalEmail(effective);
@@ -128,11 +130,11 @@ final class ArtifactConversions {
                 // Exact sources already own their authoritative artifact; never rebuild their represented resources.
                 final Email prepared = !internal.isExactEml() && (writingContent || protecting)
                         ? stageContent(effective, session, copy) : effective;
-                if (!protecting) return InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, true, smimeRuntime);
+                if (internal.isExactEml()) return InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, true, smimeRuntime);
                 // Metadata and caller-owned getters remain outside the narrowly recognized protection-failure boundary.
                 final MimeMessage base = InternalEmail.requireInternalEmail(prepared).renderMimeMessage(session, false, smimeRuntime);
                 try {
-                    return MimeMessageProducerHelper.applyMessageProtection(prepared, session, base, smimeRuntime);
+                    return MimeMessageProducerHelper.applyMessageProtection(prepared, session, base, smimeRuntime, conversionPermission);
                 } catch (final MailException failure) {
                     if (failure.getKind() == MailFailureKind.PREPARATION) {
                         InterruptedIoGuard.rethrowIfInterrupted(failure);
@@ -197,6 +199,11 @@ final class ArtifactConversions {
             if (effective.getEmailToForward() != null) {
                 ((InternalEmailPopulatingBuilder) builder).withForward(stageForward(effective.getEmailToForward(), session));
             }
+            ConfidentialContentState state = InternalEmail.requireInternalEmail(effective).getConfidentialContentState();
+            if (attachments.isEmpty()) state = state.without(ConfidentialContentState.Component.ATTACHMENTS);
+            if (images.isEmpty()) state = state.without(ConfidentialContentState.Component.EMBEDDED_IMAGES);
+            if (builder.getEmailToForward() == null) state = state.without(ConfidentialContentState.Component.FORWARDED_MESSAGE);
+            ((InternalEmailPopulatingBuilder) builder).retainConfidentialContentState(state);
             final Email prepared = builder.buildEmail();
             InternalEmail.requireInternalEmail(prepared).markAsDefaultsAndOverridesApplied();
             return prepared;

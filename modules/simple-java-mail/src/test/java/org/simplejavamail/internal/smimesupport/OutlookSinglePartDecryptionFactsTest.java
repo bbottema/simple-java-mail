@@ -8,16 +8,24 @@ import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.apache.poi.poifs.filesystem.DirectoryNode;
 import org.apache.poi.poifs.filesystem.Entry;
+import org.apache.poi.poifs.filesystem.EntryUtils;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
+import org.simplejavamail.api.converter.ConfiguredEmailConverter.OutlookConversion;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.EmailSourceContent;
+import org.simplejavamail.api.email.EmailSourceData;
+import org.simplejavamail.api.email.EmailSourcePart;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import testutil.ConfigLoaderTestHelper;
@@ -29,6 +37,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
@@ -39,75 +48,71 @@ import java.util.stream.Stream;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.NOT_SIGNED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.*;
 
 class OutlookSinglePartDecryptionFactsTest {
     private static final SimpleJavaMail MAIL = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 
-    @ParameterizedTest(name = "{0}, fluent={1}, merge={2}")
+    @ParameterizedTest(name = "binary={0}, fluent={1}")
     @MethodSource("singleParts")
-    void completedNativeDecryptionDoesNotDependOnAnAvailableReadableView(final boolean binary,
-            final boolean fluent, final boolean merge) throws Exception {
+    void completedNativeDecryptionExposesTheUsableSinglePart(final boolean binary, final boolean fluent) throws Exception {
         final byte[] ciphertext = encryptedPayload(singlePart(binary));
         final byte[] msg = outlookMessage(ciphertext);
         final Email fallback = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
-        final EmailPopulatingBuilder builder = fluent
-                ? MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder()
-                : EmailConverter.outlookMsgToEmailBuilderWithOutlookData(new ByteArrayInputStream(msg), loadPkcs12KeyStore()).getEmailBuilder();
-        if (!merge) builder.notMergingSingleSMIMESignedAttachment();
-        final Email email = builder.buildEmail();
-
-        assertFacts(email, NOT_SIGNED);
-        assertFallback(email, fallback, ciphertext);
-        final Email copied = MAIL.emailBuilder().copying(email).buildEmail();
-        assertFacts(copied, NOT_SIGNED);
-        assertFallback(copied, fallback, ciphertext);
-        final Email restored = serializedCopy(email);
-        assertFacts(restored, NOT_SIGNED);
-        assertFallback(restored, fallback, ciphertext);
+        final Email email = fluent
+                ? MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).withSmimeDecryption(loadPkcs12KeyStore()).toEmail()
+                : EmailConverter.outlookMsgToEmailBuilderWithOutlookData(new ByteArrayInputStream(msg), loadPkcs12KeyStore()).buildEmail();
+        for (Email value : java.util.List.of(email, MAIL.emailBuilder().copying(email).buildEmail(), serializedCopy(email))) {
+            assertOriginal(value, msg);
+            assertDecryptionObservation(value, DecryptionStatus.DECRYPTED);
+            if (binary) {
+                assertThat(value.getAttachments()).hasSize(1);
+                assertThat(value.getAttachments().get(0).readAllBytes()).containsExactly(0, 10, 1, 13, 2);
+                assertThat(value.getAttachments().get(0).getEmail()).isNull();
+                assertThat(value.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+                assertThat(value.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+                assertThat(value.getPlainText()).isEqualTo(fallback.getPlainText());
+            } else {
+                assertThat(value.getPlainText()).contains("Single clear MIME text that has no generated legacy attachment");
+                assertPlainProtection(value, SignatureStatus.UNSIGNED, EncryptionStatus.DECRYPTED);
+                assertThat(value.getAttachments()).isEmpty();
+            }
+            assertThat(value.getHTMLText()).isEqualTo(fallback.getHTMLText());
+        }
     }
 
     private static Stream<Arguments> singleParts() {
-        return Stream.of(false, true).flatMap(binary -> Stream.of(false, true).flatMap(fluent ->
-                Stream.of(false, true).map(merge -> Arguments.of(binary, fluent, merge))));
+        return Stream.of(false, true).flatMap(binary -> Stream.of(false, true).map(fluent -> Arguments.of(binary, fluent)));
     }
 
     @Test
-    void outerDecryptionDoesNotClaimThatUnopenedNestedCiphertextIsUnsigned() throws Exception {
+    void repeatedNativeEnvelopeLayersOpenToTheSameReadableSinglePart() throws Exception {
         final byte[] innerCiphertext = encryptedPayload(singlePart(false));
         final MimeBodyPart innerEnvelope = new MimeBodyPart();
         innerEnvelope.setDataHandler(new DataHandler(new ByteArrayDataSource(innerCiphertext,
                 "application/pkcs7-mime; smime-type=enveloped-data")));
         innerEnvelope.setHeader("Content-Type", "application/pkcs7-mime; smime-type=enveloped-data");
         innerEnvelope.setHeader("Content-Transfer-Encoding", "base64");
-        final byte[] ciphertext = encryptedPayload(innerEnvelope);
-        final byte[] msg = outlookMessage(ciphertext);
-        final Email fallback = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
+        final byte[] msg = outlookMessage(encryptedPayload(innerEnvelope));
         final Email email = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg))
                 .withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
-
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertFacts(email, UNKNOWN);
-        assertFallback(email, fallback, ciphertext);
-        assertFacts(MAIL.emailBuilder().copying(email).buildEmail(), UNKNOWN);
-        assertFacts(serializedCopy(email), UNKNOWN);
+        for (Email value : java.util.List.of(email, MAIL.emailBuilder().copying(email).buildEmail(), serializedCopy(email))) {
+            assertPlainProtection(value, SignatureStatus.UNSIGNED, EncryptionStatus.DECRYPTED);
+            assertThat(value.getPlainText()).contains("Single clear MIME text");
+            assertThat(value.getInspection().getSmime().getDecryptions()).hasSize(2)
+                    .allSatisfy(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+            assertOriginal(value, msg);
+        }
     }
 
     @Test
-    void noKeyRetainsItsExistingMissingKeyResultAndWrongPasswordsStillThrow() throws Exception {
+    void noKeyRetainsOriginalNativeInputAndWrongPasswordsStillThrow() throws Exception {
         final byte[] ciphertext = encryptedPayload(singlePart(false));
         final byte[] msg = outlookMessage(ciphertext);
         final Email noKey = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
-        assertThat(noKey.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(KEY_MISSING);
-        assertThat(noKey.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-        assertThat(noKey.getAttachments().get(0).readAllBytes()).containsExactly(ciphertext);
+        assertUnopenedFamily(noKey, DecryptionStatus.UNAVAILABLE);
+        assertOriginal(noKey, msg);
         final Pkcs12Config keys = loadPkcs12KeyStore();
         final Pkcs12Config wrongPassword = Pkcs12Config.builder().pkcs12Store(keys.getPkcs12StoreData())
                 .storePassword("wrong password").keyAlias(keys.getKeyAlias()).keyPassword(keys.getKeyPassword()).build();
@@ -115,8 +120,59 @@ class OutlookSinglePartDecryptionFactsTest {
                 .withSmimeDecryption(wrongPassword).toEmail()).isInstanceOf(SmimeException.class);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = { false, true })
+    void embeddedNativeBodyKeepsItsCapturedEnvelopeWithoutInventingAnOriginalMsg(final boolean useKey) throws Exception {
+        final byte[] ciphertext = encryptedPayload(singlePart(false));
+        final byte[] parentInput = withEmbeddedMessage(outlookMessage(ciphertext));
+        final OutlookConversion conversion = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(parentInput));
+        final Email parent = (useKey ? conversion.withSmimeDecryption(loadPkcs12KeyStore()) : conversion).toEmail();
+        assertThat(parent.getPlainText()).isEqualTo("Native parent body");
+        assertThat(parent.getInspection().getSmime().getDecryptions()).isEmpty();
+        assertOriginal(parent, parentInput);
+        assertThat(parent.getAttachments()).hasSize(1);
+        final Email child = parent.getAttachments().get(0).getEmail();
+        assertThat(child).isNotNull();
+        for (final Email value : java.util.List.of(child, MAIL.emailBuilder().copying(child).buildEmail(), serializedCopy(child))) {
+            assertThat(value.getSourceData().getFormat()).isEqualTo(EmailSourceData.Format.OUTLOOK_MSG);
+            assertThat(value.getInspection().getOriginalMessage()).isNull();
+            assertThat(value.getAttachments()).isEmpty();
+            assertDecryptionObservation(value, useKey ? DecryptionStatus.DECRYPTED : DecryptionStatus.UNAVAILABLE);
+            assertThat(value.getPlainText()).contains(useKey ? "Single clear MIME text" : "Native child fallback");
+            final EmailSourcePart component = value.getSourceData().getParts().stream()
+                    .filter(part -> part.getProperties().stream().anyMatch(property -> "nativeAttachmentIndex".equals(property.getName())
+                            && "0".equals(property.getValue())))
+                    .findFirst().orElseThrow();
+            final EmailSourceContent retained = component.getContent();
+            assertThat(retained).isNotNull();
+            assertThat(retained.getRepresentation()).isEqualTo(EmailSourceContent.Representation.READER_BYTES);
+            assertThat(retained.isFullyCaptured()).isTrue();
+            assertThat(retained.readAllBytes()).containsExactly(ciphertext);
+        }
+    }
+
+    private static byte[] withEmbeddedMessage(final byte[] childInput) throws Exception {
+        try (POIFSFileSystem parent = new POIFSFileSystem();
+                POIFSFileSystem child = new POIFSFileSystem(new ByteArrayInputStream(childInput));
+                ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            final DirectoryNode root = parent.getRoot();
+            root.createDocument("__substg1.0_001A001F", nativeString("IPM.Note"));
+            root.createDocument("__substg1.0_1000001F", nativeString("Native parent body"));
+            final DirectoryNode attachment = (DirectoryNode) root.createDirectory("__attach_version1.0_#00000000");
+            final DirectoryNode embedded = (DirectoryNode) attachment.createDirectory("__substg1.0_3701000D");
+            EntryUtils.copyNodes(child.getRoot(), embedded);
+            embedded.createOrUpdateDocument("__substg1.0_1000001F", nativeString("Native child fallback"));
+            parent.writeFilesystem(output);
+            return output.toByteArray();
+        }
+    }
+
+    private static ByteArrayInputStream nativeString(final String value) {
+        return new ByteArrayInputStream(value.getBytes(StandardCharsets.UTF_16LE));
+    }
+
     @Test
-    void decryptingASingleIndependentFileDoesNotPromoteItsPlainParent() throws Exception {
+    void decryptingOneIndependentFileKeepsThePlainParentAndExposesItsClearPayload() throws Exception {
         final byte[] ciphertext = encryptedPayload(singlePart(false));
         final MimeBodyPart body = new MimeBodyPart();
         body.setText("The parent remains plain", "UTF-8");
@@ -130,37 +186,15 @@ class OutlookSinglePartDecryptionFactsTest {
         final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
         message.setContent(content);
         message.saveChanges();
-
         final Email email = MAIL.converter().fromMimeMessage(message).withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
-
-        assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(PLAIN);
-        assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(NOT_ENCRYPTED);
         assertThat(email.getPlainText()).isEqualTo("The parent remains plain");
-        assertThat(email.getDecryptedAttachments()).singleElement()
-                .satisfies(resource -> assertThat(resource.readAllBytes()).containsExactly(ciphertext));
-    }
-
-    private static void assertFacts(final Email email, final OriginalSmimeDetails.VerificationStatus verification) {
-        final OriginalSmimeDetails details = email.getOriginalSmimeDetails();
-        assertThat(details.getSmimeMode()).isEqualTo(ENCRYPTED);
-        assertThat(details.getDecryptionStatus()).isEqualTo(DECRYPTED);
-        assertThat(details.getVerificationStatus()).isEqualTo(verification);
-        assertThat(details.getSmimeSignatureValid()).isNull();
-        assertThat(details.getOriginalProtectedMessage()).isNull();
-    }
-
-    private static void assertFallback(final Email email, final Email withoutKey, final byte[] ciphertext) {
-        assertThat(email.getPlainText()).isEqualTo(withoutKey.getPlainText());
-        assertThat(email.getHTMLText()).isEqualTo(withoutKey.getHTMLText());
-        assertThat(email.getSmimeSignedEmail()).isNull();
-        assertThat(email.getAttachments()).hasSize(1);
-        assertThat(email.getDecryptedAttachments()).hasSize(1);
-        final AttachmentResource original = email.getAttachments().get(0);
-        final AttachmentResource retained = email.getDecryptedAttachments().get(0);
-        assertThat(original.getName()).isEqualTo(withoutKey.getAttachments().get(0).getName());
-        assertThat(retained.getName()).isEqualTo(original.getName());
-        assertThat(original.readAllBytes()).containsExactly(ciphertext);
-        assertThat(retained.readAllBytes()).containsExactly(ciphertext);
+        assertPlainProtection(email, SignatureStatus.UNSIGNED, EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(email.getAttachments()).singleElement().satisfies(resource -> {
+            assertThat(resource.readAllData()).contains("Single clear MIME text");
+            assertThat(resource.getEmail()).isNull();
+        });
+        assertThat(email.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(ciphertext);
+        assertThat(email.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
     }
 
     private static MimeBodyPart singlePart(final boolean binary) throws Exception {

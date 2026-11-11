@@ -70,9 +70,7 @@ class PreparationFailureContractTest {
             // Shared scopes have no follow-up email, so their setup is immediately followed by cleanup without MAIL/RCPT/DATA.
             finishConnection(peer);
         }); Mailer mailer = builder(server, retry, outcomes).buildMailer()) {
-            final Email mismatch = mail.emailBuilder().copying(email(true))
-                    .withHeader("To", "additional@example.test").buildEmail();
-            final Throwable failure = sendFailure(mailer, mismatch, execution);
+            final Throwable failure = sendFailure(mailer, emailWithNewsgroupAndRecipientDsn(), execution);
             final MailSendOutcome outcome = outcomes.get(0);
             if (execution.equals("sync") || execution.equals("async")) {
                 assertThat(mailer.sync().sendMail(email(false)).getStatus()).isEqualTo(MailSubmissionStatus.ACCEPTED);
@@ -147,8 +145,7 @@ class PreparationFailureContractTest {
             peer.greet("250-localhost\r\n250 DSN");
             finishConnection(peer);
         }); Mailer mailer = builder(server, false, new CopyOnWriteArrayList<>()).buildMailer()) {
-            earlierFailure = (RuntimeException) sendFailure(mailer, mail.emailBuilder().copying(email(true))
-                    .withHeader("To", "additional@example.test").buildEmail(), "sync");
+            earlierFailure = (RuntimeException) sendFailure(mailer, emailWithNewsgroupAndRecipientDsn(), "sync");
             assertThat(((MailException) earlierFailure).getKind()).isEqualTo(MailFailureKind.PREPARATION);
         }
         final ProviderState state = new ProviderState(earlierFailure);
@@ -174,7 +171,7 @@ class PreparationFailureContractTest {
         }); Mailer fallback = mail.mailerBuilder().withSMTPServer("localhost", 1)
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer();
                 Mailer mailer = builder(server, false, outcomes).withFailoverMailer(fallback, FailoverPolicy.builder().build()).buildMailer()) {
-            final Email mismatch = mail.emailBuilder().copying(email(true)).withHeader("To", "additional@example.test").buildEmail();
+            final Email mismatch = emailWithNewsgroupAndRecipientDsn();
             mailer.withOpenConnection(sender -> {
                 final Throwable failure = catchThrowable(() -> sender.sendMail(mismatch));
                 assertThat(((MailException) failure).getKind()).isEqualTo(MailFailureKind.PREPARATION);
@@ -225,6 +222,11 @@ class PreparationFailureContractTest {
         return mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(recipient)
                 .fixingMessageId("<preparation@example.test>").fixingSentDate(Instant.EPOCH)
                 .withPlainText("Example").buildEmail();
+    }
+
+    private Email emailWithNewsgroupAndRecipientDsn() {
+        // Jakarta Mail exposes the Newsgroups destination alongside the single SMTP mailbox in getAllRecipients().
+        return mail.emailBuilder().copying(email(true)).withHeader("Newsgroups", "example.discussion").buildEmail();
     }
 
     private static Throwable sendFailure(final Mailer mailer, final Email email, final String execution) {

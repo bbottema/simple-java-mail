@@ -6,7 +6,8 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
@@ -119,13 +120,13 @@ class SmimeKeyCacheConcurrencyTest {
                     assertThat(start.await(10, TimeUnit.SECONDS)).isTrue();
                     if (signing) {
                         final Email verified = EmailConverter.mimeMessageToEmail(EmailConverter.emailToMimeMessage(outgoing));
-                        assertThat(verified.getOriginalSmimeDetails().getVerificationStatus())
-                                .isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+                        assertThat(verified.getInspection().getPlainText().getSignatureStatus())
+                                .isEqualTo(SignatureStatus.VERIFIED);
                         assertThat(verified.getPlainText()).contains("Concurrent signed body");
                     } else {
                         final Email decrypted = EmailConverter.emlToEmail(new ByteArrayInputStream(encryptedBytes.toByteArray()), keys);
-                        assertThat(decrypted.getOriginalSmimeDetails().getDecryptionStatus())
-                                .isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+                        assertThat(decrypted.getInspection().getPlainText().getEncryptionStatus())
+                                .isEqualTo(EncryptionStatus.DECRYPTED);
                         assertThat(decrypted.getPlainText()).contains("Concurrent protected body");
                     }
                     return null;

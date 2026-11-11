@@ -72,27 +72,20 @@ public class EmailStartingBuilderImplTest {
 	}
 
 	@Test
-	public void copyingMergedSmimeResourcesPreservesOccurrencesWithoutReadingContent() throws Exception {
+	public void copyingSelectedResourcesPreservesOccurrencesWithoutReadingContent() throws Exception {
 		final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
 		final DataSource source = mock(DataSource.class);
 		when(source.getInputStream()).thenThrow(new IOException("Borrowed content must not be consumed while copying"));
 		final AttachmentResource resource = AttachmentResource.builder().withName("shared.txt").withDataSource(source).build();
-		final InternalEmailPopulatingBuilder signed = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
-		signed.withAttachments(List.of(resource)).withEmbeddedImages(List.of(resource)).withPlainText("signed body");
-		signed.withDecryptedAttachments(List.of(resource));
-		final InternalEmailPopulatingBuilder outer = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
-		outer.withAttachments(List.of(resource, resource)).withEmbeddedImages(List.of(resource, resource));
-		outer.withDecryptedAttachments(List.of(resource, resource));
-		outer.withSmimeSignedEmail(signed.buildEmail());
-		final Email original = outer.buildEmail();
+		final Email original = mail.emailBuilder().startingBlank().withPlainText("selected body")
+				.withAttachments(List.of(resource, resource, resource)).withEmbeddedImages(List.of(resource, resource, resource)).buildEmail();
 		Email copy = original;
 
 		for (int i = 0; i < 3; i++) {
 			copy = mail.emailBuilder().copying(copy).buildEmail();
 			assertThat(copy.getAttachments()).containsExactly(resource, resource, resource);
 			assertThat(copy.getEmbeddedImages()).containsExactly(resource, resource, resource);
-			assertThat(copy.getDecryptedAttachments()).containsExactly(resource, resource, resource);
-			assertThat(copy.getPlainText()).isEqualTo("signed body");
+			assertThat(copy.getPlainText()).isEqualTo("selected body");
 		}
 		assertThat(original.getAttachments()).containsExactly(resource, resource, resource);
 		verify(source, never()).getInputStream();
@@ -127,8 +120,6 @@ public class EmailStartingBuilderImplTest {
 				.from("it's a me! <mario@moo.com>")
 				.fixingMessageId("id123")
 				.fixingSentDate(new Date())
-				.notMergingSingleSMIMESignedAttachment()
-				.notMergingSingleSMIMESignedAttachment()
 				// auto resolution for embedded images
 				.withImageResolutionConfig(ImageResolutionConfig.builder().withEmbeddedImageBaseDir("moo").withEmbeddedImageBaseUrl("http://moo.moomoo.shmoo").withEmbeddedImageBaseClassPath("moo").withEmbeddedImageAutoResolutionForClassPathResources(true).withEmbeddedImageAutoResolutionForURLs(true).withEmbeddedImageAutoResolutionForFiles(true).allowingEmbeddedImageOutsideBaseClassPath(true).allowingEmbeddedImageOutsideBaseDir(true).allowingEmbeddedImageOutsideBaseUrl(true).embeddedImageAutoResolutionMustBeSuccesful(true).build())
 				.buildEmail();

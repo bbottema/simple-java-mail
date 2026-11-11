@@ -44,9 +44,11 @@ import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.CalendarMethod;
 import org.simplejavamail.api.email.ContentTransferEncoding;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.OpenPgpMode;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.converter.config.ImportLimitsConfig;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
@@ -62,7 +64,6 @@ import org.simplejavamail.internal.openpgpsupport.OpenPgpSupport;
 import org.simplejavamail.internal.util.FinalizedMimeMessage;
 import org.simplejavamail.mailer.internal.SessionBasedEmailToMimeMessageConverter;
 import testutil.ConfigLoaderTestHelper;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -136,12 +137,13 @@ class OpenPgpMimeTest {
                 .isEqualToIgnoringCase("application/pgp-signature");
         assertThat(firstWrite).containsExactly(secondWrite);
         assertThat(parsed.getPlainText()).isEqualTo("Signed body");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignerKeyId()).isNotBlank();
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignerFingerprint()).hasSize(40);
-        assertThat(parsed.getOriginalOpenPgpDetails().getHashAlgorithm()).isEqualTo("SHA256");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(firstWrite);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures().get(0).getSignerKeyId()).isNotBlank();
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures().get(0).getSigningKeyFingerprint()).hasSize(40);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures().get(0).getHashAlgorithm()).isEqualTo("SHA256");
+        assertThat(parsed.getInspection().getOriginalMessage()).isNull();
+        final Email rawImport = SimpleJavaMail.fromDefaults().converter().fromEml(firstWrite).withOpenPgpReceiveConfig(receiving(firstKey)).toEmail();
+        assertThat(rawImport.getInspection().getOriginalMessage().readAllBytes()).containsExactly(firstWrite);
     }
 
     @Test
@@ -178,8 +180,8 @@ class OpenPgpMimeTest {
 
         for (final Email result : new Email[] {fromMime, fromEml}) {
             assertThat(result.getPlainText()).isEqualTo("Fluent protected body");
-            assertThat(result.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-            assertThat(result.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+            assertThat(result.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+            assertThat(result.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
         }
         assertThat(mail.converter().fromMimeMessage(protectedMessage).toEmlBytes()).containsExactly(originalBytes);
     }
@@ -208,9 +210,8 @@ class OpenPgpMimeTest {
     private static void assertRehearsedProtection(final MailRehearsal rehearsal, final TestKey expectedKey) {
         final Email parsed = EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(rehearsal.getEmlBytes()), receiving(expectedKey));
         assertThat(parsed.getPlainText()).isEqualTo("template-protected content");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED_ENCRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
     }
 
 	@Test
@@ -230,8 +231,11 @@ class OpenPgpMimeTest {
 		assertThat(opaque.getDeliveryStatusReport()).isNull();
 		final Email opened = EmailConverter.mimeMessageToEmail(encrypted, null, receiving(firstKey));
 		assertThat(opened.getDeliveryStatusReport().getEnvelopeId()).isEqualTo("protected-attempt");
-		assertThat(opened.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-		assertThat(opened.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
+		assertThat(opened.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(opened.getInspection().getOriginalMessage()).isNull();
+		final Email rawImport = SimpleJavaMail.fromDefaults().converter().fromEml(protectedBytes)
+				.withOpenPgpReceiveConfig(receiving(firstKey)).toEmail();
+		assertThat(rawImport.getInspection().getOriginalMessage().readAllBytes()).containsExactly(protectedBytes);
 	}
 
 	@Test
@@ -261,7 +265,7 @@ class OpenPgpMimeTest {
 		assertThat(parsed.getEmbeddedImages()).extracting(AttachmentResource::getName).containsExactly("logo");
 		assertThat(parsed.getEmbeddedImages().get(0).readAllBytes())
 				.containsExactly(embeddedBytes);
-		assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+		assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
 	}
 
     @Test
@@ -278,7 +282,7 @@ class OpenPgpMimeTest {
                 new ByteArrayInputStream(tampered), receiving(firstKey));
 
         assertThat(parsed.getPlainText()).isEqualTo("tampered body");
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
     }
 
     @Test
@@ -286,11 +290,10 @@ class OpenPgpMimeTest {
         final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
                 basicEmail("readable").signWithOpenPgp(signing(firstKey)).buildEmail());
 
-        final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null,
-                OpenPgpReceiveConfig.builder().build());
+        final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, OpenPgpReceiveConfig.builder().build());
 
         assertThat(parsed.getPlainText()).isEqualTo("readable");
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.KEY_MISSING);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNVERIFIED);
     }
 
     @Test
@@ -312,11 +315,10 @@ class OpenPgpMimeTest {
         assertThat(parsed.getAttachments()).extracting(AttachmentResource::getName).contains("notes.txt");
         assertThat(readInputStreamToBytes(parsed.getAttachments().get(0).getDataSource().getInputStream()))
                 .containsExactly("attachment".getBytes(StandardCharsets.UTF_8));
-        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.ENCRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getRecipientKeyIds()).hasSize(2);
-        assertThat(parsed.getOriginalOpenPgpDetails().getEncryptionAlgorithm()).isEqualTo("AES256");
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.NOT_PRESENT);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getRecipientKeyIds()).hasSize(2);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getEncryptionAlgorithm()).isEqualTo("AES256");
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
     }
 
     @Test
@@ -332,9 +334,8 @@ class OpenPgpMimeTest {
 
         assertThat(parsed.getPlainText()).isEqualTo("signed and encrypted");
         assertThat(parsed.getHTMLText()).isEqualTo("<strong>signed and encrypted</strong>");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED_ENCRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
     }
 
 	@Test
@@ -355,32 +356,27 @@ class OpenPgpMimeTest {
 				.buildEmail()));
 		final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, receiving(firstKey));
 
-		assertThat(parsed.getOriginalOpenPgpDetails().getHashAlgorithm()).isEqualTo("SHA512");
-		assertThat(parsed.getOriginalOpenPgpDetails().getEncryptionAlgorithm()).isEqualTo("AES128");
+		assertThat(parsed.getInspection().getOpenPgp().getSignatures().get(0).getHashAlgorithm()).isEqualTo("SHA512");
+		assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getEncryptionAlgorithm()).isEqualTo("AES128");
 	}
 
     @Test
-    void stopsBeforeProcessingAThirdOpenPgpProtectionLayer() throws Exception {
-        final Email source = basicEmail("bounded nesting")
-                .signWithOpenPgp(signing(firstKey))
-                .buildEmail();
+    void repeatedProtectionLayersUseTheSharedConfiguredTraversalInsteadOfAPrivateTwoLayerCeiling() throws Exception {
+        final Email source = basicEmail("bounded nesting").signWithOpenPgp(signing(firstKey)).buildEmail();
         final MimeMessage signed = EmailConverter.emailToMimeMessage(source);
         final OpenPgpSupport support = new OpenPgpSupport();
-        final MimeMessage encryptedOnce = support.encryptMessage(
-                signed.getSession(), source, signed, encryption(firstKey));
-        final MimeMessage encryptedTwice = support.encryptMessage(
-                signed.getSession(), source, encryptedOnce, encryption(firstKey));
-        final byte[] outerProtectedBytes = EmailConverter.mimeMessageToEMLByteArray(encryptedTwice);
-
-        final Email parsed = EmailConverter.mimeMessageToEmail(encryptedTwice, null, receiving(firstKey));
-
-        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED_ENCRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getFailureReason())
-                .isEqualTo("OpenPGP/MIME nesting limit exceeded");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage())
-                .containsExactly(outerProtectedBytes);
+        final MimeMessage once = support.encryptMessage(signed.getSession(), source, signed, encryption(firstKey));
+        final byte[] bytes = EmailConverter.mimeMessageToEMLByteArray(support.encryptMessage(signed.getSession(), source, once, encryption(firstKey)));
+        final Email complete = SimpleJavaMail.fromDefaults().converter().fromEml(bytes).withOpenPgpReceiveConfig(receiving(firstKey)).toEmail();
+        assertThat(complete.getPlainText()).isEqualTo("bounded nesting");
+        assertThat(complete.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(complete.getInspection().getOpenPgp().getDecryptions()).hasSize(2)
+                .allSatisfy(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+        final Email bounded = SimpleJavaMail.fromDefaults().converter().fromEml(bytes).withOpenPgpReceiveConfig(receiving(firstKey))
+                .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumNestingDepth(2).build()).toEmail();
+        assertThat(bounded.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED);
+        assertThat(bounded.getInspection().getPlainText().getSignatureStatus()).isNotEqualTo(SignatureStatus.VERIFIED);
+        assertThat(bounded.getInspection().getOriginalMessage().readAllBytes()).containsExactly(bytes);
     }
 
     @Test
@@ -389,30 +385,29 @@ class OpenPgpMimeTest {
                 basicEmail("secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
         final byte[] protectedBytes = EmailConverter.mimeMessageToEMLByteArray(protectedMessage);
 
-        final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null,
-                OpenPgpReceiveConfig.builder().build());
+        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(protectedBytes)
+                .withOpenPgpReceiveConfig(OpenPgpReceiveConfig.builder().build()).toEmail();
 
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus().name()).isEqualTo("UNKNOWN");
+        assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(protectedBytes);
     }
 
     @Test
-    void encryptedNestingLimitDoesNotClaimAnAbsentInnerSignature() throws Exception {
+    void aConfiguredNestingStopDoesNotInventAFailedDecryptionOrAbsentInnerSignature() throws Exception {
         final Email source = basicEmail("bounded encrypted layers").encryptWithOpenPgp(encryption(firstKey)).buildEmail();
         final MimeMessage encrypted = EmailConverter.emailToMimeMessage(source);
         final OpenPgpSupport support = new OpenPgpSupport();
-        final MimeMessage encryptedTwice = support.encryptMessage(encrypted.getSession(), source, encrypted, encryption(firstKey));
-        final MimeMessage encryptedThreeTimes = support.encryptMessage(encrypted.getSession(), source, encryptedTwice, encryption(firstKey));
-        final byte[] original = EmailConverter.mimeMessageToEMLByteArray(encryptedThreeTimes);
-
-        final Email parsed = EmailConverter.mimeMessageToEmail(encryptedThreeTimes, null, receiving(firstKey));
-
-        assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.ENCRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-        assertThat(parsed.getOriginalOpenPgpDetails().getFailureReason()).isEqualTo("OpenPGP/MIME nesting limit exceeded");
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(original);
+        final MimeMessage twice = support.encryptMessage(encrypted.getSession(), source, encrypted, encryption(firstKey));
+        final byte[] original = EmailConverter.mimeMessageToEMLByteArray(support.encryptMessage(encrypted.getSession(), source, twice, encryption(firstKey)));
+        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(original).withOpenPgpReceiveConfig(receiving(firstKey))
+                .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumNestingDepth(2).build()).toEmail();
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).extracting(attempt -> attempt.getStatus())
+                .containsExactly(DecryptionStatus.DECRYPTED, DecryptionStatus.DECRYPTED, DecryptionStatus.DEFERRED);
+        assertThat(parsed.getProblems()).noneMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED);
+        assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(original);
     }
 
     @Test
@@ -427,14 +422,14 @@ class OpenPgpMimeTest {
                 .addDecryptionKeyRing(secondKey.secretRing, PASSPHRASE)
                 .addDecryptionKeyRing(firstKey.secretRing, "wrong-passphrase").build();
 
-        for (OpenPgpReceiveConfig config : new OpenPgpReceiveConfig[]{missingInnerKey, wrongInnerPassphrase}) {
-            final Email parsed = EmailConverter.mimeMessageToEmail(outer, null, config);
-            assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.ENCRYPTED);
-            assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-            assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus())
-                    .isEqualTo(config == missingInnerKey ? DecryptionStatus.KEY_MISSING : DecryptionStatus.FAILED);
-            assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(original);
-        }
+        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(original).withOpenPgpReceiveConfig(missingInnerKey).toEmail();
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).extracting(attempt -> attempt.getStatus())
+                .containsExactly(DecryptionStatus.DECRYPTED, DecryptionStatus.UNAVAILABLE);
+        assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(original);
+        assertThatThrownBy(() -> SimpleJavaMail.fromDefaults().converter().fromEml(original)
+                .withOpenPgpReceiveConfig(wrongInnerPassphrase).toEmail()).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("could not be unlocked");
     }
 
     @Test
@@ -446,10 +441,9 @@ class OpenPgpMimeTest {
                     + (includeCiphertextPart ? "--broken\r\nContent-Type: application/octet-stream\r\n\r\nnot OpenPGP ciphertext\r\n" : "")
                     + "--broken--\r\n").getBytes(StandardCharsets.UTF_8);
             final Email parsed = EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(original), receiving(firstKey));
-            assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.ENCRYPTED);
-            assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-            assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-            assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(original);
+            assertThat(parsed.getInspection().getPlainText().getSignatureStatus().name()).isEqualTo("UNKNOWN");
+            assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.FAILED);
+            assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(original);
         }
     }
 
@@ -459,15 +453,12 @@ class OpenPgpMimeTest {
         org.mockito.Mockito.when(unreadable.isMimeType(org.mockito.ArgumentMatchers.anyString()))
                 .thenThrow(new jakarta.mail.MessagingException("MIME classification unavailable"));
 
-        final org.simplejavamail.api.internal.openpgpsupport.model.OpenPgpParseResult result = new OpenPgpSupport()
-                .processIncoming(Session.getInstance(new Properties()), unreadable, null);
-
+        final var result = new OpenPgpSupport().openIncomingLayer(Session.getInstance(new Properties()), unreadable, null);
         assertThat(result.isRecognized()).isFalse();
         assertThat(result.getEffectiveMimeMessage()).isSameAs(unreadable);
-        assertThat(result.getDetails().getOpenPgpMode().name()).isEqualTo("UNKNOWN");
-        assertThat(result.getDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-        assertThat(result.getDetails().getDecryptionStatus().name()).isEqualTo("UNKNOWN");
-        assertThat(result.getDetails().getFailureReason()).isEqualTo("Unable to inspect OpenPGP/MIME structure");
+        assertThat(result.isInspectionComplete()).isFalse();
+        assertThat(result.getSignatures()).isEmpty();
+        assertThat(result.getDecryptions()).isEmpty();
     }
 
 	@Test
@@ -480,14 +471,14 @@ class OpenPgpMimeTest {
 		final Email parsed = EmailConverter.emlToEmailWithOpenPgp(
 				new ByteArrayInputStream(tamperedBytes), receiving(firstKey));
 
-		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-		assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
+		assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.FAILED);
+		assertThat(parsed.getInspection().getPlainText().getSignatureStatus().name()).isEqualTo("UNKNOWN");
 		assertThat(parsed.getPlainText()).isNotEqualTo("untampered secret");
-		assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(tamperedBytes);
+		assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(tamperedBytes);
     }
 
 	@Test
-	void matchingSecretKeyWithWrongPassphraseIsADecryptionFailure() throws Exception {
+	void matchingSecretKeyWithWrongPassphraseIsAnOperationConfigurationFailure() throws Exception {
 		final MimeMessage protectedMessage = EmailConverter.emailToMimeMessage(
 				basicEmail("secret").encryptWithOpenPgp(encryption(firstKey)).buildEmail());
 		final byte[] protectedBytes = EmailConverter.mimeMessageToEMLByteArray(protectedMessage);
@@ -495,12 +486,9 @@ class OpenPgpMimeTest {
 				.addDecryptionKeyRing(firstKey.secretRing, "wrong-passphrase")
 				.build();
 
-		final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, wrongPassphrase);
-
-		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-		assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-		assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
-	}
+        assertThatThrownBy(() -> EmailConverter.mimeMessageToEmail(protectedMessage, null, wrongPassphrase))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("could not be unlocked");
+    }
 
 	@Test
 	void passphraseProviderOverridesTheKeyRingFallbackWithoutConsumingItsArray() throws Exception {
@@ -519,7 +507,7 @@ class OpenPgpMimeTest {
 		final Email parsed = EmailConverter.mimeMessageToEmail(protectedMessage, null, receiveConfig);
 
 		assertThat(parsed.getPlainText()).isEqualTo("provider secret");
-		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
 		assertThat(requestedKeyId).hasValue(firstKey.keyId);
 		assertThat(providedPassphrase).containsExactly(PASSPHRASE);
 	}
@@ -636,7 +624,7 @@ class OpenPgpMimeTest {
 		final Email parsed = EmailConverter.mimeMessageToEmail(encrypted, null, receiveConfig);
 
 		assertThat(parsed.getPlainText()).isEqualTo("fallback secret");
-		assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(parsed.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
 		assertThat(requests.get()).isGreaterThan(0);
 	}
 
@@ -670,8 +658,8 @@ class OpenPgpMimeTest {
 		final Email parsed = EmailConverter.mimeMessageToEmail(
 				protectedMessage, null, receiving(keyWithSigningSubkey));
 
-		assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-		assertThat(parsed.getOriginalOpenPgpDetails().getSignerKeyId())
+		assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		assertThat(parsed.getInspection().getOpenPgp().getSignatures().get(0).getSignerKeyId())
 				.isEqualTo(String.format(Locale.ROOT, "%016X", keyWithSigningSubkey.keyId));
 	}
 
@@ -739,9 +727,9 @@ class OpenPgpMimeTest {
 			for (int messageIndex = 0; messageIndex < receivedMessages.size(); messageIndex++) {
 				final Email received = receivedMessages.get(messageIndex).get(30, TimeUnit.SECONDS);
 				assertThat(received.getPlainText()).isEqualTo("concurrent message " + messageIndex);
-				assertThat(received.getOriginalOpenPgpDetails().getSignatureStatus())
-						.isEqualTo(SignatureStatus.VALID);
-				assertThat(received.getOriginalOpenPgpDetails().getDecryptionStatus())
+				assertThat(received.getInspection().getPlainText().getSignatureStatus())
+						.isEqualTo(SignatureStatus.VERIFIED);
+				assertThat(received.getInspection().getOpenPgp().getDecryptions().get(0).getStatus())
 						.isEqualTo(DecryptionStatus.DECRYPTED);
 			}
 		} finally {
@@ -759,14 +747,12 @@ class OpenPgpMimeTest {
 				ModuleLoader.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
 			moduleLoader.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
 
-			final Email parsed = EmailConverter.mimeMessageToEmail(
-					protectedMessage, null, (OpenPgpReceiveConfig) null);
+			final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(protectedBytes).toEmail();
 
 			assertThat(parsed.getPlainText()).isEqualTo("readable without module");
-			assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.SIGNED);
-			assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-			assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.NOT_ENCRYPTED);
-			assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
+			assertThat(parsed.getInspection().getPlainText().getSignatureStatus().name()).isEqualTo("UNKNOWN");
+			assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).isEmpty();
+			assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(protectedBytes);
 		}
 	}
 
@@ -780,14 +766,12 @@ class OpenPgpMimeTest {
 				ModuleLoader.class, org.mockito.Mockito.CALLS_REAL_METHODS)) {
 			moduleLoader.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
 
-			final Email parsed = EmailConverter.mimeMessageToEmail(
-					protectedMessage, null, (OpenPgpReceiveConfig) null);
-
-			assertThat(parsed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OpenPgpMode.ENCRYPTED);
-			assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus().name()).isEqualTo("UNKNOWN");
-			assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus().name()).isEqualTo("UNKNOWN");
-			assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
-			assertThat(parsed.getAttachments()).extracting(AttachmentResource::getName).contains("encrypted.asc");
+			final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(protectedBytes).toEmail();
+			assertThat(parsed.getInspection().getPlainText().getSignatureStatus().name()).isEqualTo("UNKNOWN");
+			assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                    .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
+			assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(protectedBytes);
+			assertThat(parsed.getPlainText()).isNull();
 		}
 	}
 
@@ -818,7 +802,7 @@ class OpenPgpMimeTest {
         assertThat(prepared.getDeliveryEnvelope().getEnvelopeFrom()).isEqualTo("bounce@example.com");
         assertThat(prepared.getDeliveryEnvelope().getDeliveryStatusNotification().getReturnOption())
                 .isEqualTo(HEADERS_ONLY);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         testutil.DkimSubmissionAssertions.assertPreserved(prepared, mailer.getSession(), dkimPair.getPublic());
         mailer.close();
     }
@@ -882,7 +866,7 @@ class OpenPgpMimeTest {
         assertThat(restored.toString()).doesNotContain("test-passphrase");
         final Email verified = EmailConverter.mimeMessageToEmail(EmailConverter.emailToMimeMessage(restored), null, receiving(firstKey));
         assertThat(verified.getPlainText()).isEqualTo("body");
-        assertThat(verified.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+        assertThat(verified.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
     }
 
     @Test
@@ -895,9 +879,9 @@ class OpenPgpMimeTest {
         assertThat(restored.getOpenPgpSigningConfig()).isNull();
         final Email decrypted = EmailConverter.mimeMessageToEmail(EmailConverter.emailToMimeMessage(restored), null, receiving(secondKey));
         assertThat(decrypted.getPlainText()).isEqualTo("encrypted snapshot");
-        assertThat(decrypted.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(decrypted.getOriginalOpenPgpDetails().getRecipientKeyIds()).hasSize(2);
-        assertThat(decrypted.getOriginalOpenPgpDetails().getEncryptionAlgorithm()).isEqualTo("AES192");
+        assertThat(decrypted.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThat(decrypted.getInspection().getOpenPgp().getDecryptions().get(0).getRecipientKeyIds()).hasSize(2);
+        assertThat(decrypted.getInspection().getOpenPgp().getDecryptions().get(0).getEncryptionAlgorithm()).isEqualTo("AES192");
     }
 
     @Test
@@ -918,8 +902,8 @@ class OpenPgpMimeTest {
             assertThat(rehearsal.getEffectiveEmail().getOpenPgpEncryptionConfig()).isNull();
             final Email opened = EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(rehearsal.getEmlBytes()), receiving(firstKey));
             assertThat(opened.getPlainText()).isEqualTo("already protected snapshot");
-            assertThat(opened.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-            assertThat(opened.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+            assertThat(opened.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+            assertThat(opened.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
         }
     }
 
@@ -950,10 +934,10 @@ class OpenPgpMimeTest {
 		assertThat(signedFixture.getPlainText()).isEqualTo("Héllo from OpenPGP.js");
 		assertThat(signedFixture.getAttachments()).extracting(AttachmentResource::getName).containsExactly("proof.txt");
 		assertThat(signedFixture.getAttachments().get(0).readAllData()).isEqualTo("independent fixture");
-		assertThat(signedFixture.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-		assertThat(signedFixture.getOriginalOpenPgpDetails().getHashAlgorithm()).isEqualTo("SHA256");
+		assertThat(signedFixture.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+		assertThat(signedFixture.getInspection().getOpenPgp().getSignatures().get(0).getHashAlgorithm()).isEqualTo("SHA256");
 		assertThat(encryptedFixture.getPlainText()).isEqualTo("Héllo from OpenPGP.js");
-		assertThat(encryptedFixture.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+		assertThat(encryptedFixture.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
 
 		final OpenPgpSigningConfig signingConfig = OpenPgpSigningConfig.builder()
 				.secretKeyRing(privateKey)

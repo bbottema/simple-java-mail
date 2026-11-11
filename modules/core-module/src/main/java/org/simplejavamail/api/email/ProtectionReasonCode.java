@@ -1,0 +1,6 @@
+package org.simplejavamail.api.email;
+
+/** Stable reasons for an unmet or indeterminate application protection requirement. */
+public enum ProtectionReasonCode {
+    VALUE_ABSENT, EVIDENCE_UNAVAILABLE, SIGNATURE_REQUIRED, SIGNER_NOT_APPROVED, SIGNATURE_INVALID, SIGNATURE_UNVERIFIED, COVERAGE_INCOMPLETE, DECRYPTION_REQUIRED, DECRYPTION_UNAVAILABLE, STRICT_SIGNATURE_INVALID, STRICT_SIGNATURE_UNVERIFIED
+}

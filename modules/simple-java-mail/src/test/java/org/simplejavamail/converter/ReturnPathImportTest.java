@@ -89,7 +89,7 @@ class ReturnPathImportTest {
 		final Email email = convert(route, "Return-Path: " + source + "\r\n" + CONTENT);
 		assertThat(email.getBounceToRecipient().getAddress()).isEqualTo(expectedAddress);
 		assertThat(email.getBounceToRecipient().getName()).isEqualTo(expectedName);
-		assertThat(email.getHeaders()).doesNotContainKey("Return-Path");
+		assertThat(email.getHeaders().get("Return-Path")).containsExactly(source);
 	}
 
 	static Stream<Arguments> interpretableImports() {
@@ -164,7 +164,7 @@ class ReturnPathImportTest {
 		for (final Email email : Arrays.asList(MAIL.converter().fromEml(protectedSource).toEmail(),
 				EmailConverter.emlToEmail(new ByteArrayInputStream(protectedSource)))) {
 			assertThat(email.getBounceToRecipient()).isNull();
-			assertThat(email.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).isEqualTo(protectedSource);
+			assertThat(email.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(protectedSource);
 		}
 	}
 

@@ -8,7 +8,10 @@ import jakarta.mail.util.ByteArrayDataSource;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 
@@ -23,12 +26,7 @@ import java.util.Properties;
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.INVALID;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
@@ -42,22 +40,20 @@ class OutlookSmimeDecryptionStatusTest {
 		final Email eml = EmailConverter.emlToEmail(fixture("encrypted.eml").toFile(), keys);
 
 		assertThat(outlook.getPlainText()).contains("For testing purposes");
-		assertThat(outlook.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(outlook.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(eml.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
+		assertThat(outlook.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+		assertThat(eml.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+		assertDecryptionObservation(outlook, DecryptionStatus.DECRYPTED);
+		assertDecryptionObservation(eml, DecryptionStatus.DECRYPTED);
 	}
 
 	@Test
 	void unavailableKeysAreDifferentFromAnUnencryptedOutlookMessage() {
 		final Email outlook = SimpleJavaMail.fromDefaults().converter().fromOutlookMsg(fixture("encrypted.msg")).toEmail();
-		final OriginalSmimeDetails details = outlook.getOriginalSmimeDetails();
-
-		assertThat(details.getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(details.getDecryptionStatus()).isEqualTo(KEY_MISSING);
-		assertThat(details.getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-		assertThat(details.getSmimeSignatureValid()).isNull();
-		assertThat(details.getFailureReason()).contains("key");
-		assertThat(outlook.getAttachments()).extracting("name").contains("smime.p7m");
+		assertUnopenedFamily(outlook, DecryptionStatus.UNAVAILABLE);
+		assertThat(outlook.getInspection().getSmime().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getFailureReason()).isNotEmpty());
+		assertThat(outlook.getInspection().getOriginalMessage()).isNotNull();
+		assertThat(outlook.getInspection().getOriginalMessage().getName()).endsWith(".msg");
 	}
 
 	@Test
@@ -97,9 +93,12 @@ class OutlookSmimeDecryptionStatusTest {
 
 		final Email converted = EmailConverter.mimeMessageToEmail(parent, loadPkcs12KeyStore());
 
-		assertThat(converted.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(PLAIN);
-		assertThat(converted.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(NOT_ENCRYPTED);
-		assertThat(converted.getDecryptedAttachments()).extracting("name").contains("signed-email.eml", "note.txt");
+		assertPlainProtection(converted, SignatureStatus.UNSIGNED, EncryptionStatus.NOT_ENCRYPTED);
+		assertThat(converted.getAttachments()).hasSize(2);
+		assertThat(converted.getAttachments().get(0).getEmail()).isNull();
+		assertThat(converted.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+		assertThat(converted.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(ciphertext);
+		assertThat(converted.getAttachments().get(1).readAllData()).isEqualTo("Other attachment");
 	}
 
 	@Test
@@ -120,9 +119,8 @@ class OutlookSmimeDecryptionStatusTest {
 
 		final Email converted = EmailConverter.mimeMessageToEmail(message, keys);
 
-		assertThat(converted.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(converted.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(INVALID);
-		assertThat(converted.getOriginalSmimeDetails().getSmimeSignatureValid()).isFalse();
+		assertPlainProtection(converted, SignatureStatus.INVALID, EncryptionStatus.DECRYPTED);
+		assertSignatureObservation(converted, SignatureVerification.INVALID);
 		assertThat(converted.getPlainText()).contains("BROKEN attachment");
 	}
 

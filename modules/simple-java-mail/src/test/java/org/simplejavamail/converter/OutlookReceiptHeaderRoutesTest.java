@@ -85,8 +85,8 @@ class OutlookReceiptHeaderRoutesTest {
                     .containsExactly("Returns", "Backup", "Returns");
             assertThat(email.getUseDispositionNotificationTo()).isTrue();
             assertThat(email.getUseReturnReceiptTo()).isTrue();
-            assertThat(email.getHeaders().keySet()).noneMatch(name -> name.equalsIgnoreCase("Disposition-Notification-To")
-                    || name.equalsIgnoreCase("Return-Receipt-To"));
+            assertThat(email.getHeaders().get("disposition-notification-to")).isNotEmpty();
+            assertThat(email.getHeaders().get("RETURN-RECEIPT-TO")).isNotEmpty();
             assertThat(email.getHeaders().get("X-Custom-Case")).containsExactly("unchanged");
             assertThat(email.getFromRecipient().getAddress()).isEqualTo("elias.laugher@gmail.com");
             assertThat(email.getBounceToRecipient().getAddress()).isEqualTo("bounce@example.org");
@@ -203,8 +203,15 @@ class OutlookReceiptHeaderRoutesTest {
         assertThat(parent.getProblems()).isEmpty();
         for (AttachmentResource attachment : parent.getAttachments()) {
             if (attachment.getDataSource().getContentType().startsWith("message/rfc822")) {
+                assertThat(attachment.getEmail()).isNotNull();
+                assertThat(attachment.getEmail().getHeaders().get(field)).contains(value);
                 final MimeMessage nested = MAIL.converter().fromEml(attachment.readAllBytes()).toMimeMessage();
-                assertThat(nested.getHeader(field, null)).contains(value);
+                if ("Return-Path".equalsIgnoreCase(field)) {
+                    assertThat(nested.getHeader(field, null)).isNull();
+                } else {
+                    // Legacy lenient typed notification destinations remain the notification's authority.
+                    assertThat(nested.getHeader(field, null)).contains(value);
+                }
             }
         }
     }

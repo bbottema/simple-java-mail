@@ -22,13 +22,14 @@ import org.simplejavamail.internal.util.NamedDataSource;
 import testutil.ConfigLoaderTestHelper;
 import testutil.EmailHelper;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Properties;
 
 import static jakarta.mail.Message.RecipientType.TO;
 import static java.lang.String.format;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.simplejavamail.converter.internal.mimemessage.MimeMessageParser.moveInvalidEmbeddedResourcesToAttachments;
 
 public class MimeMessageParserTest {
 
@@ -56,7 +57,7 @@ public class MimeMessageParserTest {
 
 		assertThat(mimeMessageParts.getSentDate()).isNotNull().isEqualTo(mimeMessage.getSentDate());
 
-		assertThat(mimeMessageParts.getCidMap()).containsOnlyKeys("<thumbsup>", "<fixedNameWithoutFileExtensionForNamedEmbeddedImage>");
+		assertThat(mimeMessageParts.getCidMap()).containsOnlyKeys("thumbsup", "fixedNameWithoutFileExtensionForNamedEmbeddedImage");
 		assertThat(mimeMessageParts.getAttachmentList()).extracting("name").containsOnly("dresscode.txt", "location.txt", "fixedNameWithoutFileExtensionForNamedAttachment.txt");
 	}
 
@@ -110,45 +111,49 @@ public class MimeMessageParserTest {
 	}
 
 	@Test
-	public void testMoveInvalidEmbeddedResourcesToAttachments_NoHtmlNoInvalid() throws IOException {
-		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
-		parsedComponents.cidMap.put("moo1", mimeDataSource("moomoo1"));
-		parsedComponents.cidMap.put("moo2", mimeDataSource("moomoo2"));
-		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
-		
-		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList).extracting("name").containsOnly("moomoo1", "moomoo2");
+	public void inlineResourcesWithoutHtmlRemainAttachments() throws MessagingException {
+		final ParsedMimeMessageComponents parsed = parseInlineResources("text/plain", "body text");
+
+		assertThat(parsed.getPlainContent()).isEqualTo("body text");
+		assertThat(parsed.getCidMap()).isEmpty();
+		assertThat(parsed.getAttachmentList()).extracting(MimeDataSource::getName).containsExactly("moomoo1", "moomoo2");
+		assertThat(parsed.getAttachmentList()).extracting(MimeDataSource::getContentId).containsExactly("moo1", "moo2");
 	}
 
 	@Test
-	public void testMoveInvalidEmbeddedResourcesToAttachments_HtmlButNoInvalid() throws IOException {
-		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
-		parsedComponents.htmlContent.append("blah moo1 blah html");
-		parsedComponents.cidMap.put("moo1", mimeDataSource("moomoo1"));
-		parsedComponents.cidMap.put("moo2", mimeDataSource("moomoo2"));
-		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
-		
-		assertThat(parsedComponents.cidMap).isEmpty();
-		assertThat(parsedComponents.attachmentList).extracting(MimeDataSource::getName).containsOnly("moomoo1", "moomoo2");
+	public void bareIdInHtmlDoesNotAssociateAnInlineResource() throws MessagingException {
+		final ParsedMimeMessageComponents parsed = parseInlineResources("text/html", "<p>blah moo1 blah html</p>");
+
+		assertThat(parsed.getCidMap()).isEmpty();
+		assertThat(parsed.getAttachmentList()).extracting(MimeDataSource::getName).containsExactly("moomoo1", "moomoo2");
+		assertThat(parsed.getAttachmentList()).extracting(MimeDataSource::getContentId).containsExactly("moo1", "moo2");
 	}
 	
 	@Test
-	public void testMoveInvalidEmbeddedResourcesToAttachments_Invalid() throws IOException {
-		ParsedMimeMessageComponents parsedComponents = new ParsedMimeMessageComponents();
-		parsedComponents.htmlContent.append("blah cid:moo1 blah html");
-		parsedComponents.cidMap.put("moo1", mimeDataSource("moomoo1"));
-		parsedComponents.cidMap.put("moo2", mimeDataSource("moomoo2"));
-		moveInvalidEmbeddedResourcesToAttachments(parsedComponents);
-		
-		assertThat(parsedComponents.cidMap).containsOnlyKeys("moo1");
-		assertThat(parsedComponents.attachmentList).extracting(MimeDataSource::getName).containsOnly("moomoo2");
+	public void cidUrlAssociatesOnlyItsReferencedResource() throws MessagingException, IOException {
+		final ParsedMimeMessageComponents parsed = parseInlineResources("text/html", "<img src=\"cid:moo1\">");
+
+		assertThat(parsed.getCidMap()).containsOnlyKeys("moo1");
+		assertThat(parsed.getCidMap().get("moo1").getName()).isEqualTo("moomoo1");
+		try (var bytes = parsed.getCidMap().get("moo1").getDataSource().getInputStream()) {
+			assertThat(bytes.readAllBytes()).containsExactly(1);
+		}
+		assertThat(parsed.getAttachmentList()).extracting(MimeDataSource::getName).containsExactly("moomoo2");
+		assertThat(parsed.getAttachmentList()).extracting(MimeDataSource::getContentId).containsExactly("moo2");
+		try (var bytes = parsed.getAttachmentList().get(0).getDataSource().getInputStream()) {
+			assertThat(bytes.readAllBytes()).containsExactly(2);
+		}
 	}
 
-	private static MimeDataSource mimeDataSource(final String name) throws IOException {
-		return MimeDataSource.builder()
-				.name(name)
-				.dataSource(new ByteArrayDataSource("moomoo", "text/plain"))
-				.build();
+	private static ParsedMimeMessageComponents parseInlineResources(final String bodyType, final String body) throws MessagingException {
+		final String eml = "From: sender@example.org\r\nContent-Type: multipart/mixed; boundary=parts\r\n\r\n"
+				+ "--parts\r\nContent-Type: " + bodyType + "; charset=UTF-8\r\n\r\n" + body + "\r\n"
+				+ "--parts\r\nContent-Type: image/png\r\nContent-Disposition: inline; filename=moomoo1\r\n"
+				+ "Content-ID: <moo1>\r\nContent-Transfer-Encoding: base64\r\n\r\nAQ==\r\n"
+				+ "--parts\r\nContent-Type: image/png\r\nContent-Disposition: inline; filename=moomoo2\r\n"
+				+ "Content-ID: <moo2>\r\nContent-Transfer-Encoding: base64\r\n\r\nAg==\r\n--parts--\r\n";
+		return MimeMessageParser.parseMimeMessage(new MimeMessage(Session.getInstance(new Properties()),
+				new ByteArrayInputStream(eml.getBytes(UTF_8))));
 	}
 	
 	@Test

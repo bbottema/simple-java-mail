@@ -7,9 +7,13 @@ import java.util.List;
 
 /**
  * Immutable, enumerable source evidence, independent of outgoing composition and processing problems.
- * Part metadata includes successful content too; additional payloads are retained only when the root Email does not expose the
- * received content, excluding equivalent representations such as successful Base64 decoding. For example, original RTF may be retained
- * alongside converted HTML without a processing problem. Reading this view does not reopen resources, decode content or run crypto.
+ * Part metadata includes successful content too. Complete raw EML/MSG input acquired during conversion is retained automatically
+ * under the selected import limits and exposed through {@link EmailInspection#getOriginalMessage()} in its captured format.
+ * Original attachment payloads remain available through {@link EmailInspection#getOriginalAttachment(int)} where retained.
+ * The diagnostic tree shares captured storage where possible; it need not duplicate that original archive in its part metadata.
+ * Additional selected evidence can retain original RTF alongside converted HTML without a processing problem, while equivalent
+ * representations such as successful Base64 decoding need no duplicate payload. Generated output and acquired prefixes are not
+ * complete original files. Reading this view does not reopen resources, decode content or run crypto.
  *
  * @since 10.0.0
  */

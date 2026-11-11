@@ -54,9 +54,17 @@ even when the application permits submission to accepted recipients. It does not
 
 ## Prepared recipient intent without transport evidence (accepted 5 November 2026)
 
+**11 November 2026.** For reconstructed messages, explicit generic To/Cc/Bcc setters resolve through the same typed recipient
+fields as ordinary recipient choices. Their prepared occurrences follow the selected address validator, injection checks and applicable
+locks. This supersedes the earlier raw-header input path for composed messages described below. The receipt still snapshots prepared
+intent and explicit delivery overrides without repeating MIME preparation. Exact EML keeps its separate authoritative bytes and chosen
+envelope. [ADR 0035](0035-tolerant-reading-and-strict-production.md#readable-selected-headers-and-semantic-output-accepted-10-november-2026)
+owns header authority, and [ADR 0014](0014-send-time-rehearsal.md#typed-delivery-overrides-and-raw-header-control-accepted-29-october-2026)
+owns the shared preparation checks.
+
 For logging-only sends, derive recipient results from the already prepared MIME recipient view, or the explicit delivery overrides, in their
-prepared order. Raw To/Cc/Bcc headers and duplicate occurrences belong to that view. Preserve the rehearsal boundary in ADR 0014: a named
-group retained in a raw header can remain one planned entry before the transport expands it. Recipient inspection does not acquire a
+prepared order. Duplicate occurrences belong to that view. The earlier composed-header route could retain a named group as one planned
+entry before transport expanded it. Ordinary generic header choices now use typed mailbox interpretation. Recipient inspection does not acquire a
 transport, repeat MIME/security preparation or read content again.
 
 A CustomMailer receipt can describe the recipient intent SJM prepared before invoking the callback. The callback owns its external mapping

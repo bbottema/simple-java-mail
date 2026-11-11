@@ -57,12 +57,9 @@ public final class CoreOnlyConsumer {
         final Integer depth = config.get(org.simplejavamail.config.ConfigKeys.IMPORT_MAXIMUM_NESTING_DEPTH);
     }
 
-    /** Unknown S/MIME facts are available directly through core result contracts, without a separate availability guard. */
+    /** Unknown S/MIME processing facts are available through core read contracts without loading the optional implementation. */
     public static boolean unknownSmime(final Email email) {
-        final org.simplejavamail.api.email.OriginalSmimeDetails details = email.getOriginalSmimeDetails();
-        return details.getSmimeMode() == org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.UNKNOWN
-                || details.getVerificationStatus() == org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN
-                || details.getDecryptionStatus() == org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.UNKNOWN;
+        return !email.getInspection().getSmime().isInspectionComplete();
     }
 
     /** SJM-owned attachment reads expose the common operational failure contract without checked I/O. */
@@ -353,15 +350,36 @@ public final class CoreOnlyConsumer {
         return converter.fromEml("From: sender@example.org\r\nTo: reader@example.org\r\n\r\nBody").toEmail();
     }
 
-    public static boolean inspectOpenPgp(final org.simplejavamail.api.email.OriginalOpenPgpDetails details) {
-        for (org.simplejavamail.api.email.OpenPgpSignatureResult signature : details.getSignatures()) {
+    public static boolean inspectOpenPgp(final org.simplejavamail.api.email.ProtectionInspection details) {
+        for (org.simplejavamail.api.email.SignatureObservation signature : details.getSignatures()) {
             signature.getSignerKeyId();
-            signature.getSignerFingerprint();
+            signature.getSigningKeyFingerprint();
             signature.getSignatureAlgorithm();
             signature.getHashAlgorithm();
             signature.getFailureReason();
-            if (signature.getStatus() != org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus.VALID) return false;
+            if (signature.getStatus() != org.simplejavamail.api.email.SignatureVerification.VERIFIED) return false;
         }
-        return details.getSignatureStatus() == org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus.VALID;
+        return details.isInspectionComplete() && !details.getSignatures().isEmpty();
+    }
+
+    /** Partner approval and one-value assessment compile and run with core only; they perform no input reads or cryptography. */
+    public static org.simplejavamail.api.email.ProtectionCheck assessDocument(final Email email,
+            final java.security.cert.X509Certificate current, final java.security.cert.X509Certificate replacement) {
+        final org.simplejavamail.api.email.ApprovedSigners approved = org.simplejavamail.api.email.ApprovedSigners.builder()
+                .addSmimeCertificate(current).addSmimeCertificate(replacement).build();
+        final org.simplejavamail.api.email.ProtectionRequirements requirements = org.simplejavamail.api.email.ProtectionRequirements.builder()
+                .requireVerifiedSignatureFrom(approved).requireDecryptedContent().build();
+        final org.simplejavamail.api.email.ValueInspection document = email.getInspection().getAttachment(0);
+        document.getOrigin();
+        document.getDerivation();
+        document.getAvailability();
+        document.getSources();
+        document.getSignatureStatus();
+        document.getEncryptionStatus();
+        document.isSignatureInspectionComplete();
+        email.getAttachments().get(0).getEmail();
+        email.getInspection().getOriginalMessage();
+        email.getInspection().getOriginalAttachment(0);
+        return requirements.check(document);
     }
 }

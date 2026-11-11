@@ -16,7 +16,10 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import java.io.ByteArrayInputStream;
@@ -61,22 +64,22 @@ class ParameterizedSmimeAttachmentTest {
         final Email imported = importEmail(source, fetchAttachmentData, emlInput);
 
         assertPlainParent(imported);
-        final AttachmentResource original = attachment(imported, "protected.p7m");
+        assertThat(imported.getAttachments()).hasSize(2);
+        final AttachmentResource original = imported.getInspection().getOriginalAttachment(0);
         assertThat(original.readAllBytes()).containsExactly(protectedBytes);
         final ContentType originalType = new ContentType(original.getDataSource().getContentType());
         assertThat(originalType.getBaseType()).isEqualToIgnoringCase(mediaType);
         assertThat(originalType.getParameter("smime-type")).isEqualTo("enveloped-data");
         assertThat(originalType.getParameter("name")).isEqualTo("protected.p7m");
         assertThat(originalType.getParameter("x-source")).isEqualTo("retained");
-        assertThat(imported.getDecryptedAttachments()).extracting(AttachmentResource::getName)
-                .containsExactly("signed-email.eml", "note.txt");
-        final AttachmentResource decrypted = imported.getDecryptedAttachments().get(0);
-        assertThat(SimpleJavaMail.fromDefaults().converter().fromEml(new ByteArrayInputStream(decrypted.readAllBytes()))
-                .toEmail().getPlainText()).contains("This is an encrypted message");
-        assertThat(imported.getDecryptedAttachments().get(1).readAllData(UTF_8)).isEqualTo("Ordinary note");
+        final AttachmentResource decrypted = imported.getAttachments().get(0);
+        assertThat(decrypted.getEmail()).isNull();
+        assertThat(readSelectedResource(decrypted).getPlainText()).contains("This is an encrypted message");
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(imported.getAttachments().get(1).readAllData(UTF_8)).isEqualTo("Ordinary note");
         final Email copy = SimpleJavaMail.fromDefaults().emailBuilder().copying(imported).buildEmail();
-        assertThat(attachment(copy, "protected.p7m").readAllBytes()).containsExactly(protectedBytes);
-        assertThat(copy.getDecryptedAttachments().get(0).readAllBytes()).containsExactly(decrypted.readAllBytes());
+        assertThat(copy.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(protectedBytes);
+        assertThat(copy.getAttachments().get(0).readAllBytes()).containsExactly(decrypted.readAllBytes());
     }
 
     private static Stream<Arguments> encryptedImports() {
@@ -101,12 +104,13 @@ class ParameterizedSmimeAttachmentTest {
         final Email imported = importEmail(source, fetchAttachmentData, emlInput);
 
         assertPlainParent(imported);
-        assertThat(imported.getDecryptedAttachments()).extracting(AttachmentResource::getName)
-                .containsExactly("signed-email.eml", "note.txt");
-        assertThat(SimpleJavaMail.fromDefaults().converter()
-                .fromEml(new ByteArrayInputStream(imported.getDecryptedAttachments().get(0).readAllBytes()))
-                .toEmail().getPlainText()).contains(tampered ? TAMPERED_BODY : SIGNED_BODY);
-        final ContentType retainedType = new ContentType(attachment(imported, "protected.mime").getDataSource().getContentType());
+        assertThat(imported.getAttachments()).hasSize(2);
+        final AttachmentResource selected = imported.getAttachments().get(0);
+        assertThat(selected.getEmail()).isNull();
+        assertThat(readSelectedResource(selected).getPlainText()).contains(tampered ? TAMPERED_BODY : SIGNED_BODY);
+        assertThat(imported.getInspection().getAttachment(0).getSignatureStatus())
+                .isEqualTo(tampered ? SignatureStatus.INVALID : SignatureStatus.VERIFIED);
+        final ContentType retainedType = new ContentType(imported.getInspection().getOriginalAttachment(0).getDataSource().getContentType());
         assertThat(retainedType.getParameter("boundary")).isEqualTo(suppliedType.getParameter("boundary"));
         assertThat(retainedType.getParameter("protocol")).isEqualTo(suppliedType.getParameter("protocol"));
     }
@@ -118,24 +122,36 @@ class ParameterizedSmimeAttachmentTest {
     }
 
     @Test
-    void malformedEncryptedContentKeepsTheExistingFailureBoundary() throws Exception {
+    void malformedEncryptedFileKeepsOriginalAndReadableNeighbors() throws Exception {
         final MimeBodyPart broken = new MimeBodyPart();
         broken.setDataHandler(new jakarta.activation.DataHandler(new ByteArrayDataSource(new byte[] {1, 2, 3},
                 "application/pkcs7-mime; smime-type=enveloped-data; name=broken.p7m")));
         broken.setFileName("broken.p7m");
         final MimeMessage source = parent(broken);
 
-        assertThatThrownBy(() -> importEmail(source, true, true)).isInstanceOf(SmimeException.class);
+        final Email imported = importEmail(source, true, true);
+        assertPlainParent(imported);
+        assertThat(imported.getAttachments()).hasSize(2);
+        assertThat(imported.getAttachments().get(0).readAllBytes()).containsExactly(1, 2, 3);
+        assertThat(imported.getAttachments().get(1).readAllData(UTF_8)).isEqualTo("Ordinary note");
+        assertThat(imported.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED);
+        assertThat(imported.getInspection().getAttachment(0).getDecryptions()).anySatisfy(attempt ->
+                assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED));
     }
 
     @Test
-    void unrelatedOrMalformedMediaTypesDoNotBecomeSmime() {
+    void unrelatedMediaTypesDoNotBecomeSmime() throws Exception {
         for (String type : new String[] {"application/octet-stream; name=smime.p7m", "text/plain; charset=UTF-8",
                 "multipart/signed; protocol=\"application/pgp-signature\"; boundary=other",
-                "application/pkcs7-mime-extra; name=smime.p7m", "not-a-content-type", "application/pkcs7-mime; =broken"}) {
-            final AttachmentResource resource = AttachmentResource.builder()
-                    .withDataSource(new ByteArrayDataSource(new byte[] {1}, type)).build();
-            assertThat(new SMIMESupport().isSmimeAttachment(resource)).as(type).isFalse();
+                "application/pkcs7-mime-extra; name=smime.p7m"}) {
+            assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType(type))).as(type).isFalse();
+        }
+    }
+
+    @Test
+    void malformedDeclarationsAreRejectedByTheOwningMimeGrammar() {
+        for (String type : new String[] {"not-a-content-type", "application/pkcs7-mime; =broken"}) {
+            assertThatThrownBy(() -> new ContentType(type)).isInstanceOf(jakarta.mail.internet.ParseException.class);
         }
     }
 
@@ -208,15 +224,17 @@ class ParameterizedSmimeAttachmentTest {
         return result;
     }
 
-    private static AttachmentResource attachment(final Email email, final String name) {
-        return email.getAttachments().stream().filter(resource -> name.equals(resource.getName())).findFirst().orElseThrow();
+    private static Email readSelectedResource(AttachmentResource resource) throws Exception {
+        MimeMessage adapter = new MimeMessage(Session.getInstance(new Properties()));
+        adapter.setDataHandler(new jakarta.activation.DataHandler(resource.getDataSource()));
+        adapter.setHeader("Content-Type", resource.getDataSource().getContentType());
+        return SimpleJavaMail.fromDefaults().converter().fromMimeMessage(adapter).toEmail();
     }
 
     private static void assertPlainParent(final Email email) {
         assertThat(email.getPlainText()).contains("Plain parent body");
-        assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-        assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
     }
 
     private static Path resource(final String relative) {

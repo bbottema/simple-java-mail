@@ -8,11 +8,14 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.config.OpenPgpEncryptionConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
-import org.simplejavamail.api.internal.openpgpsupport.model.OpenPgpParseResult;
 
 /** Reflection-loaded boundary for the optional OpenPGP/MIME implementation. */
-public interface OpenPgpModule extends InboundProtectionHandler<OpenPgpReceiveConfig, org.simplejavamail.api.email.OriginalOpenPgpDetails> {
+public interface OpenPgpModule {
     String NAME = "OpenPGP module";
+
+    /** Opens at most one root envelope; the main importer owns roles, repeated layers and shared import allowances. */
+    @NotNull org.simplejavamail.internal.protection.ProtectionLayerResult openIncomingLayer(@NotNull Session session,
+            @NotNull MimeMessage originalMessage, @Nullable OpenPgpReceiveConfig receiveConfig);
 
     @NotNull MimeMessage signMessage(@NotNull Session session, @NotNull Email email,
                                      @NotNull MimeMessage message,
@@ -22,7 +25,4 @@ public interface OpenPgpModule extends InboundProtectionHandler<OpenPgpReceiveCo
                                         @NotNull MimeMessage message,
                                         @NotNull OpenPgpEncryptionConfig encryptionConfig);
 
-    @NotNull OpenPgpParseResult processIncoming(@NotNull Session session,
-                                                @NotNull MimeMessage originalMessage,
-                                                @Nullable OpenPgpReceiveConfig receiveConfig);
 }

@@ -13,8 +13,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
-import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.api.mailer.CustomMailer;
@@ -232,12 +232,18 @@ class SmtpMessageSizeLifecycleTest {
 
     private static void verifyProtectedContent(final String protection, final byte[] received) throws Exception {
         if (protection.equals("smime")) {
-            assertThat(EmailConverter.emlToEmail(new ByteArrayInputStream(received)).getOriginalSmimeDetails().getVerificationStatus())
-                    .isEqualTo(VerificationStatus.VALID);
+            final Email inspected = EmailConverter.emlToEmail(new ByteArrayInputStream(received));
+            assertThat(inspected.getPlainText()).isNotNull();
+            assertThat(inspected.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+            assertThat(inspected.getInspection().getSmime().getSignatures()).isNotEmpty()
+                    .allSatisfy(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
         } else if (protection.equals("openpgp")) {
             final OpenPgpReceiveConfig config = OpenPgpReceiveConfig.builder().addVerificationKeyRing(resource("openpgpjs/public-key.asc")).build();
-            assertThat(EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(received), config)
-                    .getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
+            final Email inspected = EmailConverter.emlToEmailWithOpenPgp(new ByteArrayInputStream(received), config);
+            assertThat(inspected.getPlainText()).isNotNull();
+            assertThat(inspected.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+            assertThat(inspected.getInspection().getOpenPgp().getSignatures()).isNotEmpty()
+                    .allSatisfy(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
         } else {
             assertThat(new String(received, US_ASCII)).contains("DKIM-Signature:");
         }

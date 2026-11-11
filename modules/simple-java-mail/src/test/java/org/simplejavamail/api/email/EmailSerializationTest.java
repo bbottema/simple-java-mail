@@ -148,7 +148,8 @@ class EmailSerializationTest {
 				.withAttachment(AttachmentResource.builder().withName("encoded.txt").withData(alreadyBase64Encoded, "text/plain").withDescription("already encoded").withPreEncodedContentTransferEncoding(BASE_64).build())
 				.withEmbeddedImage("logo.png", "image data".getBytes(UTF_8), "image/png")
 				.signWithSmime(smimeSigningConfig);
-		builder.withDecryptedAttachments(singletonList(AttachmentResource.builder().withName("decrypted.txt").withDataSource(new ByteArrayDataSource("decrypted data", "text/plain")).withDescription("recovered from S/MIME").build()));
+		builder.withAttachment(AttachmentResource.builder().withName("recovered.txt").withDataSource(new ByteArrayDataSource("recovered data", "text/plain"))
+				.withDescription("selected recovered content").build());
 		final Email original = builder.buildEmail();
 
 		final Email restored = roundTrip(original, Email.class);
@@ -164,7 +165,7 @@ class EmailSerializationTest {
 		assertAttachment(restored.getAttachments().get(0), "report.txt", "report", BIT7, null, "attachment data".getBytes(UTF_8));
 		assertAttachment(restored.getAttachments().get(1), "encoded.txt", "already encoded", null, BASE_64, alreadyBase64Encoded);
 		assertAttachment(restored.getEmbeddedImages().get(0), "logo.png", null, null, null, "image data".getBytes(UTF_8));
-		assertAttachment(restored.getDecryptedAttachments().get(0), "decrypted.txt", "recovered from S/MIME", null, null, "decrypted data".getBytes(UTF_8));
+		assertAttachment(restored.getAttachments().get(2), "recovered.txt", "selected recovered content", null, null, "recovered data".getBytes(UTF_8));
 		assertThat(restored.getSmimeSigningConfig()).isEqualTo(smimeSigningConfig);
 		assertThat(restored.getSmimeSigningConfig().getPkcs12Config().getPkcs12StoreData())
 				.containsExactly(smimeSigningConfig.getPkcs12Config().getPkcs12StoreData());
@@ -216,8 +217,8 @@ class EmailSerializationTest {
 		assertThat(restored.getAttachments().get(1).getPreEncodedContentTransferEncoding()).isEqualTo(BASE_64);
 		assertThat(restored.getEmbeddedImages()).extracting(AttachmentResource::getName)
 				.containsExactly("legacy-logo.png");
-		assertThat(restored.getDecryptedAttachments()).extracting(AttachmentResource::getName)
-				.containsExactly("legacy-decrypted.txt");
+		assertThat(restored.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+		assertThat(restored.getInspection().getOriginalMessage()).isNull();
 		assertThat(restored.getEmailToForward()).isNull();
 		assertThat(restored.getSmimeSigningConfig()).isNull();
 		assertThat(restored.getOpenPgpSigningConfig()).isNull();

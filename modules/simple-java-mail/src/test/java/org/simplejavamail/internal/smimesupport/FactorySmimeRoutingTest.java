@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.MailerRegularBuilder;
@@ -145,8 +146,8 @@ class FactorySmimeRoutingTest {
         final Pkcs12Config keys = loadPkcs12KeyStore();
         final Email email = message(origin, keys);
         final MimeMessage exported = EmailConverter.emailToMimeMessage(email);
-        assertThat(origin.converter().fromMimeMessage(exported).toEmail().getOriginalSmimeDetails().getVerificationStatus())
-                .isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(origin.converter().fromMimeMessage(exported).toEmail().getInspection().getPlainText().getSignatureStatus())
+                .isEqualTo(SignatureStatus.VERIFIED);
         final MimeMessage raw = new MimeMessage(Session.getInstance(new Properties()));
         raw.setFrom("sender@example.org");
         raw.setText("Helper body", "UTF-8");
@@ -169,13 +170,16 @@ class FactorySmimeRoutingTest {
         final ConfiguredEmailConverterImpl converter = (ConfiguredEmailConverterImpl) target.converter();
         final ImportTraversal traversal = ImportTraversal.start(3, 3);
         final Class<?> bridgeType = Class.forName("org.simplejavamail.converter.internal.InternalEmailConverterImpl");
-        final Method bind = bridgeType.getDeclaredMethod("forImport", ImportTraversal.class, ConfiguredEmailConverterImpl.class);
+        final Method bind = bridgeType.getDeclaredMethod("forImport", ImportTraversal.class, ConfiguredEmailConverterImpl.class,
+                Pkcs12Config.class, org.simplejavamail.converter.internal.mimemessage.ProtectionScope.class,
+                org.simplejavamail.api.email.config.OpenPgpReceiveConfig.class);
         bind.setAccessible(true);
-        final InternalEmailConverter bridge = (InternalEmailConverter) bind.invoke(null, traversal, converter);
+        final InternalEmailConverter bridge = (InternalEmailConverter) bind.invoke(null, traversal, converter, null,
+                org.simplejavamail.converter.internal.mimemessage.ProtectionScope.plain(), null);
         final MimeMessage exported = bridge.emailToMimeMessage(restored);
         assertThat(bridge.importTraversal()).isSameAs(traversal);
-        assertThat(target.converter().fromMimeMessage(exported).toEmail().getOriginalSmimeDetails().getVerificationStatus())
-                .isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(target.converter().fromMimeMessage(exported).toEmail().getInspection().getPlainText().getSignatureStatus())
+                .isEqualTo(SignatureStatus.VERIFIED);
         assertThat(module(origin)).isNull();
         assertThat(entries(target)).containsOnlyKeys(keys);
     }

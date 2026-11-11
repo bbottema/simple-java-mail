@@ -43,6 +43,17 @@ org.simplejavamail.api.email.AttachmentResource$Builder#withName(java.lang.Strin
 org.simplejavamail.api.email.AttachmentResource$Builder#withPath(java.nio.file.Path):org.simplejavamail.api.email.AttachmentResource$Builder	EMAIL_RESOURCE_COLLECTION
 org.simplejavamail.api.email.AttachmentResource$Builder#withPreEncodedContentTransferEncoding(org.simplejavamail.api.email.ContentTransferEncoding):org.simplejavamail.api.email.AttachmentResource$Builder	EMAIL_RESOURCE_COLLECTION
 org.simplejavamail.api.email.EmailStartingBuilder#copying(jakarta.mail.internet.MimeMessage):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#forwardingOriginal(org.simplejavamail.api.email.Email):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#replyingTo(org.simplejavamail.api.email.Email,org.simplejavamail.api.email.ReplyOptions):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#replyingToAll(org.simplejavamail.api.email.Email,org.simplejavamail.api.email.ReplyOptions):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#forwarding(org.simplejavamail.api.email.Email,org.simplejavamail.api.email.ForwardOptions):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#replyingTo(jakarta.mail.internet.MimeMessage,org.simplejavamail.api.email.ReplyOptions):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#replyingToAll(jakarta.mail.internet.MimeMessage,org.simplejavamail.api.email.ReplyOptions):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.EmailStartingBuilder#forwarding(jakarta.mail.internet.MimeMessage,org.simplejavamail.api.email.ForwardOptions):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
+org.simplejavamail.api.email.ReplyOptions#toBuilder():org.simplejavamail.api.email.ReplyOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ForwardOptions#toBuilder():org.simplejavamail.api.email.ForwardOptions$Builder	EMAIL_HELPER_OPTIONS
+org.simplejavamail.api.email.ApprovedSigners#toBuilder():org.simplejavamail.api.email.ApprovedSigners$Builder	APPROVED_SIGNERS
+org.simplejavamail.api.email.ProtectionRequirements#toBuilder():org.simplejavamail.api.email.ProtectionRequirements$Builder	PROTECTION_REQUIREMENTS
 org.simplejavamail.api.email.EmailStartingBuilder#copying(org.simplejavamail.api.email.Email):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
 org.simplejavamail.api.email.EmailStartingBuilder#copying(org.simplejavamail.api.email.EmailPopulatingBuilder):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY
 org.simplejavamail.api.email.EmailStartingBuilder#forwarding(jakarta.mail.internet.MimeMessage):org.simplejavamail.api.email.EmailPopulatingBuilder	EMAIL_INPUT_POLICY

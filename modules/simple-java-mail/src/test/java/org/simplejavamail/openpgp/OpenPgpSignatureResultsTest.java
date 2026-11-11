@@ -7,16 +7,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
-import org.simplejavamail.api.email.OpenPgpSignatureResult;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import jakarta.mail.Session;
 import jakarta.mail.internet.MimeMessage;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
@@ -26,6 +21,17 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Base64;
 import java.util.Properties;
+import org.simplejavamail.api.email.SignatureObservation;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.ProtectionInspection;
+import org.simplejavamail.api.email.ApprovedSigners;
+import org.simplejavamail.api.email.ProtectionRequirements;
+import org.simplejavamail.api.email.ProtectionOutcome;
+import org.pgpainless.key.parsing.KeyRingReader;
+import org.bouncycastle.util.encoders.Hex;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -38,100 +44,98 @@ class OpenPgpSignatureResultsTest {
 
     @Test
     void combinedPacketsUseTheSuppliedVerificationKey() throws Exception {
-        final byte[] incoming = OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first);
-        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(incoming)
-                .withOpenPgpReceiveConfig(OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first)).toEmail();
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).singleElement().satisfies(result -> {
-            assertThat(result.getStatus()).isEqualTo(SignatureStatus.VALID);
-            assertThat(result.getSignerFingerprint()).isNotBlank();
+        final Email parsed = read(OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first),
+                OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
+        assertThat(parsed.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).singleElement().satisfies(result -> {
+            assertThat(result.getStatus()).isEqualTo(SignatureVerification.VERIFIED);
+            assertThat(result.getSigningKeyFingerprint()).isNotBlank();
         });
     }
 
     @Test
-    void aValidSignatureCannotHideAnotherMissingVerificationKey() throws Exception {
-        final byte[] incoming = OpenPgpSignatureFixtures.detached(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second);
-        final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(incoming)
-                .withOpenPgpReceiveConfig(OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first)).toEmail();
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.KEY_MISSING);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).extracting(OpenPgpSignatureResult::getStatus)
-                .containsExactlyInAnyOrder(SignatureStatus.VALID, SignatureStatus.KEY_MISSING);
+    void aValidSignatureDoesNotHideAnotherUnavailableVerificationKey() throws Exception {
+        final Email parsed = read(OpenPgpSignatureFixtures.detached(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second),
+                OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.MIXED);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).extracting(SignatureObservation::getStatus)
+                .containsExactlyInAnyOrder(SignatureVerification.VERIFIED, SignatureVerification.UNVERIFIED);
+        assertThat(requirements(false).check(parsed.getInspection().getPlainText()).isSatisfied()).isTrue();
+        assertThat(requirements(true).check(parsed.getInspection().getPlainText()).getOutcome()).isEqualTo(ProtectionOutcome.INDETERMINATE);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"detached", "combined"})
-    void everyOccurrenceIsRetainedForValidAndMissingKeys(final String format) throws Exception {
+    void everySignatureOccurrenceIsRetainedIncludingRepeatedSigningKeys(final String format) throws Exception {
         final byte[] input = format.equals("detached") ? OpenPgpSignatureFixtures.detached(
                 OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second, OpenPgpSignatureFixtures.first)
                 : OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second, OpenPgpSignatureFixtures.first);
-        for (boolean allKeys : new boolean[] {true, false}) {
+        for (boolean allKeys : new boolean[]{true, false}) {
             final OpenPgpReceiveConfig keys = allKeys ? OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second)
                     : OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first);
             for (ImportRoute route : ImportRoute.values()) {
                 final Email parsed = read(input, keys, route);
-                final OriginalOpenPgpDetails details = parsed.getOriginalOpenPgpDetails();
-                assertThat(details.getSignatureStatus()).isEqualTo(allKeys ? SignatureStatus.VALID : SignatureStatus.KEY_MISSING);
-                assertThat(details.getSignatures()).hasSize(3);
-                assertThat(details.getSignatures()).filteredOn(result -> result.getStatus() == SignatureStatus.VALID).hasSize(allKeys ? 3 : 2);
-                assertThat(details.getSignatures()).extracting(OpenPgpSignatureResult::getSignerKeyId).doesNotContainNull();
-                assertMultipleShortcuts(details);
-                assertThat(details.getOriginalProtectedMessage()).containsExactly(input);
+                final ProtectionInspection details = parsed.getInspection().getOpenPgp();
                 assertThat(parsed.getPlainText()).contains("Complete signature facts");
-                if (format.equals("combined")) assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+                assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(allKeys ? SignatureStatus.VERIFIED : SignatureStatus.MIXED);
+                assertThat(details.getSignatures()).hasSize(3);
+                assertThat(details.getSignatures()).filteredOn(result -> result.getStatus() == SignatureVerification.VERIFIED).hasSize(allKeys ? 3 : 2);
+                assertThat(details.getSignatures()).extracting(SignatureObservation::getSignerKeyId).doesNotContainNull();
+                assertDistinctOccurrences(details);
+                assertOriginal(parsed, input, route);
+                if (format.equals("combined")) assertThat(parsed.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
             }
         }
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"detached", "combined"})
-    void invalidSignaturesDominateValidAndMissingResults(final String format) throws Exception {
+    void mixedSignaturesKeepTheApprovedVerifiedWitnessAndTheInvalidObservation(final String format) throws Exception {
         final byte[] input = format.equals("detached") ? OpenPgpSignatureFixtures.detachedWithInvalid(1,
                 OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second)
                 : OpenPgpSignatureFixtures.combinedWithInvalid(1, OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second);
         final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second), true);
-        final OriginalOpenPgpDetails details = parsed.getOriginalOpenPgpDetails();
-        assertThat(details.getSignatureStatus()).isEqualTo(SignatureStatus.INVALID);
-        assertThat(details.getSignatures()).extracting(OpenPgpSignatureResult::getStatus)
-                .containsExactlyInAnyOrder(SignatureStatus.VALID, SignatureStatus.INVALID);
-        assertThat(details.getSignatures()).allSatisfy(signature -> assertThat(signature.getSignerFingerprint()).isNotBlank());
-        assertMultipleShortcuts(details);
+        final ProtectionInspection details = parsed.getInspection().getOpenPgp();
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.MIXED);
+        assertThat(details.getSignatures()).extracting(SignatureObservation::getStatus)
+                .containsExactlyInAnyOrder(SignatureVerification.VERIFIED, SignatureVerification.INVALID);
+        assertThat(details.getSignatures()).allSatisfy(signature -> assertThat(signature.getSigningKeyFingerprint()).isNotBlank());
+        assertDistinctOccurrences(details);
         assertThat(parsed.getPlainText()).contains("Complete signature facts");
-        if (format.equals("combined")) assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        final int inputProblems = parsed.getProblems().size();
+        assertThat(requirements(false).check(parsed.getInspection().getPlainText()).isSatisfied()).isTrue();
+        assertThat(requirements(true).check(parsed.getInspection().getPlainText()).getOutcome()).isEqualTo(ProtectionOutcome.NOT_SATISFIED);
+        assertThat(parsed.getProblems()).hasSize(inputProblems);
+        if (format.equals("combined")) assertThat(parsed.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"detached", "combined"})
-    void processingErrorsRetainEveryKnownOccurrenceAndEstablishedDecryption(final String format) throws Exception {
+    void unusableExplicitVerificationMaterialRemainsAnOperationFailure(final String format) throws Exception {
         final byte[] input = format.equals("detached") ? OpenPgpSignatureFixtures.detached(OpenPgpSignatureFixtures.first)
                 : OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first);
-        final OpenPgpReceiveConfig brokenVerificationKey = OpenPgpReceiveConfig.builder().addVerificationKeyRing(new byte[] {1, 2, 3})
+        final OpenPgpReceiveConfig broken = OpenPgpReceiveConfig.builder().addVerificationKeyRing(new byte[]{1, 2, 3})
                 .addDecryptionKeyRing(OpenPgpSignatureFixtures.first.secret, OpenPgpSignatureFixtures.first.passphrase).build();
-        final Email parsed = read(input, brokenVerificationKey, true);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).singleElement().satisfies(result -> {
-            assertThat(result.getStatus()).isEqualTo(SignatureStatus.ERROR);
-            assertThat(result.getSignerKeyId()).isNotNull();
-            assertThat(result.getFailureReason()).isNotBlank();
-        });
-        if (format.equals("combined")) assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
+        assertThatThrownBy(() -> read(input, broken, true)).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("configured OpenPGP verification key");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"packet-outside", "mime-outside"})
-    void nestedMimeAndPacketSignaturesContributeToOneConservativeSummary(final String shape) throws Exception {
+    void nestedMimeAndPacketSignaturesKeepTheirIndividualFacts(final String shape) throws Exception {
         final byte[] input = OpenPgpSignatureFixtures.nested(shape.equals("packet-outside"),
                 OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second);
-        for (boolean allKeys : new boolean[] {true, false}) {
+        for (boolean allKeys : new boolean[]{true, false}) {
             final Email parsed = read(input, allKeys
                     ? OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second)
                     : OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
-            final OriginalOpenPgpDetails details = parsed.getOriginalOpenPgpDetails();
+            final ProtectionInspection details = parsed.getInspection().getOpenPgp();
             assertThat(details.getSignatures()).hasSize(3);
-            assertThat(details.getSignatureStatus()).isEqualTo(allKeys ? SignatureStatus.VALID : SignatureStatus.KEY_MISSING);
-            assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-            assertThat(details.getOriginalProtectedMessage()).containsExactly(input);
-            assertMultipleShortcuts(details);
+            assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(allKeys ? SignatureStatus.VERIFIED : SignatureStatus.MIXED);
+            assertThat(parsed.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+            assertOriginal(parsed, input, ImportRoute.FLUENT_EML);
+            assertDistinctOccurrences(details);
         }
     }
 
@@ -139,92 +143,93 @@ class OpenPgpSignatureResultsTest {
     void integrityFailureDoesNotBecomeKnownDecryptionOrSignatureAbsence() throws Exception {
         final byte[] input = OpenPgpSignatureFixtures.corruptIntegrity(OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first));
         final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
-        final OriginalOpenPgpDetails details = parsed.getOriginalOpenPgpDetails();
-        assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-        assertThat(details.getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-        assertThat(details.getSignatures()).isEmpty();
-        assertThat(details.getOriginalProtectedMessage()).containsExactly(input);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED));
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).isEmpty();
+        assertOriginal(parsed, input, ImportRoute.FLUENT_EML);
     }
 
     @Test
-    void anEscapingNativeSignatureErrorIsDistinctFromCiphertextFailure() throws Exception {
+    void anActualNativeSignatureErrorIsDifferentFromEstablishedCiphertextIntegrityFailure() throws Exception {
         final byte[] input = OpenPgpSignatureFixtures.combinedWithMalformedSignature();
         final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.UNKNOWN);
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).singleElement().satisfies(signature -> {
-            assertThat(signature.getStatus()).isEqualTo(SignatureStatus.ERROR);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).singleElement().satisfies(signature -> {
+            assertThat(signature.getStatus()).isEqualTo(SignatureVerification.UNVERIFIED);
             assertThat(signature.getSignerKeyId()).isNotNull();
             assertThat(signature.getHashAlgorithm()).isEqualTo("SHA256");
         });
+        assertOriginal(parsed, input, ImportRoute.FLUENT_EML);
         final byte[] corrupted = OpenPgpSignatureFixtures.corruptIntegrity(input);
-        final Email bothFailures = read(corrupted, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
-        assertThat(bothFailures.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.FAILED);
-        assertThat(bothFailures.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-        assertThat(bothFailures.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
-        assertThat(bothFailures.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(corrupted);
+        final Email failed = read(corrupted, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
+        assertThat(failed.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED));
+        assertThat(failed.getInspection().getOpenPgp().getSignatures()).isEmpty();
+        assertOriginal(failed, corrupted, ImportRoute.FLUENT_EML);
     }
 
     @Test
-    void completeUnsignedPacketsAreDistinctFromUnopenedOrUnavailablePackets() throws Exception {
+    void completeUnsignedPacketsAreDifferentFromUnopenedOrUnavailablePackets() throws Exception {
         final Email unsigned = read(OpenPgpSignatureFixtures.combined(), OpenPgpSignatureFixtures.receiving(), true);
-        assertThat(unsigned.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(unsigned.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
-        assertThat(unsigned.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.NOT_PRESENT);
+        assertThat(unsigned.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(unsigned.getInspection().getOpenPgp().getSignatures()).isEmpty();
+        assertThat(unsigned.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
         final byte[] input = OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first);
         final Email unopened = read(input, OpenPgpReceiveConfig.builder().addVerificationKeyRing(OpenPgpSignatureFixtures.first.publicRing).build(), true);
-        assertThat(unopened.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-        assertThat(unopened.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
-        assertThat(unopened.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
+        assertThat(unopened.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(unopened.getInspection().getOpenPgp().getSignatures()).isEmpty();
+        assertThat(unopened.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class, CALLS_REAL_METHODS)) {
             modules.when(ModuleLoader::openPgpModuleAvailable).thenReturn(false);
             final Email unavailable = SimpleJavaMail.fromDefaults().converter().fromEml(input).toEmail();
-            assertThat(unavailable.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-            assertThat(unavailable.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
+            assertThat(unavailable.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+            assertThat(unavailable.getInspection().getOpenPgp().getSignatures()).isEmpty();
         }
     }
 
     @Test
-    void aValidOuterSignatureCannotCertifyUnopenedInnerSignatures() throws Exception {
+    void aVerifiedOuterSignatureDoesNotCertifyUnopenedInnerSignatures() throws Exception {
         final byte[] input = OpenPgpSignatureFixtures.nested(false, OpenPgpSignatureFixtures.first);
-        final OpenPgpReceiveConfig noDecryptionKey = OpenPgpReceiveConfig.builder()
-                .addVerificationKeyRing(OpenPgpSignatureFixtures.first.publicRing).build();
-        final Email parsed = read(input, noDecryptionKey, true);
-        final OriginalOpenPgpDetails details = parsed.getOriginalOpenPgpDetails();
-        assertThat(details.getSignatures()).singleElement().satisfies(signature ->
-                assertThat(signature.getStatus()).isEqualTo(SignatureStatus.VALID));
-        assertThat(details.getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
-        assertThat(details.getDecryptionStatus()).isEqualTo(DecryptionStatus.KEY_MISSING);
-        assertThat(details.getOriginalProtectedMessage()).containsExactly(input);
+        final Email parsed = read(input, OpenPgpReceiveConfig.builder().addVerificationKeyRing(OpenPgpSignatureFixtures.first.publicRing).build(), true);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
+        assertOriginal(parsed, input, ImportRoute.FLUENT_EML);
     }
 
     @Test
-    void aLaterMimeInterpretationErrorCannotEraseSuccessfulDecryption() throws Exception {
+    void laterMimeInterpretationFailureDoesNotEraseEstablishedDecryptionOrSignatureFacts() throws Exception {
         final byte[] input = OpenPgpSignatureFixtures.combined("not a MIME entity".getBytes(StandardCharsets.US_ASCII), -1,
                 OpenPgpSignatureFixtures.first);
         final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
-        assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).singleElement()
-                .satisfies(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureStatus.VALID));
-        assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
+        assertThat(parsed.getInspection().getOpenPgp().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).singleElement()
+                .satisfies(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
+        assertOriginal(parsed, input, ImportRoute.FLUENT_EML);
     }
 
     @Test
-    void compressedOrStoppedDetachedInspectionCannotHideBehindAValidPrefix() throws Exception {
+    void stoppedDetachedInspectionDoesNotClaimCompleteEvidenceFromItsValidPrefix() throws Exception {
         for (byte[] input : List.of(OpenPgpSignatureFixtures.compressedDetached(false),
                 OpenPgpSignatureFixtures.compressedDetached(true), OpenPgpSignatureFixtures.beyondPacketInspectionLimit())) {
             final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second), true);
-            assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.ERROR);
-            assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).allSatisfy(result ->
-                    assertThat(result.getStatus()).isEqualTo(SignatureStatus.VALID));
-            assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
+            assertThat(parsed.getInspection().getPlainText().isSignatureInspectionComplete()).isFalse();
+            assertThat(parsed.getInspection().getOpenPgp().getSignatures()).allSatisfy(result ->
+                    assertThat(result.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
+            assertOriginal(parsed, input, ImportRoute.FLUENT_EML);
         }
     }
 
     @Test
-    void copiesAndSerializationRetainResultsButCompletionRemainsOutgoing() throws Exception {
+    void copiesSnapshotsAndUnchangedCompletionKeepEvidenceWithoutActivatingOutgoingProtection() throws Exception {
         final byte[] input = OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second);
         final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second), true);
         final Email copy = SimpleJavaMail.fromDefaults().emailBuilder().copying(parsed).buildEmail();
@@ -232,57 +237,50 @@ class OpenPgpSignatureResultsTest {
         try (ObjectOutputStream output = new ObjectOutputStream(bytes)) { output.writeObject(parsed); }
         final Email restored;
         try (ObjectInputStream stream = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) { restored = (Email) stream.readObject(); }
-        for (Email value : List.of(parsed, copy, restored)) {
-            assertThat(value.getOriginalOpenPgpDetails()).isEqualTo(parsed.getOriginalOpenPgpDetails());
-            assertThat(value.getOriginalOpenPgpDetails().getSignatures()).hasSize(2);
-            assertThatThrownBy(() -> value.getOriginalOpenPgpDetails().getSignatures().clear()).isInstanceOf(UnsupportedOperationException.class);
-            value.getOriginalOpenPgpDetails().getOriginalProtectedMessage()[0] ^= 1;
-            assertThat(value.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(input);
-        }
         final Email completed = SimpleJavaMail.fromDefaults().emailBuilder().copying(parsed).buildEmailCompletedWithDefaultsAndOverrides();
-        assertThat(completed.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
-        assertThat(completed.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.PLAIN);
+        final List<java.util.UUID> references = parsed.getInspection().getOpenPgp().getSignatures().stream()
+                .map(SignatureObservation::getReference).collect(java.util.stream.Collectors.toList());
+        for (Email value : List.of(parsed, copy, restored, completed)) {
+            assertThat(value.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+            assertThat(value.getInspection().getOpenPgp().getSignatures()).extracting(SignatureObservation::getReference).containsExactlyElementsOf(references);
+            assertThatThrownBy(() -> value.getInspection().getOpenPgp().getSignatures().clear()).isInstanceOf(UnsupportedOperationException.class);
+            value.getInspection().getOriginalMessage().readAllBytes()[0] ^= 1;
+            assertOriginal(value, input, ImportRoute.FLUENT_EML);
+            assertThat(value.getOpenPgpSigningConfig()).isNull();
+            assertThat(value.getOpenPgpEncryptionConfig()).isNull();
+        }
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"valid", "invalid", "missing", "error", "encrypted-absent", "plain"})
-    void earlierEmailSnapshotsPreserveSelectedFactsWithoutClaimingCompleteInspection(final String kind) throws Exception {
+    void oldSelectedOnlySnapshotsHaveUncapturedCurrentFieldHistory(final String kind) throws Exception {
         final byte[] serialized;
         try (InputStream input = getClass().getResourceAsStream("/serialization/email-openpgp-details-selected-legacy-" + kind + ".base64")) {
-            assertThat(input).isNotNull();
-            serialized = Base64.getDecoder().decode(new String(input.readAllBytes(), StandardCharsets.US_ASCII).trim());
+            assertThat(input).isNotNull(); serialized = Base64.getDecoder().decode(new String(input.readAllBytes(), StandardCharsets.US_ASCII).trim());
         }
         final Email restored;
         try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(serialized))) { restored = (Email) input.readObject(); }
-        final SignatureStatus expected = kind.equals("invalid") ? SignatureStatus.INVALID : kind.equals("missing") ? SignatureStatus.KEY_MISSING
-                : kind.equals("error") ? SignatureStatus.ERROR : SignatureStatus.UNKNOWN;
         final Email copied = SimpleJavaMail.fromDefaults().emailBuilder().copying(restored).buildEmail();
         for (Email value : List.of(restored, copied)) {
-            assertThat(value.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(expected);
             assertThat(value.getSubject()).isEqualTo("Legacy " + kind);
-            if (List.of("valid", "invalid", "missing").contains(kind)) {
-                assertThat(value.getOriginalOpenPgpDetails().getSignatures()).hasSize(1);
-                assertThat(value.getOriginalOpenPgpDetails().getSignatures().get(0).getStatus())
-                        .isEqualTo(kind.equals("valid") ? SignatureStatus.VALID : expected);
-            } else assertThat(value.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
-            if (kind.equals("encrypted-absent")) assertThat(value.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
-            assertThatThrownBy(() -> value.getOriginalOpenPgpDetails().getSignatures().clear()).isInstanceOf(UnsupportedOperationException.class);
+            assertThat(value.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+            assertThat(value.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.UNKNOWN);
+            assertThat(value.getInspection().getOpenPgp().getSignatures()).isEmpty();
+            assertThat(value.getInspection().getOpenPgp().isInspectionComplete()).isFalse();
         }
-        assertThat(copied.getOriginalOpenPgpDetails()).isEqualTo(restored.getOriginalOpenPgpDetails());
     }
 
     @Test
-    void readingAndRestoringKnownFactsNeverCallsOptionalModules() throws Exception {
-        final byte[] input = OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first);
-        final Email parsed = read(input, OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
-        final ByteArrayOutputStream serialized = new ByteArrayOutputStream();
-        try (ObjectOutputStream output = new ObjectOutputStream(serialized)) { output.writeObject(parsed); }
+    void readingOrRestoringCapturedFactsDoesNotLoadOptionalModules() throws Exception {
+        final Email parsed = read(OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first), OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first), true);
+        final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new ObjectOutputStream(bytes)) { output.writeObject(parsed); }
         try (MockedStatic<ModuleLoader> modules = mockStatic(ModuleLoader.class)) {
             final Email restored;
-            try (ObjectInputStream stream = new ObjectInputStream(new ByteArrayInputStream(serialized.toByteArray()))) { restored = (Email) stream.readObject(); }
-            assertThat(restored.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.VALID);
-            restored.getOriginalOpenPgpDetails().getSignatures().forEach(signature -> {
-                signature.getSignerKeyId(); signature.getSignerFingerprint(); signature.getSignatureAlgorithm();
+            try (ObjectInputStream stream = new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) { restored = (Email) stream.readObject(); }
+            assertThat(restored.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+            restored.getInspection().getOpenPgp().getSignatures().forEach(signature -> {
+                signature.getSignerKeyId(); signature.getSigningKeyFingerprint(); signature.getSignatureAlgorithm();
                 signature.getHashAlgorithm(); signature.getFailureReason();
             });
             modules.verifyNoInteractions();
@@ -290,27 +288,48 @@ class OpenPgpSignatureResultsTest {
     }
 
     @Test
-    void borrowedTopLevelStreamsStayOpenForValidAndFailedCombinedInput() throws Exception {
+    void borrowedInputStreamsRemainOpenForValidAndFailedCombinedInput() throws Exception {
         final byte[] valid = OpenPgpSignatureFixtures.combined(OpenPgpSignatureFixtures.first);
         for (byte[] bytes : List.of(valid, OpenPgpSignatureFixtures.corruptIntegrity(valid))) {
             try (TrackingInputStream source = new TrackingInputStream(bytes)) {
                 final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(source)
                         .withOpenPgpReceiveConfig(OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first)).toEmail();
-                assertThat(source.closed).isFalse();
-                assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(bytes);
+                assertThat(source.closed).isFalse(); assertOriginal(parsed, bytes, ImportRoute.FLUENT_EML);
             }
         }
     }
 
     @Test
-    void signaturesInsideAnAttachedMessageAreNotParentProtectionFacts() throws Exception {
-        final byte[] attached = OpenPgpSignatureFixtures.detached(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second);
+    void attachedMessageSignaturesStayChildOwned() throws Exception {
+        final byte[] child = OpenPgpSignatureFixtures.detached(OpenPgpSignatureFixtures.first, OpenPgpSignatureFixtures.second);
         final Email parent = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank().from("sender@example.test").to("receiver@example.test")
-                .withPlainText("Parent content").withAttachment("attached.eml", attached, "message/rfc822").buildEmail();
+                .withPlainText("Parent content").withAttachment("attached.eml", child, "message/rfc822").buildEmail();
         final Email parsed = SimpleJavaMail.fromDefaults().converter().fromEml(EmailConverter.emailToEMLByteArray(parent)).toEmail();
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(SignatureStatus.NOT_PRESENT);
-        assertThat(parsed.getOriginalOpenPgpDetails().getSignatures()).isEmpty();
-        assertThat(parsed.getAttachments()).hasSize(1);
+        assertThat(parsed.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(parsed.getInspection().getOpenPgp().getSignatures()).isEmpty();
+        assertThat(parsed.getAttachments()).singleElement();
+        assertThat(parsed.getAttachments().get(0).getEmail()).isNotNull();
+        assertThat(parsed.getAttachments().get(0).getEmail().getInspection().getOpenPgp().getSignatures()).hasSize(2);
+    }
+
+    private static ProtectionRequirements requirements(final boolean strict) throws Exception {
+        final String fingerprint = Hex.toHexString(new KeyRingReader().publicKeyRing(OpenPgpSignatureFixtures.first.publicRing).getPublicKey().getFingerprint());
+        final var builder = ProtectionRequirements.builder().requireVerifiedSignatureFrom(
+                ApprovedSigners.builder().addOpenPgpSigningKeyFingerprint(fingerprint).build());
+        if (strict) builder.requireAllSignaturesVerified();
+        return builder.build();
+    }
+
+    private static void assertDistinctOccurrences(final ProtectionInspection inspection) {
+        assertThat(inspection.getSignatures()).extracting(SignatureObservation::getReference).doesNotHaveDuplicates();
+        assertThatThrownBy(() -> inspection.getSignatures().clear()).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    private static void assertOriginal(final Email email, final byte[] source, final ImportRoute route) {
+        if (route == ImportRoute.FLUENT_EML || route == ImportRoute.STATIC_EML) {
+            assertThat(email.getInspection().getOriginalMessage()).isNotNull();
+            assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
+        } else assertThat(email.getInspection().getOriginalMessage()).isNull();
     }
 
     private static Email read(final byte[] input, final OpenPgpReceiveConfig keys, final boolean fluent) throws Exception {
@@ -335,13 +354,6 @@ class OpenPgpSignatureResultsTest {
     }
 
     private enum ImportRoute { FLUENT_EML, STATIC_EML, FLUENT_MIME, STATIC_MIME }
-
-    private static void assertMultipleShortcuts(final OriginalOpenPgpDetails details) {
-        assertThat(details.getSignerKeyId()).isNull();
-        assertThat(details.getSignerFingerprint()).isNull();
-        assertThat(details.getSignatureAlgorithm()).isNull();
-        assertThat(details.getHashAlgorithm()).isNull();
-    }
 
     private static final class TrackingInputStream extends ByteArrayInputStream {
         private boolean closed;

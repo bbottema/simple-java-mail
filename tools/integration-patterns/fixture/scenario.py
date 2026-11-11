@@ -97,6 +97,34 @@ def verify_stale_feedback_cannot_replace_a_final_result(id, evidence):
     assert request(f"{APP}/jobs/{id}")["delivery_action"] == "FAILED"
 
 
+def partner_documents():
+    """Actual MIME/crypto observations drive document acceptance; no SMTP outcome is inferred from this offline receive step."""
+    for kind in ("approved", "unapproved", "unavailable-verification", "unavailable-decryption", "mixed", "outside-coverage"):
+        result = request(f"{APP}/partner-documents/scenarios/{kind}", b"")
+        decision = result["document"]
+        assert decision["originalPreserved"], result
+        assert decision["action"] == ("PROCESSED" if kind == "approved" else "HELD"), result
+        if kind == "approved":
+            assert decision["outcome"] == "SATISFIED" and decision["baseOutcome"] == "SATISFIED", result
+            assert decision["signature"] == "VERIFIED" and decision["encryption"] == "DECRYPTED", result
+            assert decision["processedBytes"] > 0, result
+        elif kind == "unapproved":
+            assert decision["outcome"] == "NOT_SATISFIED" and "SIGNER_NOT_APPROVED" in decision["reasons"], result
+        elif kind == "unavailable-verification":
+            assert decision["outcome"] == "INDETERMINATE" and decision["signature"] == "UNVERIFIED", result
+        elif kind == "unavailable-decryption":
+            assert "REQUIRED_DOCUMENT_UNAVAILABLE" in decision["reasons"], result
+        elif kind == "mixed":
+            assert decision["signature"] == "MIXED" and decision["baseOutcome"] == "SATISFIED", result
+            assert decision["outcome"] == "NOT_SATISFIED" and "STRICT_SIGNATURE_INVALID" in decision["reasons"], result
+        elif kind == "outside-coverage":
+            assert decision["outcome"] == "NOT_SATISFIED" and decision["signature"] == "UNSIGNED", result
+            assert decision["encryption"] == "NOT_ENCRYPTED", result
+        if kind != "approved":
+            assert decision["processedBytes"] == 0, result
+        print(json.dumps(result), flush=True)
+
+
 def restart():
     prefix = "night_" + uuid.uuid4().hex[:10]
     before = request(f"{SMTP}/stats")["count"]
@@ -113,8 +141,12 @@ def restart():
 if __name__ == "__main__":
     await_value(lambda: request(f"{APP}/actuator/health"), lambda health: health["status"] == "UP", "application readiness", 180)
     selected = sys.argv[1] if len(sys.argv) > 1 else "all"
-    if selected == "restart":
+    if selected == "protection":
+        partner_documents()
+    elif selected == "restart":
         restart()
     else:
         for kind in (("happy", "partial", "unknown", "delayed") if selected == "all" else (selected,)):
             scenario(kind)
+        if selected == "all" and os.environ.get("PARTNER_DOCUMENT_SCENARIOS") == "true":
+            partner_documents()

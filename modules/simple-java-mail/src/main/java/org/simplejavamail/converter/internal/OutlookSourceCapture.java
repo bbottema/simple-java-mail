@@ -54,11 +54,22 @@ final class OutlookSourceCapture {
 
     static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
             final List<EmailProblem> problems, final Map<Integer, String> attachmentFailures, final ImportTraversal traversal) {
+        return capture(metadata, message, represented, problems, attachmentFailures, traversal, java.util.Collections.emptyMap());
+    }
+
+    static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
+            final List<EmailProblem> problems, final Map<Integer, String> attachmentFailures, final ImportTraversal traversal,
+            final Map<Integer, Email> materializedChildren) {
+        return capture(metadata, message, represented, problems, attachmentFailures, traversal, materializedChildren, java.util.Collections.emptyMap());
+    }
+
+    static EmailSourceData capture(final EmailSourceData metadata, final OutlookMessage message, final EmailPopulatingBuilder represented,
+            final List<EmailProblem> problems, final Map<Integer, String> attachmentFailures, final ImportTraversal traversal,
+            final Map<Integer, Email> materializedChildren, final Map<Integer, EmailSourceContent> retainedComponents) {
 		final EmailSourceIdentity origin = metadata.getOrigin();
 		final List<EmailSourcePart> parts = new ArrayList<>();
-		final Email merged = represented != null && represented.isMergeSingleSMIMESignedAttachment() ? represented.getSmimeSignedEmail() : null;
-		body(parts, origin, "plain", message.getBodyText(), merged != null ? merged.getPlainText() : represented != null ? represented.getPlainText() : null, traversal);
-		body(parts, origin, "html", message.getBodyHTML(), merged != null ? merged.getHTMLText() : represented != null ? represented.getHTMLText() : null, traversal);
+		body(parts, origin, "plain", message.getBodyText(), represented != null ? represented.getPlainText() : null, traversal);
+		body(parts, origin, "html", message.getBodyHTML(), represented != null ? represented.getHTMLText() : null, traversal);
 		// RTF is not exposed by a normal Email body getter. Its original reader text survives a successful HTML conversion.
 		body(parts, origin, "rtf", message.getBodyRTF(), null, traversal);
 		final List<OutlookAttachment> nativeAttachments = message.getOutlookAttachments();
@@ -68,6 +79,7 @@ final class OutlookSourceCapture {
 			final OutlookAttachment attachment = nativeAttachments.get(attachmentIndex);
 			final String location = "source/parts[" + parts.size() + "]";
 			final List<EmailSourceProperty> properties = new ArrayList<>();
+			property(properties, origin, location, "nativeAttachmentIndex", "Integer", Integer.toString(attachmentIndex));
 			List<EmailSourcePart> children = emptyList();
 			if (attachment instanceof OutlookFileAttachment) {
 				final OutlookFileAttachment file = (OutlookFileAttachment) attachment;
@@ -80,31 +92,16 @@ final class OutlookSourceCapture {
 				// The normal attachment/image already owns the canonical file bytes. Do not retain another copy here.
 			} else if (attachment.getEmbeddedMessage() != null) {
 				property(properties, origin, location, "kind", "String", "embedded-message");
-			    final ImportTraversal nestedScope = attachmentScope.child("message");
-                if (nestedScope.isAdmitted()) {
-				final OutlookMessage nested = attachment.getEmbeddedMessage();
-				final InspectionOutlookData nativeData = InspectionOutlookData.builder().rawHeaders(nested.getHeaders())
-						.messageClass(nested.getMessageClass()).propertiesAsHex(nested.getPropertiesAsHex())
-						.propertyCodes(nested.getPropertyCodes()).build();
-				final InputInspection nestedInspection = InputInspection.capture(nativeData, nested.getMessageId());
-				nestedInspection.noteAddressRecovery("Disposition-Notification-To", "Return-Receipt-To", "Return-Path");
-				if (nested.getReplyToEmail() != null && !nested.getReplyToEmail().trim().isEmpty()) {
-					nestedInspection.noteAddressRecovery("Reply-To");
-				}
-				final EmailSourceData nestedMetadata = nestedInspection.getSourceData();
-				final List<EmailProblem> nestedProblems = new ArrayList<>(nestedInspection.getProblems());
-				final EmailSourceData nestedSource = capture(nestedMetadata, nested, null, nestedProblems,
-                        java.util.Collections.emptyMap(), nestedScope);
-				children = singletonList(EmailInspection.part(nestedSource.getOrigin(), "source/message", nestedSource.getHeaders(),
-						nestedSource.getProperties(), nestedSource.getParts(), null, null));
-				for (EmailProblem problem : nestedProblems) {
-					problems.add(EmailInspection.qualify(problem, location + "/message/"));
-				}
+                final Email child = materializedChildren.get(attachmentIndex);
+                if (child != null) {
+                    final EmailSourceData nestedSource = child.getSourceData();
+                    children = singletonList(EmailInspection.part(nestedSource.getOrigin(), "source/message", nestedSource.getHeaders(),
+                            nestedSource.getProperties(), nestedSource.getParts(), null, null));
                 }
 			} else {
 				property(properties, origin, location, "kind", "String", "reader-resource");
 			}
-			final EmailSourcePart source = EmailInspection.part(origin, location, emptyList(), properties, children, null, null);
+			final EmailSourcePart source = EmailInspection.part(origin, location, emptyList(), properties, children, null, retainedComponents.get(attachmentIndex));
 			parts.add(source);
             if (attachmentScope.stoppedChildrenDescription() != null) {
                 problems.add(EmailInspection.problem(origin, EmailProblem.Operation.IMPORT, EmailProblem.Code.IMPORT_LIMIT_EXCEEDED,
@@ -116,6 +113,15 @@ final class OutlookSourceCapture {
 			}
 		}
 		final List<EmailSourceProperty> properties = new ArrayList<>(metadata.getProperties());
+        readerField(properties, origin, "subject", message.getSubject());
+        readerField(properties, origin, "messageId", message.getMessageId());
+        readerField(properties, origin, "fromEmail", message.getFromEmail());
+        readerField(properties, origin, "fromName", message.getFromName());
+        readerField(properties, origin, "replyToEmail", message.getReplyToEmail());
+        readerField(properties, origin, "replyToName", message.getReplyToName());
+        readerRecipients(properties, origin, "to", message.getToRecipients());
+        readerRecipients(properties, origin, "cc", message.getCcRecipients());
+        readerRecipients(properties, origin, "bcc", message.getBccRecipients());
 		for (Integer code : message.getPropertyCodes()) {
 			final Object value = message.getPropertyValue(code);
 			final String location = "source/properties[" + properties.size() + "]";
@@ -150,6 +156,24 @@ final class OutlookSourceCapture {
         }
 		return EmailInspection.withProperties(EmailInspection.withParts(metadata, parts), properties);
 	}
+
+    /** These are actual reader-selected facts, distinct from separately retained raw MAPI property alternatives. */
+    private static void readerField(final List<EmailSourceProperty> properties, final EmailSourceIdentity origin,
+            final String field, final String value) {
+        property(properties, origin, "source", "native." + field, "String", value);
+    }
+
+    private static void readerRecipients(final List<EmailSourceProperty> properties, final EmailSourceIdentity origin,
+            final String role, final List<org.simplejavamail.api.internal.outlooksupport.model.OutlookRecipient> recipients) {
+        for (int index = 0; index < recipients.size(); index++) {
+            final org.simplejavamail.api.internal.outlooksupport.model.OutlookRecipient recipient = recipients.get(index);
+            readerField(properties, origin, role + "[" + index + "].address", recipient.getAddress());
+            readerField(properties, origin, role + "[" + index + "].name", recipient.getName());
+            for (final Integer code : recipient.getPropertyCodes()) {
+                property(properties, origin, "source", "native." + role + "[" + index + "].propertyCode", "Integer", code.toString());
+            }
+        }
+    }
 
 	private static void body(final List<EmailSourcePart> parts, final EmailSourceIdentity origin, final String kind,
 			final String original, final String represented, final ImportTraversal traversal) {

@@ -33,11 +33,8 @@ import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailStartingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
 import org.simplejavamail.api.email.DeliveryStatusReport;
-import org.simplejavamail.internal.email.OpenPgpDetailsImpl;
 import org.simplejavamail.internal.email.HeaderSettings;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.DeliveryStatusNotification;
@@ -47,7 +44,6 @@ import org.simplejavamail.api.email.config.OpenPgpSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
-import org.simplejavamail.api.internal.smimesupport.model.PlainSmimeDetails;
 import org.simplejavamail.api.mailer.config.EmailGovernance;
 import org.simplejavamail.config.SimpleJavaMailConfig;
 import org.simplejavamail.api.email.EmailProperty;
@@ -109,6 +105,117 @@ import static org.simplejavamail.internal.util.Preconditions.verifyNonnullOrEmpt
 public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilder {
     private EmailSourceData sourceData = EmailInspection.empty();
     private List<EmailProblem> problems = Collections.emptyList();
+    private final CurrentEmailInspection currentInspection = new CurrentEmailInspection();
+    private ConfidentialContentState confidentialContentState = ConfidentialContentState.none();
+    private String publicSubject;
+    private final Set<String> explicitHeaderNames = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    private final Set<String> confidentialHeaderNames = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    private final Set<String> capturedReceiptGroups = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+    @Override public org.simplejavamail.api.email.EmailInspection getSelectionInspection() { return currentInspection.snapshot(); }
+    @Override public void retainSelectionInspection(final org.simplejavamail.api.email.EmailInspection inspection) {
+        currentInspection.retain(inspection, attachments.size(), embeddedImages.size());
+    }
+    @Override public ConfidentialContentState getConfidentialContentState() { return confidentialContentState; }
+    @Override public void retainConfidentialContentState(final ConfidentialContentState state) { confidentialContentState = requireNonNull(state, "state"); }
+    @Override public String getPublicSubject() { return publicSubject; }
+    @Override public void retainPublicSubject(final String subject) { publicSubject = subject; }
+    @Override public void retainOriginalMessageProtection(final org.simplejavamail.internal.email.OriginalMessageProtection protection) { currentInspection.retainOriginalMessageProtection(protection); }
+    @Override public org.simplejavamail.internal.email.OriginalMessageProtection getOriginalMessageProtection() {
+        return ((org.simplejavamail.internal.email.ReceivedEmailInspection) currentInspection.snapshot()).getOriginalMessageProtection();
+    }
+    @Override public Set<String> getExplicitHeaderNames() {
+        final Set<String> names = new java.util.TreeSet<>();
+        explicitHeaderNames.forEach(name -> names.add(name.toLowerCase(java.util.Locale.ROOT)));
+        return Collections.unmodifiableSet(names);
+    }
+    @Override public void retainExplicitHeaderNames(final Set<String> names) {
+        explicitHeaderNames.clear();
+        explicitHeaderNames.addAll(names);
+    }
+    @Override public Set<String> getConfidentialHeaderNames() {
+        final Set<String> names = new java.util.TreeSet<>();
+        confidentialHeaderNames.forEach(name -> names.add(name.toLowerCase(java.util.Locale.ROOT)));
+        return Collections.unmodifiableSet(names);
+    }
+    @Override public void retainConfidentialHeaderNames(final Set<String> names) {
+        confidentialHeaderNames.clear(); confidentialHeaderNames.addAll(names);
+    }
+    @Override public Set<String> getCapturedReceiptGroups() {
+        final Set<String> snapshot = new java.util.TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        snapshot.addAll(capturedReceiptGroups);
+        return Collections.unmodifiableSet(snapshot);
+    }
+    @Override public void retainCapturedReceiptGroups(final Set<String> names) {
+        capturedReceiptGroups.clear(); capturedReceiptGroups.addAll(names);
+    }
+    @Override public void retainReceivedHeaders(final Map<String, ? extends Collection<String>> received) {
+        headers.clear();
+        received.forEach((name, values) -> headers.put(name, new ArrayList<>(values)));
+        explicitHeaderNames.clear();
+        capturedReceiptGroups.clear();
+    }
+
+    private void removeActiveHeader(final String name) { headers.remove(name); explicitHeaderNames.remove(name); capturedReceiptGroups.remove(name); }
+
+    private void noteRecipientEdit(final RecipientType suppliedType) {
+        final RecipientType type = suppliedType == null ? RecipientType.TO : suppliedType;
+        final CurrentEmailInspection.Field field = type == RecipientType.CC ? CurrentEmailInspection.Field.CC
+                : type == RecipientType.BCC ? CurrentEmailInspection.Field.BCC : CurrentEmailInspection.Field.TO;
+        currentInspection.replace(field, recipients.stream().filter(recipient -> recipient.getType() == type).collect(java.util.stream.Collectors.toList()));
+        removeActiveHeader(type == RecipientType.CC ? "Cc" : type == RecipientType.BCC ? "Bcc" : "To");
+    }
+
+    /** Generic authored fields use the same value authority as their typed conveniences. */
+    private void applyTypedHeader(final String name, final String supplied, final boolean replace) {
+        final String value = supplied == null ? "" : supplied;
+        switch (name.toLowerCase(java.util.Locale.ROOT)) {
+            case "subject": withSubject(value); break;
+            case "message-id": fixingMessageId(value); break;
+            case "date":
+                final Date parsed = org.simplejavamail.internal.converter.ImportedSentDateParser.parse(value);
+                if (parsed == null) throw new IllegalArgumentException("Date requires a usable stated date; use clearSentDate() to select the outgoing date default");
+                fixingSentDate(parsed);
+                break;
+            case "from":
+                final Recipient from = EmailAddressConvenience.interpret(null, value, null, "From");
+                from(from);
+                break;
+            case "reply-to":
+                final List<Recipient> replies = value.isEmpty() ? List.of() : EmailAddressConvenience.interpretList(null, value, null, name);
+                final boolean repeatedReply = !replace && headers.containsKey(name) && headers.get(name).contains(supplied == null ? null : value);
+                if (replace) clearReplyTo();
+                if (repeatedReply) currentInspection.replace(CurrentEmailInspection.Field.REPLY_TO, replyToRecipients);
+                else withReplyTo(replies);
+                break;
+            case "to": case "cc": case "bcc":
+                final RecipientType type = name.equalsIgnoreCase("cc") ? RecipientType.CC
+                        : name.equalsIgnoreCase("bcc") ? RecipientType.BCC : RecipientType.TO;
+                final List<Recipient> addresses = value.isEmpty() ? List.of() : EmailAddressConvenience.interpretList(null, value, type, name);
+                final boolean repeated = !replace && headers.containsKey(name) && headers.get(name).contains(supplied == null ? null : value);
+                if (replace) { recipients.removeIf(recipient -> recipient.getType() == type); noteRecipientEdit(type); }
+                if (repeated) {
+                    currentInspection.replace(type == RecipientType.CC ? CurrentEmailInspection.Field.CC : type == RecipientType.BCC ? CurrentEmailInspection.Field.BCC : CurrentEmailInspection.Field.TO,
+                            recipients.stream().filter(recipient -> recipient.getType() == type).collect(java.util.stream.Collectors.toList()));
+                } else withRecipients(addresses);
+                break;
+            case "return-path":
+                if (value.isEmpty() || "<>".equals(value.trim())) clearBounceTo(); else withBounceTo(value);
+                break;
+            case "disposition-notification-to": case "return-receipt-to":
+                final List<Recipient> requested = EmailAddressConvenience.interpretList(null, checkNonEmptyArgument(value, name), null, name);
+                if (!replace && headers.containsKey(name) && headers.get(name).contains(supplied == null ? null : value)) break;
+                final boolean disposition = name.equalsIgnoreCase("Disposition-Notification-To");
+                final List<Recipient> notifications = new ArrayList<>();
+                if (!replace && Boolean.TRUE.equals(disposition ? useDispositionNotificationTo : useReturnReceiptTo)) {
+                    notifications.addAll(disposition ? dispositionNotificationToRecipients : returnReceiptToRecipients);
+                }
+                notifications.addAll(requested);
+                if (disposition) withDispositionNotificationToState(true, notifications); else withReturnReceiptToState(true, notifications);
+                break;
+            default: break;
+        }
+    }
     private String receivedHtml;
     private List<EmailSourcePart> receivedHtmlParts = Collections.emptyList();
 
@@ -308,11 +415,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@NotNull
 	private final List<AttachmentResource> attachments = new ArrayList<>();
 
-	/**
-	 * @see #withDecryptedAttachments(List)
-	 */
-	@NotNull
-	private final List<AttachmentResource> decryptedAttachments = new ArrayList<>();
 
 	/**
 	 * @see #withHeader(String, Object)
@@ -391,28 +493,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	private MimeMessage emailToForward;
 
-	/**
-	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
-	 */
-	@NotNull
-	private OriginalSmimeDetails originalSmimeDetails = new PlainSmimeDetails();
 	@Nullable
 	private DeliveryStatusReport deliveryStatusReport;
-
-	@NotNull
-	private OriginalOpenPgpDetails originalOpenPgpDetails = OpenPgpDetailsImpl.plain();
-
-	/**
-	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
-	 */
-	private Email smimeSignedEmail;
-
-	/**
-	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
-	 */
-	private boolean mergeSingleSMIMESignedAttachment = true;
-	private boolean copiedContent;
-	private boolean mergedCopiedSmimeContent;
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
@@ -667,11 +749,14 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 					}
 				}
 			}
+			if (generatedCids.isEmpty()) return;
 			rewrittenHtml.append(this.textHTML, copiedUntil, this.textHTML.length());
 
 			// A later required source can fail; apply the images and HTML only after the complete pass succeeds.
 			this.embeddedImages.addAll(resolvedImages);
+            resolvedImages.forEach(currentInspection::addDerivedEmbeddedImage);
 			this.textHTML = rewrittenHtml.toString();
+			currentInspection.deriveHTML();
 		}
 	}
 
@@ -831,6 +916,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder fixingMessageId(@Nullable final String id) {
 		this.id = id;
+		currentInspection.replace(CurrentEmailInspection.Field.ID, this.id);
+		removeActiveHeader("Message-ID");
 		return this;
 	}
 	
@@ -877,6 +964,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder from(@NotNull final Recipient recipient) {
 		checkNonEmptyArgument(recipient, "from recipient");
 		this.fromRecipient = new Recipient(recipient.getName(), recipient.getAddress(), null, null);
+		currentInspection.replace(CurrentEmailInspection.Field.FROM, this.fromRecipient);
+		removeActiveHeader("From");
 		return this;
 	}
 	
@@ -922,6 +1011,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReplyTo(@NotNull final Recipient recipient) {
 		this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
+		currentInspection.replace(CurrentEmailInspection.Field.REPLY_TO, this.replyToRecipients);
+		removeActiveHeader("Reply-To");
 		return this;
 	}
 
@@ -932,6 +1023,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder withReplyTo(@NotNull final List<Recipient> recipients) {
 		for (Recipient recipient : recipients) {
 			this.replyToRecipients.add(new Recipient(recipient.getName(), recipient.getAddress(), null, null));
+		currentInspection.replace(CurrentEmailInspection.Field.REPLY_TO, this.replyToRecipients);
+		removeActiveHeader("Reply-To");
 		}
 		return this;
 	}
@@ -979,6 +1072,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withBounceTo(@Nullable final Recipient recipient) {
 		this.bounceToRecipient = recipient != null ? new Recipient(recipient.getName(), recipient.getAddress(), null, null) : null;
+		currentInspection.replace(CurrentEmailInspection.Field.BOUNCE_TO, this.bounceToRecipient);
 		return this;
 	}
 
@@ -1077,6 +1171,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withSubject(@Nullable final String subject) {
 		this.subject = subject;
+		currentInspection.replace(CurrentEmailInspection.Field.SUBJECT, this.subject);
+		removeActiveHeader("Subject");
 		return this;
 	}
 	
@@ -1116,7 +1212,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withPlainText(@Nullable final String text) {
+        if (text == null) return clearPlainText();
 		this.text = text;
+		currentInspection.replace(CurrentEmailInspection.Field.PLAIN_TEXT, this.text);
 		return this;
 	}
 	
@@ -1149,6 +1247,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder prependPlainText(@NotNull final String text) {
 		requireNonNull(text, "text");
 		this.text = text + defaultTo(this.text, "");
+		currentInspection.replace(CurrentEmailInspection.Field.PLAIN_TEXT, this.text);
 		return this;
 	}
 	
@@ -1181,6 +1280,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder appendPlainText(@NotNull final String text) {
 		requireNonNull(text, "text");
 		this.text = defaultTo(this.text, "") + text;
+		currentInspection.replace(CurrentEmailInspection.Field.PLAIN_TEXT, this.text);
 		return this;
 	}
 	
@@ -1211,8 +1311,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder withHTMLText(@Nullable final String textHTML) {
+        if (textHTML == null) return clearHTMLText();
 		clearReceivedHtml();
 		this.textHTML = textHTML;
+		currentInspection.replace(CurrentEmailInspection.Field.HTML_TEXT, this.textHTML);
 		return this;
 	}
 	
@@ -1246,6 +1348,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		requireNonNull(textHTML, "textHTML");
 		clearReceivedHtml();
 		this.textHTML = textHTML + defaultTo(this.textHTML, "");
+		currentInspection.replace(CurrentEmailInspection.Field.HTML_TEXT, this.textHTML);
 		return this;
 	}
 	
@@ -1279,6 +1382,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		requireNonNull(textHTML, "textHTML");
 		clearReceivedHtml();
 		this.textHTML = defaultTo(this.textHTML, "") + textHTML;
+		currentInspection.replace(CurrentEmailInspection.Field.HTML_TEXT, this.textHTML);
 		return this;
 	}
 	
@@ -1291,6 +1395,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		requireNonNull(textCalendar, "textCalendar");
 		this.calendarMethod = calendarMethod;
 		this.textCalendar = textCalendar;
+		currentInspection.replace(CurrentEmailInspection.Field.CALENDAR, this.textCalendar);
 		return this;
 	}
 
@@ -1353,6 +1458,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 					? new Recipient(recipient.getName(), recipient.getAddress(), RecipientType.TO, recipient.getSmimeCertificate(),
 							recipient.getDeliveryStatusNotificationNotifyOptions())
 					: recipient);
+            noteRecipientEdit(recipient.getType());
 		}
 		return this;
 	}
@@ -1551,6 +1657,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(embeddedImage, "embeddedImage");
 		validateEmbeddedImage(embeddedImage.getName(), embeddedImage.getDataSource(), embeddedImage.getContentId());
 		embeddedImages.add(embeddedImage);
+		currentInspection.addEmbeddedImage(embeddedImage);
 		return this;
 	}
 
@@ -1575,25 +1682,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public <T> EmailPopulatingBuilder withHeaders(@NotNull final Map<String, ? extends Collection<? extends T>> headers) {
-		return withHeaders(headers, false);
-	}
-
-	/**
-	 * Copies headers, but if required will ignore generated Message-ID header, which should not be copied to a new message. This
-	 * Message ID was never meant to be used for sending messages, but for handling nested S/MIME encrypted message attachments.
-	 *
-	 * @see EmailPopulatingBuilder#withHeaders(Map)
-	 */
-	@Override
-	@NotNull
-	public <T> InternalEmailPopulatingBuilder withHeaders(@NotNull final Map<String, ? extends Collection<? extends T>> headers, final boolean ignoreSmimeMessageId) {
 		for (Map.Entry<String, ? extends Collection<? extends T>> headerEntry : headers.entrySet()) {
 			for (final T headerValue : headerEntry.getValue()) {
-				if (!ignoreSmimeMessageId ||
-						!ModuleLoader.smimeModuleAvailable() ||
-						!ModuleLoader.loadSmimeModule().isGeneratedSmimeMessageId(headerEntry.getKey(), headerValue)) {
-					withHeader(headerEntry.getKey(), headerValue);
-                }
+				withHeader(headerEntry.getKey(), headerValue);
 			}
 		}
 		return this;
@@ -1613,14 +1704,16 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withHeader(@NotNull final String name, @Nullable final Object value, boolean replaceHeader) {
 		checkNonEmptyArgument(name, "name");
-		headers.putIfAbsent(name, new ArrayList<>());
+        final String valueString = value != null ? String.valueOf(value) : null;
+		applyTypedHeader(name, valueString, replaceHeader);
+        if (replaceHeader) confidentialHeaderNames.remove(name);
+        explicitHeaderNames.add(name);
+        capturedReceiptGroups.remove(name);
+        headers.putIfAbsent(name, new ArrayList<>());
 		if (replaceHeader) {
 			headers.get(name).clear();
 		}
-		val valueString = value != null ? String.valueOf(value) : null;
-		if (!headers.get(name).contains(valueString)) {
-			headers.get(name).add(valueString);
-		}
+		if (!headers.get(name).contains(valueString)) headers.get(name).add(valueString);
 		return this;
 	}
 
@@ -1684,6 +1777,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		checkNonEmptyArgument(attachment, "attachment");
 		checkNonEmptyArgument(attachment.getDataSource(), "filedata");
 		attachments.add(attachment);
+		currentInspection.addAttachment(attachment);
 		return this;
 	}
 
@@ -1696,29 +1790,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/**
-	 * This is used internally.
-	 *
-	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
-	 */
-	@NotNull
-	@Override
-	public InternalEmailPopulatingBuilder withDecryptedAttachments(@NotNull final List<AttachmentResource> attachments) {
-		decryptedAttachments.addAll(attachments);
-		return this;
-	}
 
-	/**
-	 * This is used internally for testing purposed
-	 *
-	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
-	 */
-	@NotNull
-	@Override
-	public InternalEmailPopulatingBuilder clearDecryptedAttachments() {
-		decryptedAttachments.clear();
-		return this;
-	}
+
+
 	
 	/**
 	 * @see EmailPopulatingBuilder#signWithDomainKey(DkimConfig)
@@ -1839,9 +1913,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("withDispositionNotificationToEnabled")
 	public EmailPopulatingBuilder withDispositionNotificationTo() {
-		this.useDispositionNotificationTo = true;
-		this.dispositionNotificationToRecipients = new ArrayList<>();
-		return this;
+        return withDispositionNotificationToState(true, List.of());
 	}
 	
 	/**
@@ -1888,9 +1960,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withDispositionNotificationTo(@NotNull final Collection<Recipient> recipients) {
 		final List<Recipient> destinations = notificationRecipients(recipients);
-		this.useDispositionNotificationTo = true;
-		this.dispositionNotificationToRecipients = destinations;
-		return this;
+        return withDispositionNotificationToState(true, destinations);
 	}
 
 	@Override
@@ -1904,9 +1974,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@Cli.OptionNameOverride("withReturnReceiptToEnabled")
 	public EmailPopulatingBuilder withReturnReceiptTo() {
-		this.useReturnReceiptTo = true;
-		this.returnReceiptToRecipients = new ArrayList<>();
-		return this;
+        return withReturnReceiptToState(true, List.of());
 	}
 	
 	/**
@@ -1953,9 +2021,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder withReturnReceiptTo(@NotNull final Collection<Recipient> recipients) {
 		final List<Recipient> destinations = notificationRecipients(recipients);
-		this.useReturnReceiptTo = true;
-		this.returnReceiptToRecipients = destinations;
-		return this;
+        return withReturnReceiptToState(true, destinations);
 	}
 
 	@Override
@@ -1982,31 +2048,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
-	 */
-	@NotNull
-	@Override
-	public InternalEmailPopulatingBuilder withOriginalSmimeDetails(@NotNull final OriginalSmimeDetails originalSmimeDetails) {
-		this.originalSmimeDetails = originalSmimeDetails;
-		return this;
-	}
 
-	@Override
-	public InternalEmailPopulatingBuilder withOriginalOpenPgpDetails(@NotNull final OriginalOpenPgpDetails originalOpenPgpDetails) {
-		this.originalOpenPgpDetails = originalOpenPgpDetails;
-		return this;
-	}
-
-	/**
-	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
-	 */
-	@NotNull
-	@Override
-	public InternalEmailPopulatingBuilder withSmimeSignedEmail(@NotNull final Email smimeSignedEmail) {
-		this.smimeSignedEmail = smimeSignedEmail;
-		return this;
-	}
 
 	/**
 	 * @see EmailPopulatingBuilder#fixingSentDate(Date)
@@ -2014,6 +2056,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder fixingSentDate(@NotNull final Date sentDate) {
 		this.sentDate = new Date(sentDate.getTime());
+		currentInspection.replace(CurrentEmailInspection.Field.SENT_DATE, this.sentDate);
+		removeActiveHeader("Date");
 		return this;
 	}
 
@@ -2026,14 +2070,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return fixingSentDate(Date.from(sentDate));
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment()
-	 */
-	@Override
-	public EmailPopulatingBuilder notMergingSingleSMIMESignedAttachment() {
-		this.mergeSingleSMIMESignedAttachment = false;
-		return this;
-	}
+
 
 	/**
 	 * @see EmailPopulatingBuilder#clearId()
@@ -2041,6 +2078,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearId() {
 		this.id = null;
+		currentInspection.replace(CurrentEmailInspection.Field.ID, this.id);
+		removeActiveHeader("Message-ID");
 		return this;
 	}
 	
@@ -2050,6 +2089,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearFromRecipient() {
 		this.fromRecipient = null;
+		currentInspection.replace(CurrentEmailInspection.Field.FROM, this.fromRecipient);
+		removeActiveHeader("From");
 		return this;
 	}
 	
@@ -2059,6 +2100,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearReplyTo() {
 		this.replyToRecipients.clear();
+		currentInspection.replace(CurrentEmailInspection.Field.REPLY_TO, this.replyToRecipients);
+		removeActiveHeader("Reply-To");
 		return this;
 	}
 	
@@ -2068,6 +2111,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearBounceTo() {
 		this.bounceToRecipient = null;
+		currentInspection.replace(CurrentEmailInspection.Field.BOUNCE_TO, this.bounceToRecipient);
 		return this;
 	}
 
@@ -2123,7 +2167,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearPlainText() {
+		confidentialContentState = confidentialContentState.without(ConfidentialContentState.Component.PLAIN_TEXT);
 		this.text = null;
+		currentInspection.replace(CurrentEmailInspection.Field.PLAIN_TEXT, this.text);
 		return this;
 	}
 
@@ -2132,8 +2178,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	 */
 	@Override
 	public EmailPopulatingBuilder clearHTMLText() {
+		confidentialContentState = confidentialContentState.without(ConfidentialContentState.Component.HTML_TEXT);
 		clearReceivedHtml();
 		this.textHTML = null;
+		currentInspection.replace(CurrentEmailInspection.Field.HTML_TEXT, this.textHTML);
 		return this;
 	}
 
@@ -2144,6 +2192,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	public EmailPopulatingBuilder clearCalendarText() {
 		this.calendarMethod = null;
 		this.textCalendar = null;
+		currentInspection.replace(CurrentEmailInspection.Field.CALENDAR, this.textCalendar);
 		return this;
 	}
 
@@ -2189,6 +2238,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearSubject() {
 		this.subject = null;
+		currentInspection.replace(CurrentEmailInspection.Field.SUBJECT, this.subject);
+		removeActiveHeader("Subject");
 		return this;
 	}
 	
@@ -2198,6 +2249,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearRecipients() {
 		this.recipients.clear();
+        noteRecipientEdit(RecipientType.TO);
+        noteRecipientEdit(RecipientType.CC);
+        noteRecipientEdit(RecipientType.BCC);
 		return this;
 	}
 
@@ -2243,6 +2297,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearEmbeddedImages() {
 		this.embeddedImages.clear();
+		currentInspection.clearEmbeddedImages();
+		confidentialContentState = confidentialContentState.without(ConfidentialContentState.Component.EMBEDDED_IMAGES);
 		return this;
 	}
 	
@@ -2252,6 +2308,8 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearAttachments() {
 		this.attachments.clear();
+		currentInspection.clearAttachments();
+		confidentialContentState = confidentialContentState.without(ConfidentialContentState.Component.ATTACHMENTS);
 		return this;
 	}
 
@@ -2261,6 +2319,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@NotNull
 	public EmailPopulatingBuilder clearEmailToForward() {
+		confidentialContentState = confidentialContentState.without(ConfidentialContentState.Component.FORWARDED_MESSAGE);
 		this.emailToForward = null;
 		return this;
 	}
@@ -2271,6 +2330,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearHeaders() {
 		this.headers.clear();
+        explicitHeaderNames.clear();
+        confidentialHeaderNames.clear();
+        capturedReceiptGroups.clear();
 		return this;
 	}
 	
@@ -2337,8 +2399,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@NotNull
 	public InternalEmailPopulatingBuilder withDispositionNotificationToState(@Nullable final Boolean requested, @Nullable final Collection<Recipient> recipients) {
+        final List<Recipient> destinations = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
 		this.useDispositionNotificationTo = requested;
-		this.dispositionNotificationToRecipients = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
+        this.dispositionNotificationToRecipients = destinations;
+        removeActiveHeader("Disposition-Notification-To");
 		return this;
 	}
 	
@@ -2354,8 +2418,10 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	@NotNull
 	public InternalEmailPopulatingBuilder withReturnReceiptToState(@Nullable final Boolean requested, @Nullable final Collection<Recipient> recipients) {
+        final List<Recipient> destinations = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
 		this.useReturnReceiptTo = requested;
-		this.returnReceiptToRecipients = recipients == null ? new ArrayList<>() : notificationRecipients(recipients);
+        this.returnReceiptToRecipients = destinations;
+        removeActiveHeader("Return-Receipt-To");
 		return this;
 	}
 
@@ -2365,56 +2431,13 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Override
 	public EmailPopulatingBuilder clearSentDate() {
 		this.sentDate = null;
+		currentInspection.replace(CurrentEmailInspection.Field.SENT_DATE, this.sentDate);
+		removeActiveHeader("Date");
 		return this;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior()
-	 */
-	@Override
-	public EmailPopulatingBuilder clearSMIMESignedAttachmentMergingBehavior() {
-		this.mergeSingleSMIMESignedAttachment = true;
-		materializeCopiedSmimeContent();
-		return this;
-	}
 
-	/** Copying supplies the complete visible starting value; retained signed content is history, not a later overlay. */
-	void retainCopiedSmimeContent(final boolean alreadyMerged) {
-		copiedContent = true;
-		mergedCopiedSmimeContent = alreadyMerged;
-		mergeSingleSMIMESignedAttachment = alreadyMerged;
-	}
 
-	boolean hasCopiedContent() {
-		return copiedContent;
-	}
-
-	boolean hasMergedCopiedSmimeContent() {
-		return mergedCopiedSmimeContent;
-	}
-
-	/** An explicit opt-in on a separate copy integrates the retained view once, before any subsequent builder edits. */
-	private void materializeCopiedSmimeContent() {
-		if (!copiedContent || mergedCopiedSmimeContent || smimeSignedEmail == null) {
-			return;
-		}
-		final Map<String, Collection<String>> mergedHeaders = HeaderSettings.mergeSignedContent(headers, smimeSignedEmail.getHeaders());
-		text = smimeSignedEmail.getPlainText();
-		textHTML = smimeSignedEmail.getHTMLText();
-		plainTextContentTransferEncoding = smimeSignedEmail.getPlainTextContentTransferEncoding();
-		htmlTextContentTransferEncoding = smimeSignedEmail.getHTMLTextContentTransferEncoding();
-		if (smimeSignedEmail.getCalendarText() != null) {
-			calendarMethod = smimeSignedEmail.getCalendarMethod();
-			textCalendar = smimeSignedEmail.getCalendarText();
-			calendarTextContentTransferEncoding = smimeSignedEmail.getCalendarTextContentTransferEncoding();
-		}
-		attachments.addAll(smimeSignedEmail.getAttachments());
-		embeddedImages.addAll(smimeSignedEmail.getEmbeddedImages());
-		decryptedAttachments.addAll(smimeSignedEmail.getDecryptedAttachments());
-		headers.clear();
-		headers.putAll(mergedHeaders);
-		mergedCopiedSmimeContent = true;
-	}
 
 	/**
 	 * @see #ignoringDefaults(boolean)
@@ -2620,14 +2643,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return new ArrayList<>(attachments);
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#getDecryptedAttachments()
-	 */
-	@NotNull
-	@Override
-	public List<AttachmentResource> getDecryptedAttachments() {
-		return new ArrayList<>(decryptedAttachments);
-	}
+
 
 	/**
 	 * @see EmailPopulatingBuilder#getHeaders()
@@ -2703,14 +2719,7 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return emailToForward;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#getOriginalSmimeDetails()
-	 */
-	@NotNull
-	@Override
-	public OriginalSmimeDetails getOriginalSmimeDetails() {
-		return originalSmimeDetails;
-	}
+
 
 	/** @see Email#getDeliveryStatusReport() */
 	@Override
@@ -2726,22 +2735,9 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 		return this;
 	}
 
-	/**
-	 * @see EmailPopulatingBuilder#getSmimeSignedEmail()
-	 */
-	@Nullable
-	@Override
-	public Email getSmimeSignedEmail() {
-		return smimeSignedEmail;
-	}
 
-	/**
-	 * @see EmailPopulatingBuilder#isMergeSingleSMIMESignedAttachment()
-	 */
-	@Override
-	public boolean isMergeSingleSMIMESignedAttachment() {
-		return mergeSingleSMIMESignedAttachment;
-	}
+
+
 
 	/**
 	 * @see EmailPopulatingBuilder#getSmimeSigningConfig()
@@ -2773,12 +2769,6 @@ public class EmailPopulatingBuilderImpl implements InternalEmailPopulatingBuilde
 	@Nullable
 	public OpenPgpEncryptionConfig getOpenPgpEncryptionConfig() {
 		return openPgpEncryptionConfig;
-	}
-
-	@Override
-	@NotNull
-	public OriginalOpenPgpDetails getOriginalOpenPgpDetails() {
-		return originalOpenPgpDetails;
 	}
 
 	/**

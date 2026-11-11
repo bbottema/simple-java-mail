@@ -172,8 +172,12 @@ final class MimePartCapture {
     void failed(final MimePart part, final MimeMessageParseException failure, final boolean externalReadSelected) {
         retainAcquired();
         final CapturedMimeContent.Failure captured = CapturedMimeContent.failureIn(failure);
+        final org.simplejavamail.internal.protection.ProtectionInputReadException protectedInput = protectedInputFailure(failure);
         if (content == null && captured != null) {
             content = EmailInspection.content(captured.getCaptured(), EmailSourceContent.Representation.READER_BYTES, captured.isFullyCaptured());
+        }
+        if (content == null && protectedInput != null) {
+            content = EmailInspection.content(protectedInput.getCapturedBytes(), EmailSourceContent.Representation.READER_BYTES, protectedInput.isFullyAcquired());
         }
         if (content != null && content.getRepresentation() == EmailSourceContent.Representation.READER_BYTES) {
             // A decoder prefix must not hide the original encoding when this MIME entity already owns cached wire bytes.
@@ -182,12 +186,21 @@ final class MimePartCapture {
         if (content == null && text == null) {
             captureRaw(part, failure, externalReadSelected);
         }
-        final EmailProblem.Code code = InputInspection.causedBy(failure, UnsupportedEncodingException.class)
+        final EmailProblem.Code code = protectedInput != null && protectedInput.getReadFailure() == null && protectedInput.getCloseFailure() != null
+                ? EmailProblem.Code.RESOURCE_CLOSE_FAILED : InputInspection.causedBy(failure, UnsupportedEncodingException.class)
                 || InputInspection.causedBy(failure, CharacterCodingException.class)
                 ? EmailProblem.Code.VALUE_NOT_DECODED
                 : InputInspection.causedBy(failure, IOException.class) ? EmailProblem.Code.CONTENT_READ_FAILED
                 : EmailProblem.Code.CONTENT_NOT_REPRESENTED;
         problem(code, null, InputInspection.describe(failure));
+    }
+
+    private static org.simplejavamail.internal.protection.ProtectionInputReadException protectedInputFailure(final Throwable failure) {
+        final java.util.Set<Throwable> visited = Collections.newSetFromMap(new java.util.IdentityHashMap<>());
+        for (Throwable cause = failure; cause != null && visited.add(cause); cause = cause.getCause()) {
+            if (cause instanceof org.simplejavamail.internal.protection.ProtectionInputReadException) return (org.simplejavamail.internal.protection.ProtectionInputReadException) cause;
+        }
+        return null;
     }
 
     void problem(final EmailProblem.Code code, final String value, final String message) {
@@ -228,6 +241,11 @@ final class MimePartCapture {
                     capturedChildren, text, content);
         }
         return snapshot;
+    }
+
+    /** Captured envelope metadata used to bind one layer before its opened descendants are interpreted. */
+    EmailSourcePart layerSource() {
+        return EmailInspection.part(inspection.getOrigin(), location, headers, properties, Collections.emptyList(), null, null);
     }
 
     EmailSourcePart originalSnapshot() {

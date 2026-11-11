@@ -1,11 +1,9 @@
 package org.simplejavamail.mailer.internal;
 
-import org.simplejavamail.api.email.config.ContentEncodingConfig;
 import org.simplejavamail.api.email.config.SmtpDeliveryOptions;
 import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.api.mailer.MailSendHandlers;
-import jakarta.mail.Message.RecipientType;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -170,10 +168,12 @@ class SmtpMessageSizeTest {
             captured.complete(acceptConvertedEightBitMessage(peer));
             finishConnection(peer);
         }); Mailer mailer = builder(server).withProperty("mail.smtp.allow8bitmime", true).buildMailer()) {
-            final Email email = mail.emailBuilder().startingBlank().from("sender@example.test").withRecipients(SimpleJavaMail.fromDefaults().recipientBuilder().withName(null).withAddress(RECIPIENT).withType(RecipientType.BCC).build())
-                    .withSubject("Café").withPlainText("Café\r\n.hello")
-                    .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(ContentTransferEncoding.QUOTED_PRINTABLE).build())
-                    .withHeader("Content-Length", "123456").buildEmail();
+            final Email email = mail.converter().fromEml("From: sender@example.test\r\nBcc: " + RECIPIENT
+                    + "\r\nSubject: =?UTF-8?Q?Caf=C3=A9?=\r\nContent-Length: 123456\r\n"
+                    + "Content-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\n"
+                    + "Caf=C3=A9\r\n.hello").toEmail();
+            assertThat(email.getHeaders().get("Content-Length")).containsExactly("123456");
+            assertThat(email.getContentTransferEncoding()).isEqualTo(ContentTransferEncoding.QUOTED_PRINTABLE);
             final MailSubmissionReceipt receipt = mailer.sync().sendMail(email);
             final String content = captured.get(10, SECONDS);
             assertThat(content).contains("Content-Transfer-Encoding: 8bit").doesNotContain("Bcc:", "Content-Length:");

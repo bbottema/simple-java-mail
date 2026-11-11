@@ -165,7 +165,7 @@ final class HandoffReceiver implements AutoCloseable {
         if (recognizeRetainedPackage(destination, prepared)) {
             return;
         }
-        var verified = verifyProtectedContent(prepared);
+        var verified = checkRequiredBody(prepared);
         storeEncryptedPackage(destination, prepared, verified);
     }
 
@@ -196,18 +196,20 @@ final class HandoffReceiver implements AutoCloseable {
                 && Objects.equals(prepared.sender(), previous.get("sender"));
     }
 
-    private String verifyProtectedContent(HandoffPackage prepared) throws Exception {
+    private String checkRequiredBody(HandoffPackage prepared) throws Exception {
         var outerMessage = new jakarta.mail.internet.MimeMessage(jakarta.mail.Session.getInstance(new java.util.Properties()),
                 new java.io.ByteArrayInputStream(prepared.mime()));
         if (outerMessage.getHeader("Bcc") != null) {
             throw new IllegalArgumentException("Hidden recipients belong only in the package envelope");
         }
         var parsed = ProtectedContent.readProtected(prepared.mime());
-        String signature = parsed.getOriginalSmimeDetails().getVerificationStatus().name();
-        if (!signature.equals("VALID") || parsed.getPlainText() == null) {
-            throw new IllegalArgumentException("Synthetic partner protection did not verify");
+        var body = parsed.getInspection().getPlainText();
+        var requirements = ProtectedContent.requiredBodyProtection();
+        var check = requirements.check(body);
+        if (!check.isSatisfied() || parsed.getPlainText() == null) {
+            throw new IllegalArgumentException("The required body did not meet the application's approved-key and protection policy: " + check.getOutcome());
         }
-        return signature;
+        return body.getSignatureStatus().name();
     }
 
     private void storeEncryptedPackage(Path destination, HandoffPackage prepared, String signature) throws Exception {

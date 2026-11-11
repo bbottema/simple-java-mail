@@ -34,7 +34,8 @@ class EmailSourceInspectionTest {
                 .containsSubsequence("Received", "Comments", "received", "Keywords");
         assertThat(headerValues(source, "Comments")).containsExactly("note");
         assertThat(headerValues(source, "No-Such-Field")).isEmpty();
-        assertThat(email.getHeaders().keySet()).noneMatch(name -> name.equalsIgnoreCase("Received") || name.equalsIgnoreCase("Comments"));
+        assertThat(email.getHeaders().get("received")).containsExactly("first", "second");
+        assertThat(email.getHeaders().get("COMMENTS")).containsExactly("note");
         assertThat(email.getPlainText()).isEqualTo("Readable body\r\n");
         if (route != Route.EXACT) {
             MimeMessage rendered = MAIL.converter().fromEmail(email).toMimeMessage();
@@ -115,12 +116,14 @@ class EmailSourceInspectionTest {
         assertThatThrownBy(() -> email.getProblems().add(null)).isInstanceOf(UnsupportedOperationException.class);
     }
 
-    @Test void completionStartsItsOwnHistoryAndLeavesInputAvailable() throws Exception {
+    @Test void completionPreservesSubmittedHistoryAndUnchangedFieldAssociations() throws Exception {
         Email input = convert(Route.FLUENT_EML, message("Subject: " + BAD + "\r\n"));
         try (Mailer mailer = MAIL.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
             Email completed = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(input);
-            assertThat(completed.getSourceData().getHeaders()).isEmpty();
-            assertThat(completed.getProblems()).isEmpty();
+            assertThat(completed.getSourceData()).isSameAs(input.getSourceData());
+            assertThat(completed.getProblems()).containsExactlyElementsOf(input.getProblems());
+            assertThat(completed.getInspection().getSubject()).isSameAs(input.getInspection().getSubject());
+            assertThat(completed.getInspection().getOriginalMessage()).isSameAs(input.getInspection().getOriginalMessage());
             assertThat(input.getProblems()).hasSize(1);
             assertThat(input.getSourceData().getHeaders()).isNotEmpty();
         }

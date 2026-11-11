@@ -9,13 +9,13 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
-import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
+import org.simplejavamail.internal.protection.ProtectionLayerResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.utils.mail.smime.SmimeKey;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -177,15 +177,16 @@ class SmimeKeyCacheTest {
         plain.setText("Reloaded signing key", "UTF-8");
         plain.saveChanges();
         final MimeMessage signed = support.signMessageWithSmime(session, email, plain, signing);
-        assertThat(EmailConverter.mimeMessageToEmail(signed).getOriginalSmimeDetails().getVerificationStatus())
-                .isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(EmailConverter.mimeMessageToEmail(signed).getInspection().getPlainText().getSignatureStatus())
+                .isEqualTo(SignatureStatus.VERIFIED);
         final SmimeKey afterCapacityEviction = loadedKey(support, keys);
         assertThat(afterCapacityEviction).isNotSameAs(alreadyAcquired);
 
         fixture.load(1);
         fixture.load(2);
-        final SmimePreprocessingResult opened = support.processIncoming(session, incoming, keys);
-        assertThat(opened.getDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+        final ProtectionLayerResult opened = support.openIncomingLayer(session, incoming, keys);
+        assertThat(opened.getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
         assertThat(EmailConverter.mimeMessageToEmail(opened.getEffectiveMimeMessage()).getPlainText())
                 .contains("Body protected before cache eviction");
         assertThat(loadedKey(support, keys)).isNotSameAs(afterCapacityEviction);

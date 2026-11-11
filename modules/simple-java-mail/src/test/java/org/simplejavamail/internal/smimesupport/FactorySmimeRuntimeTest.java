@@ -9,7 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
@@ -58,15 +59,15 @@ class FactorySmimeRuntimeTest {
         assertThat(moduleIfInitialized(mail)).isNull();
         try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
             final byte[] signed = mailer.rehearse(message(mail, keys)).getEmlBytes();
-            assertThat(mail.converter().fromEml(signed).toEmail().getOriginalSmimeDetails().getVerificationStatus())
-                    .isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+            assertThat(mail.converter().fromEml(signed).toEmail().getInspection().getPlainText().getSignatureStatus())
+                    .isEqualTo(SignatureStatus.VERIFIED);
             final Object runtime = moduleIfInitialized(mail);
             final Object signedKey = resident(entries(runtime).get(keys));
             mailer.rehearse(message(mail, second));
 
             final Email received = mail.converter().fromEml(encrypted(keys)).withSmimeDecryption(keys).toEmail();
 
-            assertThat(received.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+            assertThat(received.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
             assertThat(received.getPlainText()).contains("Cache owner body");
             assertThat(moduleIfInitialized(mail)).isSameAs(runtime);
             assertThat(entries(runtime)).hasSize(2);
@@ -85,7 +86,7 @@ class FactorySmimeRuntimeTest {
             mailer.rehearse(message(mail, keys));
             assertThat(entries(moduleIfInitialized(mail))).isEmpty();
             final Email opened = mail.converter().fromEml(encrypted(keys)).withSmimeDecryption(keys).toEmail();
-            assertThat(opened.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+            assertThat(opened.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
             assertThat(entries(moduleIfInitialized(mail))).isEmpty();
             record("field", "factory.smime-key-cache");
             record("rule", "smime.cache-capacity");

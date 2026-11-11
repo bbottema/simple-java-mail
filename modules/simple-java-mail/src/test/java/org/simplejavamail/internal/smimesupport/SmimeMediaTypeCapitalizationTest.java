@@ -15,11 +15,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.AttachmentResource;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
-import org.simplejavamail.internal.smimesupport.model.OriginalSmimeDetailsImpl;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
@@ -30,120 +27,108 @@ import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.FAILED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.KEY_MISSING;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.ENCRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.PLAIN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.SmimeMode.SIGNED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.INVALID;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.UNKNOWN;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class SmimeMediaTypeCapitalizationTest {
+    @ParameterizedTest
+    @CsvSource({
+            "multipart/signed, application/x-pkcs7-signature",
+            "Multipart/Signed, application/x-pkcs7-signature",
+            "MULTIPART/SIGNED, APPLICATION/X-PKCS7-SIGNATURE",
+            "multipart/signed, Application/PKCS7-Signature"
+    })
+    void detachedSignatureRetainsItsResultAndSourceBytes(final String mediaType, final String protocol) throws Exception {
+        final byte[] source = detachedMessage(mediaType, protocol);
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(source).toEmail();
+        assertThat(email.getPlainText()).contains("OpenSSL independent body");
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertSourceDeclaration(email, mediaType, protocol);
+        assertOriginal(email, source);
+    }
 
-	@ParameterizedTest
-	@CsvSource({
-			"multipart/signed, application/x-pkcs7-signature",
-			"Multipart/Signed, application/x-pkcs7-signature",
-			"MULTIPART/SIGNED, APPLICATION/X-PKCS7-SIGNATURE",
-			"multipart/signed, Application/PKCS7-Signature"
-	})
-	void detachedSignatureRetainsItsResultAndSourceBytes(final String mediaType, final String protocol) throws Exception {
-		final byte[] source = detachedMessage(mediaType, protocol);
-		final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(new ByteArrayInputStream(source)).toEmail();
+    @ParameterizedTest
+    @ValueSource(strings = {"application/pkcs7-mime", "Application/PKCS7-Mime", "APPLICATION/X-PKCS7-MIME"})
+    void opaqueSignedContentRetainsVerification(final String mediaType) throws Exception {
+        final byte[] source = opaqueSignedMessage(mediaType);
+        final Email email = EmailConverter.emlToEmail(new ByteArrayInputStream(source));
+        assertThat(email.getPlainText()).contains("Opaque signed content");
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertOriginal(email, source);
+    }
 
-		assertThat(email.getPlainText()).contains("OpenSSL independent body");
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(SIGNED);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-		assertThat(email.getOriginalSmimeDetails().getSmimeMime()).isEqualTo(mediaType);
-		assertThat(email.getOriginalSmimeDetails().getSmimeProtocol()).isEqualTo(protocol);
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-	}
+    @ParameterizedTest
+    @ValueSource(strings = {"application/pkcs7-mime", "Application/PKCS7-Mime", "APPLICATION/X-PKCS7-MIME"})
+    void encryptedContentRetainsMissingKeyAndSuccessfulDecryptionResults(final String mediaType) throws Exception {
+        final byte[] original = Files.readAllBytes(resource("pkcs12/test messages/S_MIME test message encrypted.eml"));
+        final byte[] source = replaceMediaType(original, "application/pkcs7-mime", mediaType);
+        final Email unopened = EmailConverter.emlToEmail(new ByteArrayInputStream(source));
+        final Email opened = SimpleJavaMail.fromDefaults().converter().fromEml(source).withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+        assertThat(unopened.getInspection().getSmime().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
+        assertThat(opened.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(opened.getPlainText()).contains("This is an encrypted message");
+        assertOriginal(unopened, source);
+        assertOriginal(opened, source);
+    }
 
-	@ParameterizedTest
-	@ValueSource(strings = {"application/pkcs7-mime", "Application/PKCS7-Mime", "APPLICATION/X-PKCS7-MIME"})
-	void opaqueSignedContentRetainsVerification(final String mediaType) throws Exception {
-		final byte[] source = opaqueSignedMessage(mediaType);
-		final Email email = EmailConverter.emlToEmail(new ByteArrayInputStream(source));
+    @Test
+    void capitalizationDoesNotConcealInvalidSignaturesOrBrokenCiphertext() throws Exception {
+        final byte[] signed = detachedMessage("Multipart/Signed", "Application/X-PKCS7-Signature");
+        final byte[] tampered = new String(signed, ISO_8859_1)
+                .replace("OpenSSL independent body", "OpenSSL compromised body").getBytes(ISO_8859_1);
+        assertThat(EmailConverter.emlToEmail(new ByteArrayInputStream(tampered)).getInspection().getPlainText().getSignatureStatus())
+                .isEqualTo(SignatureStatus.INVALID);
+        final String broken = "From: sender@example.org\r\nContent-Type: Application/PKCS7-Mime; smime-type=enveloped-data\r\n"
+                + "Content-Transfer-Encoding: base64\r\n\r\nAQID\r\n";
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(broken).withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+        assertThat(email.getInspection().getSmime().getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED));
+        assertThat(email.getProblems()).isNotEmpty();
+    }
 
-		assertThat(email.getPlainText()).contains("Opaque signed content");
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(SIGNED);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-		assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-	}
+    @ParameterizedTest
+    @CsvSource({"Application/PKCS7-Mime, enveloped-data", "APPLICATION/X-PKCS7-MIME, signed-data"})
+    void recognitionUsesTheSameMediaTypeMeaning(final String mediaType, final String smimeType) throws Exception {
+        assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType(mediaType + "; smime-type=" + smimeType))).isTrue();
+        final byte[] source = ("Content-Type: " + mediaType + "; smime-type=" + smimeType + "\r\n\r\nAQID")
+                .getBytes(ISO_8859_1);
+        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(source));
+        assertThat(new SMIMESupport().openIncomingLayer(message.getSession(), message, null).isRecognized()).isTrue();
+    }
 
-	@ParameterizedTest
-	@ValueSource(strings = {"application/pkcs7-mime", "Application/PKCS7-Mime", "APPLICATION/X-PKCS7-MIME"})
-	void encryptedContentRetainsMissingKeyAndSuccessfulDecryptionResults(final String mediaType) throws Exception {
-		final byte[] original = Files.readAllBytes(resource("pkcs12/test messages/S_MIME test message encrypted.eml"));
-		final byte[] source = replaceMediaType(original, "application/pkcs7-mime", mediaType);
-		final Email unopened = EmailConverter.emlToEmail(new ByteArrayInputStream(source));
-		final Email opened = SimpleJavaMail.fromDefaults().converter().fromEml(new ByteArrayInputStream(source))
-				.withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+    @Test
+    void unrelatedSignedProtocolsDoNotBecomeSmime() throws Exception {
+        assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType("Multipart/Signed; protocol=\"application/pgp-signature\""))).isFalse();
+        assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType("Application/Octet-Stream"))).isFalse();
+    }
 
-		assertThat(unopened.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(unopened.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(KEY_MISSING);
-		assertThat(unopened.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-		assertThat(unopened.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-		assertThat(opened.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(opened.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-		assertThat(opened.getPlainText()).contains("This is an encrypted message");
-		assertThat(opened.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-	}
+    @ParameterizedTest
+    @ValueSource(strings = {"multipart/signed", "Multipart/Signed", "MULTIPART/SIGNED"})
+    void brokenSignedInputRetainsItsActualDeclarationAndProblems(final String mediaType) throws Exception {
+        final byte[] source = ("Content-Type: " + mediaType + "; protocol=\"application/pkcs7-signature\"; micalg=sha-256; boundary=missing\r\n\r\nbroken")
+                .getBytes(ISO_8859_1);
+        final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(source).toEmail();
+        assertSourceDeclaration(email, mediaType, "application/pkcs7-signature");
+        assertOriginal(email, source);
+        assertThat(email.getProblems()).isNotEmpty();
+    }
 
-	@Test
-	void capitalizationDoesNotConcealInvalidSignaturesOrBrokenCiphertext() throws Exception {
-		final byte[] signed = detachedMessage("Multipart/Signed", "Application/X-PKCS7-Signature");
-		final byte[] tampered = new String(signed, ISO_8859_1)
-				.replace("OpenSSL independent body", "OpenSSL compromised body").getBytes(ISO_8859_1);
-		assertThat(EmailConverter.emlToEmail(new ByteArrayInputStream(tampered)).getOriginalSmimeDetails().getVerificationStatus())
-				.isEqualTo(INVALID);
+    private static void assertSourceDeclaration(final Email email, final String mediaType, final String parameter) {
+        assertThat(email.getSourceData().getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-Type"))
+                .singleElement().satisfies(header -> assertThat(header.getRawValue()).contains(mediaType).contains(parameter));
+    }
 
-		final String broken = "From: sender@example.org\r\n"
-				+ "Content-Type: Application/PKCS7-Mime; smime-type=enveloped-data\r\n"
-				+ "Content-Transfer-Encoding: base64\r\n\r\nAQID\r\n";
-		final Email email = SimpleJavaMail.fromDefaults().converter().fromEml(broken)
-				.withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
-		assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(ENCRYPTED);
-		assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(FAILED);
-		assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(UNKNOWN);
-	}
-
-	@ParameterizedTest
-	@CsvSource({"Application/PKCS7-Mime, enveloped-data, ENCRYPTED", "APPLICATION/X-PKCS7-MIME, signed-data, SIGNED"})
-	void metadataAndAttachmentRecognitionUseTheSameMediaTypeMeaning(final String mediaType, final String smimeType,
-			final SmimeMode mode) {
-		assertThat(OriginalSmimeDetailsImpl.builder().smimeMode(PLAIN).smimeMime(mediaType).smimeType(smimeType).build().getSmimeMode())
-				.isEqualTo(mode);
-		assertThat(new SMIMESupport().isSmimeAttachment(AttachmentResource.builder()
-				.withDataSource(new ByteArrayDataSource(new byte[] {1}, mediaType)).build())).isTrue();
-	}
-
-	@Test
-	void unrelatedSignedProtocolsDoNotBecomeSmime() throws Exception {
-		assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType(
-				"Multipart/Signed; protocol=\"application/pgp-signature\""))).isFalse();
-		assertThat(SmimeRecognitionUtil.isSmimeContentType(new ContentType("Application/Octet-Stream"))).isFalse();
-	}
-
-	@ParameterizedTest
-	@ValueSource(strings = {"multipart/signed", "Multipart/Signed", "MULTIPART/SIGNED"})
-	void legacySignedAttachmentsRetainTheirDeclaredProtocolWhenContentIsBroken(final String mediaType) {
-		final AttachmentResource broken = AttachmentResource.builder().withName("broken.p7m")
-				.withDataSource(new ByteArrayDataSource(new byte[] {1}, mediaType)).build();
-		final OriginalSmimeDetailsImpl details = OriginalSmimeDetailsImpl.builder().smimeMode(SIGNED).smimeMime(mediaType)
-				.smimeProtocol("application/pkcs7-signature").smimeMicalg("sha-256").build();
-
-		assertThatThrownBy(() -> new SMIMESupport().decryptAttachments(List.of(broken), null, details))
-				.isInstanceOf(SmimeException.class);
-	}
+    private static void assertOriginal(final Email email, final byte[] source) throws Exception {
+        assertThat(email.getInspection().getOriginalMessage()).isNotNull();
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
+    }
 
 	private static byte[] detachedMessage(final String mediaType, final String protocol) throws Exception {
 		final byte[] original = Base64.getMimeDecoder().decode(Files.readAllBytes(resource("smime/openssl-detached-signed.eml.b64")));

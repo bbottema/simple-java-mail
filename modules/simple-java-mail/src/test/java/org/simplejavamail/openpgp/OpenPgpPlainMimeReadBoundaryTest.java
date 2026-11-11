@@ -13,11 +13,11 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.DeliveryAction;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
-
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -159,12 +159,11 @@ class OpenPgpPlainMimeReadBoundaryTest {
 
         assertThat(message.serializations).as("pending protected content still needs its finalized representation").isEqualTo(1);
         assertThat(imported.getPlainText()).contains("H\u00e9llo from OpenPGP.js");
-        assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).isNotEmpty();
+        assertThat(imported.getInspection().getOriginalMessage()).isNull();
         if (fixtureName.startsWith("signed")) {
-            assertThat(imported.getOriginalOpenPgpDetails().getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.SIGNED);
-            assertThat(imported.getOriginalOpenPgpDetails().getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.VALID);
+            assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         } else {
-            assertThat(imported.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.DECRYPTED);
+            assertThat(imported.getInspection().getOpenPgp().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.DECRYPTED);
         }
     }
 
@@ -197,13 +196,10 @@ class OpenPgpPlainMimeReadBoundaryTest {
         assertThat(message.getContentType()).isEqualTo("text/plain");
 
         final Email imported = mail.converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmail();
-
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(fixtureName.contains("encrypted")
-                ? OriginalSmimeDetails.SmimeMode.ENCRYPTED : OriginalSmimeDetails.SmimeMode.SIGNED);
         if (fixtureName.contains("encrypted")) {
-            assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.KEY_MISSING);
+            assertThat(imported.getInspection().getSmime().getDecryptions().get(0).getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE);
         } else {
-            assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+            assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         }
     }
 
@@ -215,10 +211,10 @@ class OpenPgpPlainMimeReadBoundaryTest {
     }
 
     private static void assertPlain(final Email email) {
-        final OriginalOpenPgpDetails details = email.getOriginalOpenPgpDetails();
-        assertThat(details.getOpenPgpMode()).isEqualTo(OriginalOpenPgpDetails.OpenPgpMode.PLAIN);
-        assertThat(details.getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.NOT_PRESENT);
-        assertThat(details.getDecryptionStatus()).isEqualTo(OriginalOpenPgpDetails.DecryptionStatus.NOT_ENCRYPTED);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(email.getInspection().getOpenPgp().getSignatures()).isEmpty();
+        assertThat(email.getInspection().getOpenPgp().getDecryptions()).isEmpty();
     }
 
     private static CountingMessage multipartMessage(final String subtype, final MimeBodyPart... parts) throws MessagingException {

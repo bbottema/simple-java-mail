@@ -44,6 +44,8 @@ public final class OutlookMessageDataImpl implements OutlookMessageData {
 	private final Set<String> propertiesAsHex;
 	private final Set<Integer> propertyCodes;
 	private final String propertyListing;
+	private final String bodyHTML;
+	private final String bodyRTF;
 
 	@Builder
 	private OutlookMessageDataImpl(
@@ -60,7 +62,9 @@ public final class OutlookMessageDataImpl implements OutlookMessageData {
 			@Nullable final String lastModifierName,
 			@Nullable final Set<String> propertiesAsHex,
 			@Nullable final Set<Integer> propertyCodes,
-			@Nullable final String propertyListing) {
+			@Nullable final String propertyListing,
+			@Nullable final String bodyHTML,
+			@Nullable final String bodyRTF) {
 		this.headers = copyHeaders(headers);
 		this.rawHeaders = rawHeaders;
 		this.messageClass = messageClass;
@@ -75,6 +79,8 @@ public final class OutlookMessageDataImpl implements OutlookMessageData {
 		this.propertiesAsHex = copySet(propertiesAsHex);
 		this.propertyCodes = copySet(propertyCodes);
 		this.propertyListing = propertyListing;
+		this.bodyHTML = bodyHTML;
+		this.bodyRTF = bodyRTF;
 	}
 
 	/** @see OutlookMessageData#getHeaders() */
@@ -188,6 +194,16 @@ public final class OutlookMessageDataImpl implements OutlookMessageData {
 	public String getPropertyListing() {
 		return propertyListing;
 	}
+
+	/** @see OutlookMessageData#getBodyHTML() */
+	@Override
+	@Nullable
+	public String getBodyHTML() { return bodyHTML; }
+
+	/** @see OutlookMessageData#getBodyRTF() */
+	@Override
+	@Nullable
+	public String getBodyRTF() { return bodyRTF; }
 
 	@NotNull
 	private static Map<String, List<String>> copyHeaders(@Nullable final Map<String, ? extends Collection<String>> headers) {

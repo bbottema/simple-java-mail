@@ -12,8 +12,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourcePart;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
-import org.simplejavamail.api.email.AttachmentResource;
+import org.simplejavamail.api.email.SignatureStatus;
 import org.simplejavamail.api.email.EmailSourceProperty;
 import org.simplejavamail.api.converter.EmailConversionResult;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
@@ -35,7 +34,6 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.concurrent.CancellationException;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -68,7 +66,10 @@ class ConversionFollowupBoundaryTest {
         assertThat(received.getAttachments()).extracting(resource -> resource.getName()).containsExactly("broken.p7m", "good.bin");
         assertThat(received.getAttachments().get(0).readAllBytes()).isEqualTo("not CMS".getBytes(US_ASCII));
         assertThat(received.getAttachments().get(1).readAllBytes()).isEqualTo("usable sibling".getBytes(US_ASCII));
-        assertThat(received.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
+        assertThat(received.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(received.getInspection().getSmime().getSignatures()).isEmpty();
+        assertThat(received.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(received.getInspection().getOriginalAttachment(0).readAllBytes()).isEqualTo("not CMS".getBytes(US_ASCII));
         assertThat(received.getProblems()).singleElement().satisfies(problem -> {
             assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.PROTECTION_FAILED);
             assertThat(problem.getOperation()).isEqualTo(EmailProblem.Operation.IMPORT);
@@ -187,7 +188,7 @@ class ConversionFollowupBoundaryTest {
     }
 
     @Test
-    void healthySignedChildStillCommitsItsEstablishedLegacyFacts() throws Exception {
+    void healthySignedFileHasItsOwnFactsAndReadablePayloadWithoutSigningItsParent() throws Exception {
         final Email signed = MAIL.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
                 .withPlainText("Signed child content")
                 .signWithSmime(SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build()).buildEmail();
@@ -198,19 +199,33 @@ class ConversionFollowupBoundaryTest {
                 .withPlainText("Readable parent").withAttachment("signed.p7m", payload.toByteArray(), protectedMessage.getContentType()).buildEmail();
         final Email received = MAIL.converter().fromMimeMessage(EmailConverter.emailToMimeMessage(parent)).toEmail();
         assertThat(received.getProblems()).isEmpty();
-        assertThat(received.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(received.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(received.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(received.getInspection().getPlainText().getSignatures()).isEmpty();
+        assertThat(received.getInspection().getAttachment(0).getSignatures()).singleElement();
+        final var witness = received.getInspection().getAttachment(0).getSignatures().get(0).getObservation().getReference();
+        assertThat(received.getInspection().getSmime().getSignatures()).extracting(signature -> signature.getReference()).containsExactly(witness);
         assertThat(received.getPlainText()).contains("Readable parent");
-        // The legacy materializer retains a signed attachment whose clear entity is single-part text.
-        assertThat(received.getSmimeSignedEmail()).isNull();
-        assertThat(received.getAttachments()).singleElement().satisfies(resource -> assertThat(resource.readAllBytes()).isEqualTo(payload.toByteArray()));
+        assertThat(received.getAttachments()).singleElement().satisfies(resource -> {
+            assertThat(resource.readAllData(US_ASCII)).contains("Signed child content");
+            assertThat(resource.getEmail()).isNull();
+        });
+        assertThat(received.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(payload.toByteArray());
+        final Email cleared = MAIL.emailBuilder().copying(received).clearAttachments().buildEmail();
+        assertThat(cleared.getAttachments()).isEmpty();
+        assertThat(cleared.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(cleared.getInspection().getPlainText().getSignatures()).isEmpty();
+        assertThat(cleared.getInspection().getSmime().getSignatures()).extracting(signature -> signature.getReference()).containsExactly(witness);
+        assertThat(cleared.getSourceData()).isSameAs(received.getSourceData());
+        assertThatThrownBy(() -> cleared.getInspection().getAttachment(0)).isInstanceOf(IndexOutOfBoundsException.class);
+        assertThatThrownBy(() -> cleared.getInspection().getOriginalAttachment(0)).isInstanceOf(IndexOutOfBoundsException.class);
     }
 
     @Test
     void soleMalformedChildDoesNotPromoteFailedVerificationToItsParentAndSurvivesCopies() throws Exception {
         final Email received = EmailConverter.emlToEmail(mixed(part("application/pkcs7-mime; smime-type=signed-data", "broken.p7m", "not CMS")));
-        assertThat(received.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
-        assertThat(received.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-        assertThat(received.getOriginalSmimeDetails().getSmimeSignatureValid()).isNull();
+        assertThat(received.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(received.getInspection().getSmime().getSignatures()).isEmpty();
         final Email copy = MAIL.emailBuilder().copying(received).fixingMessageId("<copy@example.org>").buildEmail();
         assertThat(copy.getSourceData()).isSameAs(received.getSourceData());
         assertThat(copy.getProblems()).containsExactlyElementsOf(received.getProblems());
@@ -248,15 +263,19 @@ class ConversionFollowupBoundaryTest {
     }
 
     @Test
-    void directSmimeHelperAndExplicitDecryptionKeepTheirFailureBoundary() {
+    void directSmimeLayerReportsInputFailureWhileInvalidConfigurationStillThrows() throws Exception {
         final SMIMEModule smime = ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);
-        final AttachmentResource malformed = AttachmentResource.builder().withName("broken.p7m")
-                .withData("not CMS".getBytes(US_ASCII), "application/pkcs7-mime; smime-type=signed-data").build();
-        final Email parent = MAIL.emailBuilder().startingBlank().buildEmail();
-        assertThatThrownBy(() -> smime.decryptAttachments(Collections.singletonList(malformed), null, parent.getOriginalSmimeDetails()))
-                .isInstanceOf(MailException.class);
+        final jakarta.mail.Session session = jakarta.mail.Session.getInstance(new java.util.Properties());
+        final MimeMessage malformed = new MimeMessage(session, new ByteArrayInputStream((
+                "Content-Type: application/pkcs7-mime; smime-type=signed-data\r\n\r\nnot CMS").getBytes(US_ASCII)));
+        final org.simplejavamail.internal.protection.ProtectionLayerResult result = smime.openIncomingLayer(session, malformed, null);
+        assertThat(result.isRecognized()).isTrue();
+        assertThat(result.isOpened()).isFalse();
+        assertThat(result.getProcessingFailure()).isNotNull();
         final Pkcs12Config explicit = Pkcs12Config.builder().pkcs12Store(new byte[] {1}).storePassword("").keyAlias("unused").keyPassword("").build();
-        assertThatThrownBy(() -> MAIL.converter().fromEml(BROKEN_SIGNED_CHILD).withSmimeDecryption(explicit).toEmail())
+        assertThatThrownBy(() -> MAIL.converter().fromEml(
+                "Content-Type: application/pkcs7-mime; smime-type=enveloped-data\r\n\r\nnot CMS")
+                .withSmimeDecryption(explicit).toEmail())
                 .isInstanceOf(MailException.class);
     }
 
@@ -272,12 +291,15 @@ class ConversionFollowupBoundaryTest {
             final MimeMessage message = EmailConverter.emailToMimeMessage(MAIL.emailBuilder().startingBlank()
                     .from("sender@example.org").to("reader@example.org").withPlainText("Readable body")
                     .withAttachment("broken.p7m", source).buildEmail());
-            assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(message).withFetchAttachmentData(false).toEmail())
-                    .satisfies(thrown -> {
-                        Throwable current = thrown;
-                        while (current != failure && current.getCause() != null) current = current.getCause();
-                        assertThat(current).isSameAs(failure);
-                    });
+            // Recognized protection processing may read this file under either ordinary extraction choice.
+            for (final boolean fetchContent : new boolean[]{false, true}) {
+                assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(message).withFetchAttachmentData(fetchContent).toEmail())
+                        .satisfies(thrown -> {
+                            Throwable current = thrown;
+                            while (current != failure && current.getCause() != null) current = current.getCause();
+                            assertThat(current).isSameAs(failure);
+                        });
+            }
         }
     }
 

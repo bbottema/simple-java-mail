@@ -41,8 +41,8 @@ class FluentEmlPreservationTest {
 		final EmlConversion selected = source.select(converter, original, directory);
 		final Email imported = builderTarget ? selected.toEmailBuilder().buildEmail() : selected.toEmail();
 
-		assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).isEqualTo(original);
-		assertThat(EmailConverter.emlToEmail(new ByteArrayInputStream(original)).getOriginalOpenPgpDetails().getOriginalProtectedMessage())
+		assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(original);
+		assertThat(EmailConverter.emlToEmail(new ByteArrayInputStream(original)).getInspection().getOriginalMessage().readAllBytes())
 				.as("released static conversion retains the same original bytes").isEqualTo(original);
 		assertThatThrownBy(selected::toEmail).hasMessageContaining("already been used");
 	}

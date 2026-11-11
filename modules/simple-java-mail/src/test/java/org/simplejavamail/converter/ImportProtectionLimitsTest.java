@@ -13,7 +13,9 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.smimesupport.ProtectedCalendarFixture;
@@ -61,9 +63,10 @@ class ImportProtectionLimitsTest {
 
         assertThat(imported.getPlainText()).contains("Readable first child");
         assertThat(imported.getAttachments()).isEmpty();
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.UNKNOWN);
-        assertThat(imported.getOriginalSmimeDetails().getSmimeProtocol()).isEqualTo("application/unknown-signature");
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).isNull();
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(imported.getSourceData().getHeaders()).filteredOn(header -> header.getName().equalsIgnoreCase("Content-Type"))
+                .anySatisfy(header -> assertThat(header.getRawValue()).contains("application/unknown-signature"));
+        assertThat(imported.getInspection().getOriginalMessage()).isNull();
         assertThat(imported.getProblems()).anySatisfy(problem -> assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
     }
 
@@ -80,7 +83,7 @@ class ImportProtectionLimitsTest {
 
         assertThat(imported.getPlainText()).contains("Readable first child");
         assertThat(imported.getAttachments()).isEmpty();
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         assertThat(imported.getProblems()).anySatisfy(problem -> assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
     }
 
@@ -110,9 +113,8 @@ class ImportProtectionLimitsTest {
                 .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(3).build()).toEmail();
 
         assertThat(imported.getPlainText()).contains("Plain parent body").doesNotContain("Independent child body");
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.PLAIN);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        assertThat(imported.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNSIGNED);
+        assertThat(imported.getInspection().getSmime().getSignatures()).isEmpty();
         assertThat(imported.getProblems()).anySatisfy(problem -> assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
     }
 
@@ -127,20 +129,19 @@ class ImportProtectionLimitsTest {
                 .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumNestingDepth(2).build()).toEmail();
 
         assertThat(imported.getPlainText()).contains("Completed outer body");
-        assertThat(mail.emailBuilder().copying(imported).isMergeSingleSMIMESignedAttachment()).isFalse();
-        assertThat(imported.getSmimeSignedEmail()).isNotNull();
-        assertThat(imported.getSmimeSignedEmail().getProblems()).anySatisfy(problem ->
+        assertThat(imported.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(imported.getProblems()).anySatisfy(problem ->
                 assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.DECRYPTED);
+        assertThat(imported.getInspection().getSmime().getDecryptions()).extracting("status").contains(DecryptionStatus.DECRYPTED);
         final Email copy = mail.emailBuilder().copying(imported).withSubject("Edited current subject").buildEmail();
         assertThat(copy.getPlainText()).contains("Completed outer body");
         assertThat(copy.getSourceData().getOrigin().getReference()).isEqualTo(imported.getSourceData().getOrigin().getReference());
-        assertThat(copy.getSmimeSignedEmail().getSourceData().getOrigin().getReference())
-                .isEqualTo(imported.getSmimeSignedEmail().getSourceData().getOrigin().getReference());
+        assertThat(copy.getInspection().getOriginalMessage()).isSameAs(imported.getInspection().getOriginalMessage());
+        assertThat(copy.getInspection().getPlainText()).isSameAs(imported.getInspection().getPlainText());
     }
 
     @Test
-    void aReadableRetainedBodyStillMergesWhenOnlyALaterFileIsOmitted() throws Exception {
+    void aReadableProtectedBodyIsSelectedWhenOnlyALaterFileIsOmitted() throws Exception {
         final Path resources = Path.of("src/test/resources");
         final Email clear = mail.emailBuilder().startingBlank().from("payload@example.org").to("reader@example.org")
                 .withPlainText("Useful inner body")
@@ -153,7 +154,7 @@ class ImportProtectionLimitsTest {
                 .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(6).build()).toEmail();
 
         assertThat(imported.getPlainText()).contains("Useful inner body").doesNotContain("Outer wrapper body");
-        assertThat(mail.emailBuilder().copying(imported).isMergeSingleSMIMESignedAttachment()).isTrue();
+        assertThat(imported.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
         assertThat(imported.getAttachments()).noneMatch(resource -> "not-admitted.txt".equals(resource.getName()));
         assertThat(imported.getProblems()).anySatisfy(problem -> assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
     }
@@ -167,10 +168,10 @@ class ImportProtectionLimitsTest {
                 .withSmimeDecryption(ProtectedCalendarFixture.keys(resources))
                 .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(1).build()).toEmail();
 
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.ENCRYPTED);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.UNKNOWN);
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        assertThat(imported.getInspection().getSmime().isInspectionComplete()).isFalse();
+        assertThat(imported.getInspection().getSmime().getSignatures()).isEmpty();
+        assertThat(imported.getInspection().getSmime().getDecryptions()).isEmpty();
+        assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).containsExactly(msg);
         assertThat(imported.getProblems()).anySatisfy(problem -> assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.IMPORT_LIMIT_EXCEEDED));
     }
 

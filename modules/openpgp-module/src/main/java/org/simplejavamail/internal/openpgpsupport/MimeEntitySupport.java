@@ -4,6 +4,8 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.ContentType;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeUtility;
+import org.simplejavamail.internal.protection.ProtectionInputReadException;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Enumeration;
 
 /** Byte-oriented MIME operations used where a Jakarta Mail object model would destroy signature identity. */
 final class MimeEntitySupport {
@@ -35,6 +38,23 @@ final class MimeEntitySupport {
         } catch (IOException e) {
             throw new MessagingException("Unable to serialize MIME message", e);
         }
+    }
+
+    /** Captures selected native input with owned stream cleanup; outgoing serialization keeps its own finalization boundary. */
+    static byte[] serializeIncoming(final MimeMessage message) throws MessagingException, IOException {
+        if (message instanceof org.simplejavamail.internal.util.FinalizedMimeMessage) {
+            return ((org.simplejavamail.internal.util.FinalizedMimeMessage) message).getSerializedBytes();
+        }
+        final byte[] decoded = ProtectionInputReadException.acquire(message::getInputStream);
+        final ByteArrayOutputStream output = new ByteArrayOutputStream();
+        final Enumeration<String> headers = message.getAllHeaderLines();
+        while (headers.hasMoreElements()) writeAscii(output, headers.nextElement() + "\r\n");
+        write(output, CRLF);
+        final String encoding = message.getEncoding();
+        try (java.io.OutputStream encoded = encoding == null ? output : MimeUtility.encode(output, encoding)) {
+            encoded.write(decoded);
+        }
+        return output.toByteArray();
     }
 
     static MessageParts splitMessage(final byte[] rawMessage) {
@@ -167,9 +187,7 @@ final class MimeEntitySupport {
             if (!emptyHeaders && findHeaderSeparator(mimePart) < 0 && part.getEncoding() == null) {
                 return mimePart.clone();
             }
-            try (InputStream decoded = part.getInputStream()) {
-                return decoded.readAllBytes();
-            }
+            return ProtectionInputReadException.acquire(part::getInputStream);
         }
     }
 

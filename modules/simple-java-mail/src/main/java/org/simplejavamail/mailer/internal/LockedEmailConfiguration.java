@@ -139,6 +139,20 @@ final class LockedEmailConfiguration {
 		protection.apply(target);
 	}
 
+	/** These mandatory supplied choices replace current field provenance; unrelated policy must not erase received associations. */
+	boolean replacesInspection(final org.simplejavamail.api.email.EmailProperty field) {
+		switch (field) {
+			case SUBJECT: return locks.contains(DEFAULT_SUBJECT);
+			case FROM_RECIPIENT: return locks.contains(DEFAULT_FROM_ADDRESS) || locks.contains(DEFAULT_FROM_NAME);
+			case BOUNCETO_RECIPIENT: return locks.contains(DEFAULT_BOUNCETO_ADDRESS) || locks.contains(DEFAULT_BOUNCETO_NAME);
+			case TO_RECIPIENTS: return locks.contains(DEFAULT_TO_ADDRESS) || locks.contains(DEFAULT_TO_NAME);
+			case CC_RECIPIENTS: return locks.contains(DEFAULT_CC_ADDRESS) || locks.contains(DEFAULT_CC_NAME);
+			case BCC_RECIPIENTS: return locks.contains(DEFAULT_BCC_ADDRESS) || locks.contains(DEFAULT_BCC_NAME);
+			case REPLYTO_RECIPIENT: return locks.contains(DEFAULT_REPLYTO_ADDRESS) || locks.contains(DEFAULT_REPLYTO_NAME);
+			default: return false;
+		}
+	}
+
 	private void verifySingleValueSettings(final Email email) {
 		verifyIfPresent(DEFAULT_SEND_TO_ACCEPTED_RECIPIENTS, email.getSendingToAcceptedRecipients());
 		verifyIfPresent(DEFAULT_SUBJECT, email.getSubject());
@@ -152,27 +166,12 @@ final class LockedEmailConfiguration {
 		verifySender(email.getFromRecipient(), DEFAULT_FROM_ADDRESS, DEFAULT_FROM_NAME);
 		verifySender(email.getBounceToRecipient(), DEFAULT_BOUNCETO_ADDRESS, DEFAULT_BOUNCETO_NAME);
 		verifyDsn(email);
-		verifyRawHeaders(email);
 		for (Recipient recipient : email.getRecipients()) {
 			final Property name = RecipientType.TO.equals(recipient.getType()) ? DEFAULT_TO_NAME
 					: RecipientType.CC.equals(recipient.getType()) ? DEFAULT_CC_NAME : DEFAULT_BCC_NAME;
 			verifyIfPresent(name, recipient.getName());
 		}
 		email.getReplyToRecipients().forEach(recipient -> verifyIfPresent(DEFAULT_REPLYTO_NAME, recipient.getName()));
-	}
-
-	private void verifyRawHeaders(final Email email) {
-		for (String header : email.getHeaders().keySet()) {
-			for (Property property : new Property[]{DEFAULT_SUBJECT, DEFAULT_FROM_ADDRESS, DEFAULT_FROM_NAME,
-					DEFAULT_REPLYTO_ADDRESS, DEFAULT_REPLYTO_NAME, DEFAULT_TO_ADDRESS, DEFAULT_TO_NAME,
-					DEFAULT_CC_ADDRESS, DEFAULT_CC_NAME, DEFAULT_BCC_ADDRESS, DEFAULT_BCC_NAME}) {
-				if (locks.contains(property) && header.equalsIgnoreCase(headerFor(property))) {
-					throw locks.conflict(property, "A manually supplied " + headerFor(property) + " header could bypass this factory's locked Email setting. "
-							+ "Remove withHeader(\"" + headerFor(property) + "\", ...) and let the Email builder apply the locked value, "
-							+ "or remove this lock from the configuration source.");
-				}
-			}
-		}
 	}
 
 	private static String headerFor(final Property property) {

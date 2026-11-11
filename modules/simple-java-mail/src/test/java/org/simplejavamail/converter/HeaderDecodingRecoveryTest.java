@@ -10,7 +10,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -96,8 +96,8 @@ class HeaderDecodingRecoveryTest {
 		final Email imported = MAIL.converter().fromEml(original).toEmail();
 
 		assertThat(imported.getHeaders().get("X-Legacy")).containsExactly(UNDECODABLE);
-		assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VerificationStatus.VALID);
-		assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).isEqualTo(original);
+		assertThat(imported.getInspection().getSmime().getSignatures()).extracting("status").containsOnly(SignatureVerification.VERIFIED);
+		assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(original);
 		assertThat(imported.getPlainText()).isEqualTo("Readable body");
 	}
 
@@ -117,16 +117,17 @@ class HeaderDecodingRecoveryTest {
 		}
 	}
 
-	@ParameterizedTest
-	@ValueSource(strings = {"Content-Description"})
-	void unavailableTypedHeaderRemainsInspectableWithAProblem(final String name) {
+	@Test
+	void unselectedStructuralDescriptionRemainsReadableWithoutInventingADecodeProblem() {
+        final String name = "Content-Description";
         final Email email = MAIL.converter().fromEml(multipart(name + ": " + UNDECODABLE + "\r\n")).toEmail();
         assertThat(email.getPlainText()).isEqualTo("Readable body");
         assertThat(email.getHeaders().get(name)).containsExactly(UNDECODABLE);
-        assertThat(email.getProblems()).singleElement().satisfies(problem -> {
-            assertThat(problem.getCode()).isEqualTo(org.simplejavamail.api.email.EmailProblem.Code.VALUE_NOT_DECODED);
-            assertThat(problem.getSources()).isNotEmpty();
+        assertThat(email.getSourceData().getHeaders()).anySatisfy(header -> {
+            assertThat(header.getName()).isEqualTo(name);
+            assertThat(header.getRawValue()).isEqualTo(UNDECODABLE);
         });
+        assertThat(email.getProblems()).isEmpty();
 	}
 
     @ParameterizedTest

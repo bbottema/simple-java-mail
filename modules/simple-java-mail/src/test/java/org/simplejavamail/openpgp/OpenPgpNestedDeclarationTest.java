@@ -5,7 +5,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.DecryptionStatus;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,20 +31,23 @@ class OpenPgpNestedDeclarationTest {
         final Email received = SimpleJavaMail.fromDefaults().converter().fromEml(source)
                 .withOpenPgpReceiveConfig(OpenPgpSignatureFixtures.receiving(OpenPgpSignatureFixtures.first)).toEmail();
 
-        final OriginalOpenPgpDetails details = received.getOriginalOpenPgpDetails();
-        assertThat(details.getOpenPgpMode()).isEqualTo(encrypted
-                ? OriginalOpenPgpDetails.OpenPgpMode.SIGNED_ENCRYPTED : OriginalOpenPgpDetails.OpenPgpMode.SIGNED);
-        assertThat(details.getDecryptionStatus()).isEqualTo(encrypted
-                ? OriginalOpenPgpDetails.DecryptionStatus.DECRYPTED : OriginalOpenPgpDetails.DecryptionStatus.NOT_ENCRYPTED);
+        final var details = received.getInspection().getOpenPgp();
+        if (encrypted) {
+            assertThat(details.getDecryptions()).singleElement()
+                    .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+        } else {
+            assertThat(details.getDecryptions()).isEmpty();
+        }
         assertThat(details.getSignatures()).singleElement().satisfies(signature -> {
-            assertThat(signature.getStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.VALID);
-            assertThat(signature.getSignerFingerprint()).isNotBlank();
+            assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED);
+            assertThat(signature.getSigningKeyFingerprint()).isNotBlank();
         });
-        assertThat(details.getSignatureStatus()).isEqualTo(OriginalOpenPgpDetails.SignatureStatus.ERROR);
-        assertThat(details.getFailureReason()).isNotBlank();
-        assertThat(details.getOriginalProtectedMessage()).containsExactly(source);
+        assertThat(received.getProblems()).isNotEmpty();
+        assertThat(received.getInspection().getOriginalMessage().readAllBytes()).containsExactly(source);
         final Email copied = SimpleJavaMail.fromDefaults().emailBuilder().copying(received).buildEmail();
-        assertThat(copied.getOriginalOpenPgpDetails().getSignatures()).isEqualTo(details.getSignatures());
-        assertThat(copied.getOriginalOpenPgpDetails().getDecryptionStatus()).isEqualTo(details.getDecryptionStatus());
+        assertThat(copied.getInspection().getOpenPgp().getSignatures()).extracting(signature -> signature.getReference())
+                .containsExactlyElementsOf(details.getSignatures().stream().map(signature -> signature.getReference()).collect(java.util.stream.Collectors.toList()));
+        assertThat(copied.getInspection().getOpenPgp().getDecryptions()).extracting(attempt -> attempt.getStatus())
+                .containsExactlyElementsOf(details.getDecryptions().stream().map(attempt -> attempt.getStatus()).collect(java.util.stream.Collectors.toList()));
     }
 }

@@ -24,7 +24,10 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.email.EmailProblem;
 import org.simplejavamail.api.email.EmailSourcePart;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.SignatureVerification;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.converter.EmailConverter;
 import testutil.ConfigLoaderTestHelper;
@@ -50,6 +53,7 @@ import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
+import static org.simplejavamail.internal.smimesupport.SmimeInspectionAssertions.*;
 
 /** Real detached signatures and encrypted child MIME, through supported import entry points. */
 @Timeout(30)
@@ -78,25 +82,19 @@ class DetachedSignedParentAttachmentTest {
     @MethodSource("imports")
     void signedParentProcessesItsIndependentEncryptedAttachment(final Route route, final boolean ordinarySibling) throws Exception {
         final Fixture fixture = fixture(ordinarySibling);
-        assertThat(SmimeCryptoSupport.checkSignature(message(fixture.signed))).as("received detached signature is valid").isTrue();
+        assertThat(SmimeCryptoSupport.checkSignature(message(fixture.signed))).isTrue();
         final Email unsigned = read(fixture.unsigned, route, loadPkcs12KeyStore());
         final AttachmentResource expected = openedMessage(unsigned);
         final byte[] expectedBody = decodedMessageBody(expected);
-        assertThat(factory().converter().fromEml(new ByteArrayInputStream(expected.readAllBytes())).toEmail().getPlainText())
-                .contains("This is an encrypted message");
-
+        assertThat(readOpenedContent(expected).getPlainText()).contains("This is an encrypted message");
         final Email imported = read(fixture.signed, route, loadPkcs12KeyStore());
-
         assertParent(imported, fixture.signed);
-        assertThat(resource(imported.getAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(resource(imported.getAttachments(), SIGNATURE_NAME).readAllBytes()).containsExactly(fixture.signature);
-        if (ordinarySibling) {
-            assertThat(resource(imported.getAttachments(), NOTE_NAME).readAllData(UTF_8)).isEqualTo("Ordinary sibling");
-        }
-        final AttachmentResource opened = openedMessage(imported);
-        assertThat(decodedMessageBody(opened)).containsExactly(expectedBody);
-        assertThat(resource(imported.getDecryptedAttachments(), SIGNATURE_NAME).readAllBytes()).containsExactly(fixture.signature);
-        assertThat(imported.getSmimeSignedEmail()).as("an independent attachment does not become the parent body").isNull();
+        assertOriginalForRoute(imported, fixture.signed, route);
+        assertThat(imported.getAttachments()).hasSize(ordinarySibling ? 2 : 1);
+        assertThat(imported.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(fixture.ciphertext);
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        if (ordinarySibling) assertThat(resource(imported.getAttachments(), NOTE_NAME).readAllData(UTF_8)).isEqualTo("Ordinary sibling");
+        assertThat(decodedMessageBody(openedMessage(imported))).containsExactly(expectedBody);
         assertThat(imported.getProblems()).isEmpty();
     }
 
@@ -104,15 +102,15 @@ class DetachedSignedParentAttachmentTest {
     @EnumSource(value = Route.class, names = {"FLUENT_MIME_LAZY", "FLUENT_EML_EAGER", "STATIC_EML"})
     void noKeyRetainsTheProtectedChildWithoutChangingTheSignedParent(final Route route) throws Exception {
         final Fixture fixture = fixture(false);
-
         final Email imported = read(fixture.signed, route, null);
-
         assertParent(imported, fixture.signed);
-        assertThat(resource(imported.getAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(resource(imported.getDecryptedAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(imported.getDecryptedAttachments()).noneMatch(resource ->
-                "message/rfc822".equalsIgnoreCase(resource.getDataSource().getContentType()));
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        assertThat(imported.getAttachments()).singleElement().satisfies(resource -> {
+            assertThat(resource.readAllBytes()).containsExactly(fixture.ciphertext);
+            assertThat(resource.getEmail()).isNull();
+        });
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.ENCRYPTED);
+        assertThat(imported.getInspection().getAttachment(0).getDecryptions()).anySatisfy(attempt ->
+                assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
     }
 
     @ParameterizedTest
@@ -134,16 +132,14 @@ class DetachedSignedParentAttachmentTest {
         final String source = new String(fixture.signed, ISO_8859_1);
         assertThat(source).contains(BODY);
         final byte[] tampered = source.replace(BODY, changedBody).getBytes(ISO_8859_1);
-
         final Email imported = read(tampered, route, loadPkcs12KeyStore());
-
         assertThat(imported.getPlainText()).isEqualTo(changedBody);
         assertThat(imported.getHTMLText()).isEqualTo(HTML);
         assertThat(imported.getCalendarText()).isEqualTo(CALENDAR);
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.INVALID);
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(tampered);
+        assertPlainProtection(imported, SignatureStatus.INVALID, EncryptionStatus.NOT_ENCRYPTED);
+        assertSignatureObservation(imported, SignatureVerification.INVALID);
+        assertOriginalForRoute(imported, tampered, route);
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
         assertThat(imported.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.SIGNATURE_INVALID);
         assertThat(decodedMessageBody(openedMessage(imported))).containsExactly(
                 decodedMessageBody(openedMessage(read(fixture.unsigned, route, loadPkcs12KeyStore()))));
@@ -154,55 +150,54 @@ class DetachedSignedParentAttachmentTest {
     void sameNamedOrdinaryFileAndParentSignatureRemainDistinctAcrossCopies(final Route route) throws Exception {
         final Fixture fixture = fixture(encryptedChild(), SIGNATURE_NAME);
         final Email imported = read(fixture.signed, route, loadPkcs12KeyStore());
-
         for (final Email value : List.of(imported, factory().emailBuilder().copying(imported).buildEmail(), serializedCopy(imported))) {
             assertParent(value, fixture.signed);
             assertThat(decodedMessageBody(openedMessage(value))).containsExactly(
                     decodedMessageBody(openedMessage(read(fixture.unsigned, route, loadPkcs12KeyStore()))));
-            assertSameNamedOccurrences(value.getAttachments(), fixture.signature);
-            assertSameNamedOccurrences(value.getDecryptedAttachments(), fixture.signature);
-            assertThat(value.getSmimeSignedEmail()).isNull();
+            assertSameNamedOccurrences(value, fixture.signature);
         }
     }
 
     @Test
-    void repeatedBuildAndExplicitSeparateViewsDoNotPromoteOrDuplicateTheChild() throws Exception {
+    void repeatedBuildAndCopiesDoNotPromoteOrDuplicateTheIndependentFile() throws Exception {
         final Fixture fixture = fixture(false);
         final EmailPopulatingBuilder builder = factory().converter().fromEml(new ByteArrayInputStream(fixture.signed))
-                .withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder().notMergingSingleSMIMESignedAttachment();
+                .withSmimeDecryption(loadPkcs12KeyStore()).toEmailBuilder();
         final Email first = builder.buildEmail();
-        final int processedCount = first.getDecryptedAttachments().size();
-
-        for (final Email value : List.of(first, builder.buildEmail(), factory().emailBuilder().copying(first)
-                .clearSMIMESignedAttachmentMergingBehavior().buildEmail(), serializedCopy(first))) {
+        for (final Email value : List.of(first, builder.buildEmail(), factory().emailBuilder().copying(first).buildEmail(), serializedCopy(first))) {
             assertParent(value, fixture.signed);
-            assertThat(value.getDecryptedAttachments()).hasSize(processedCount);
+            assertThat(value.getAttachments()).hasSize(1);
             assertThat(decodedMessageBody(openedMessage(value))).containsExactly(decodedMessageBody(openedMessage(first)));
-            assertThat(value.getSmimeSignedEmail()).isNull();
+            assertThat(value.getAttachments().get(0).getEmail()).isNull();
         }
     }
 
     @Test
-    void unsupportedSinglePartClearContentRetainsTheOriginalProtectedResource() throws Exception {
+    void singlePartClearContentBecomesAUsableFileWithoutReplacingTheParentBody() throws Exception {
         final MimeBodyPart clear = new MimeBodyPart();
         clear.setText("Clear single-part content has no legacy attachment representation", "UTF-8");
         final Fixture fixture = fixture(encrypted(clear), null);
-
         final Email imported = read(fixture.signed, Route.FLUENT_EML_LAZY, loadPkcs12KeyStore());
-
         assertParent(imported, fixture.signed);
-        assertThat(resource(imported.getAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(resource(imported.getDecryptedAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(imported.getSmimeSignedEmail()).isNull();
+        assertThat(imported.getAttachments()).singleElement().satisfies(resource -> {
+            assertThat(resource.readAllData(UTF_8)).isEqualTo("Clear single-part content has no legacy attachment representation");
+            assertThat(resource.getEmail()).isNull();
+        });
+        assertThat(imported.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(fixture.ciphertext);
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
     }
 
     @Test
-    void malformedEncryptedChildrenKeepTheExplicitDecryptionFailureBoundary() throws Exception {
-        final MimeBodyPart broken = protectedChild(new byte[] {1, 2, 3}, "enveloped-data");
-        final Fixture fixture = fixture(broken, NOTE_NAME);
-
-        assertThatThrownBy(() -> read(fixture.signed, Route.FLUENT_MIME_EAGER, loadPkcs12KeyStore()))
-                .isInstanceOf(SmimeException.class);
+    void malformedEncryptedChildrenKeepReadableNeighborsAndTheirOwnFailure() throws Exception {
+        final Fixture fixture = fixture(protectedChild(new byte[] {1, 2, 3}, "enveloped-data"), NOTE_NAME);
+        final Email imported = read(fixture.signed, Route.FLUENT_MIME_EAGER, loadPkcs12KeyStore());
+        assertParent(imported, fixture.signed);
+        assertThat(imported.getAttachments()).hasSize(2);
+        assertThat(imported.getAttachments().get(0).readAllBytes()).containsExactly(1, 2, 3);
+        assertThat(resource(imported.getAttachments(), NOTE_NAME).readAllData(UTF_8)).isEqualTo("Ordinary sibling");
+        assertThat(imported.getInspection().getAttachment(0).getDecryptions()).anySatisfy(attempt ->
+                assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.FAILED));
+        assertThat(imported.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED);
     }
 
     @ParameterizedTest
@@ -214,7 +209,6 @@ class DetachedSignedParentAttachmentTest {
 
         assertParent(imported, fixture.signed);
         assertThat(resource(imported.getAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(resource(imported.getDecryptedAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
         assertThat(resource(imported.getAttachments(), NOTE_NAME).readAllData(UTF_8)).isEqualTo("Ordinary sibling");
         assertThat(imported.getProblems()).filteredOn(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED)
                 .singleElement().satisfies(problem -> {
@@ -237,7 +231,7 @@ class DetachedSignedParentAttachmentTest {
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
-    void opaqueSignedAndEncryptedParentsKeepTheirExistingBoundedInnerView(final boolean opaqueSigned) throws Exception {
+    void opaqueSignedAndEncryptedParentsAlsoProcessTheIndependentFile(final boolean opaqueSigned) throws Exception {
         final Fixture fixture = fixture(false);
         final MimeBodyPart entity = new MimeBodyPart();
         entity.setContent((MimeMultipart) message(fixture.unsigned).getContent());
@@ -249,18 +243,16 @@ class DetachedSignedParentAttachmentTest {
         outer.setHeader("Content-Type", protectedParent.getContentType());
         outer.saveChanges();
         final byte[] source = bytes(outer);
-
         final Email imported = read(source, Route.FLUENT_EML_LAZY, loadPkcs12KeyStore());
-
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(source);
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(opaqueSigned
-                ? OriginalSmimeDetails.SmimeMode.SIGNED : OriginalSmimeDetails.SmimeMode.ENCRYPTED);
-        final Email inner = imported.getSmimeSignedEmail();
-        assertThat(inner).isNotNull();
-        assertThat(inner.getPlainText()).isEqualTo(BODY);
-        assertThat(resource(inner.getAttachments(), PROTECTED_NAME).readAllBytes()).containsExactly(fixture.ciphertext);
-        assertThat(inner.getDecryptedAttachments()).noneMatch(resource ->
-                "message/rfc822".equalsIgnoreCase(resource.getDataSource().getContentType()));
+        assertOriginal(imported, source);
+        assertThat(imported.getPlainText()).isEqualTo(BODY);
+        assertThat(imported.getHTMLText()).isEqualTo(HTML);
+        assertThat(imported.getCalendarText()).isEqualTo(CALENDAR);
+        assertPlainProtection(imported, opaqueSigned ? SignatureStatus.VERIFIED : SignatureStatus.UNSIGNED,
+                opaqueSigned ? EncryptionStatus.NOT_ENCRYPTED : EncryptionStatus.DECRYPTED);
+        assertThat(imported.getInspection().getOriginalAttachment(0).readAllBytes()).containsExactly(fixture.ciphertext);
+        assertThat(imported.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(readOpenedContent(openedMessage(imported)).getPlainText()).contains("This is an encrypted message");
     }
 
     static Stream<Arguments> protectedRoots() {
@@ -270,8 +262,7 @@ class DetachedSignedParentAttachmentTest {
 
     @ParameterizedTest(name = "{0}, encrypted root={1}")
     @MethodSource("protectedRoots")
-    void openingDetachedSignatureDoesNotOpenTheProtectedEntityAtItsRoot(final Route route, final boolean encryptedRoot)
-            throws Exception {
+    void openingDetachedSignatureRecursivelyProcessesItsProtectedRoot(final Route route, final boolean encryptedRoot) throws Exception {
         final MimeBodyPart text = new MimeBodyPart();
         text.setText("Another protected root is not an independent attachment", "UTF-8");
         final MimeBodyPart file = new MimeBodyPart();
@@ -282,50 +273,36 @@ class DetachedSignedParentAttachmentTest {
         clear.addBodyPart(file);
         final MimeBodyPart clearEntity = new MimeBodyPart();
         clearEntity.setContent(clear);
-        final MimeBodyPart generatedProtected = encryptedRoot
-                ? SmimeCryptoSupport.encrypt(clearEntity, certificate(),
-                        SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM, SmimeCryptoSupport.DEFAULT_CIPHER)
+        final MimeBodyPart protectedEntity = encryptedRoot
+                ? SmimeCryptoSupport.encrypt(clearEntity, certificate(), SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM, SmimeCryptoSupport.DEFAULT_CIPHER)
                 : signer().generateEncapsulated(clearEntity);
-        generatedProtected.setFileName("protected-root.p7m");
-        final ByteArrayOutputStream protectedSnapshot = new ByteArrayOutputStream();
-        generatedProtected.writeTo(protectedSnapshot);
-        final MimeBodyPart protectedEntity = new MimeBodyPart(new ByteArrayInputStream(protectedSnapshot.toByteArray()));
-        // The signed content itself is protected, without any surrounding clear multipart attachment container.
+        protectedEntity.setFileName("protected-root.p7m");
         final MimeMultipart detached = signer().generate(protectedEntity);
         ((MimeBodyPart) detached.getBodyPart(1)).setFileName(SIGNATURE_NAME);
         final byte[] wire = bytes(envelope(detached));
-        final MimeBodyPart receivedProtected = (MimeBodyPart) ((MimeMultipart) message(wire).getContent()).getBodyPart(0);
-        final byte[] protectedBytes;
-        try (InputStream input = receivedProtected.getInputStream()) { protectedBytes = input.readAllBytes(); }
         assertThat(SmimeCryptoSupport.checkSignature(message(wire))).isTrue();
-
         final Email imported = read(wire, route, loadPkcs12KeyStore());
-
-        assertThat(imported.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-        assertThat(imported.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
-        assertThat(imported.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(imported.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(wire);
-        assertThat(imported.getPlainText()).isNull();
-        assertThat(imported.getHTMLText()).isNull();
-        assertThat(imported.getSmimeSignedEmail()).isNull();
-        for (final List<AttachmentResource> resources : List.of(imported.getAttachments(), imported.getDecryptedAttachments())) {
-            final List<AttachmentResource> protectedRoots = resources.stream().filter(resource ->
-                    resource.getDataSource().getContentType().startsWith("application/pkcs7-mime")).collect(Collectors.toList());
-            assertThat(protectedRoots).hasSize(1);
-            assertThat(protectedRoots.get(0).readAllBytes()).containsExactly(protectedBytes);
-        }
-        assertThat(imported.getDecryptedAttachments()).noneMatch(resource ->
-                "message/rfc822".equalsIgnoreCase(resource.getDataSource().getContentType()));
+        assertPlainProtection(imported, SignatureStatus.VERIFIED,
+                encryptedRoot ? EncryptionStatus.DECRYPTED : EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(imported.getPlainText()).isEqualTo("Another protected root is not an independent attachment");
+        assertThat(imported.getInspection().getSmime().getSignatures()).hasSize(encryptedRoot ? 1 : 2)
+                .allSatisfy(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
+        assertThat(imported.getAttachments()).extracting("name").containsExactly("inside.txt");
+        assertThat(imported.getAttachments().get(0).readAllData(UTF_8)).isEqualTo("Ordinary file inside the unopened root");
+        assertOriginalForRoute(imported, wire, route);
     }
 
-    private static void assertSameNamedOccurrences(final List<AttachmentResource> resources, final byte[] signature) throws Exception {
-        final List<AttachmentResource> matching = resources.stream().filter(resource -> SIGNATURE_NAME.equals(resource.getName()))
+    private static void assertSameNamedOccurrences(final Email email, final byte[] signature) throws Exception {
+        final List<AttachmentResource> matching = email.getAttachments().stream().filter(resource -> SIGNATURE_NAME.equals(resource.getName()))
                 .collect(Collectors.toList());
-        assertThat(matching).hasSize(2);
-        final List<byte[]> contents = new java.util.ArrayList<>();
-        for (AttachmentResource resource : matching) { contents.add(resource.readAllBytes()); }
-        assertThat(contents).anySatisfy(content -> assertThat(content).containsExactly(signature))
-                .anySatisfy(content -> assertThat(content).containsExactly("Ordinary sibling".getBytes(UTF_8)));
+        assertThat(matching).singleElement().satisfies(resource -> assertThat(resource.readAllData(UTF_8)).isEqualTo("Ordinary sibling"));
+        assertFileOccurrenceDistinctFromEnvelope(email, 1, SIGNATURE_NAME);
+        if (email.getInspection().getOriginalMessage() != null) {
+            final MimeMessage original = message(email.getInspection().getOriginalMessage().readAllBytes());
+            try (InputStream input = ((MimeMultipart) original.getContent()).getBodyPart(1).getInputStream()) {
+                assertThat(input.readAllBytes()).containsExactly(signature);
+            }
+        }
     }
 
     private static void assertParent(final Email email, final byte[] original) {
@@ -334,24 +311,33 @@ class DetachedSignedParentAttachmentTest {
         assertThat(email.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
         assertThat(email.getCalendarText()).isEqualTo(CALENDAR);
         assertThat(email.getHeaders()).containsEntry("X-Parent", List.of("retained"));
-        assertThat(email.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.SIGNED);
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
-        assertThat(email.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
-        assertThat(email.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(original);
+        assertPlainProtection(email, SignatureStatus.VERIFIED, EncryptionStatus.NOT_ENCRYPTED);
+        assertThat(email.getInspection().getHTMLText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        assertThat(email.getInspection().getCalendar().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
+        if (email.getInspection().getOriginalMessage() != null) assertOriginal(email, original);
+    }
+
+    private static void assertOriginalForRoute(Email email, byte[] original, Route route) {
+        if (route.name().contains("EML")) assertOriginal(email, original);
+        else assertThat(email.getInspection().getOriginalMessage()).isNull();
     }
 
     private static AttachmentResource openedMessage(final Email email) {
-        final List<AttachmentResource> opened = email.getDecryptedAttachments().stream()
-                .filter(resource -> "message/rfc822".equalsIgnoreCase(resource.getDataSource().getContentType()))
-                .collect(Collectors.toList());
-        assertThat(opened).as("independent encrypted child has the same opened representation as under an unsigned parent").hasSize(1);
-        return opened.get(0);
+        assertThat(email.getAttachments()).isNotEmpty();
+        assertThat(email.getAttachments().get(0).getEmail()).isNull();
+        assertThat(email.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        return email.getAttachments().get(0);
     }
 
-    private static byte[] decodedMessageBody(final AttachmentResource resource) throws Exception {
-        try (InputStream content = message(resource.readAllBytes()).getInputStream()) {
-            return content.readAllBytes();
-        }
+    private static byte[] decodedMessageBody(final AttachmentResource resource) { return resource.readAllBytes(); }
+
+    private static Email readOpenedContent(AttachmentResource resource) {
+        final MimeMessage adapter = new MimeMessage(Session.getInstance(new Properties()));
+        try {
+            adapter.setDataHandler(new DataHandler(resource.getDataSource()));
+            adapter.setHeader("Content-Type", resource.getDataSource().getContentType());
+        } catch (jakarta.mail.MessagingException failure) { throw new IllegalStateException(failure); }
+        return factory().converter().fromMimeMessage(adapter).toEmail();
     }
 
     private static AttachmentResource resource(final List<AttachmentResource> resources, final String name) {

@@ -22,12 +22,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.pgpainless.key.parsing.KeyRingReader;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.ValueAvailability;
 import org.simplejavamail.api.email.config.OpenPgpReceiveConfig;
 import org.simplejavamail.converter.EmailConverter;
 import testutil.ConfigLoaderTestHelper;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -75,12 +75,13 @@ class OpenPgpEmptyContentHeadersTest {
                     : MAIL.converter().fromEml(incoming).withOpenPgpReceiveConfig(receiving).toEmail();
 
             assertThat(parsed.getPlainText()).isEqualTo(body);
+            assertThat(parsed.getInspection().getPlainText().getAvailability()).isEqualTo(ValueAvailability.PRESENT);
             assertThat(parsed.getHeaders()).doesNotContainKey("X-Visible");
-            assertThat(parsed.getOriginalOpenPgpDetails().getSignatureStatus())
-                    .isEqualTo(protection == Protection.SIGNED ? SignatureStatus.VALID : SignatureStatus.NOT_PRESENT);
-            assertThat(parsed.getOriginalOpenPgpDetails().getDecryptionStatus())
-                    .isEqualTo(protection == Protection.SIGNED ? DecryptionStatus.NOT_ENCRYPTED : DecryptionStatus.DECRYPTED);
-            assertThat(parsed.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).containsExactly(incoming);
+            assertThat(parsed.getInspection().getPlainText().getSignatureStatus())
+                    .isEqualTo(protection == Protection.SIGNED ? SignatureStatus.VERIFIED : SignatureStatus.UNSIGNED);
+            assertThat(parsed.getInspection().getPlainText().getEncryptionStatus())
+                    .isEqualTo(protection == Protection.SIGNED ? EncryptionStatus.NOT_ENCRYPTED : EncryptionStatus.DECRYPTED);
+            assertThat(parsed.getInspection().getOriginalMessage().readAllBytes()).containsExactly(incoming);
             assertThat(caller.closed).isFalse();
         }
     }

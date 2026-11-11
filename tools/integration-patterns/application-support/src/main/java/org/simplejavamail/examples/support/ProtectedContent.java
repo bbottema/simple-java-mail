@@ -4,6 +4,8 @@ import org.simplejavamail.api.email.config.SmimeSigningConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.ApprovedSigners;
+import org.simplejavamail.api.email.ProtectionRequirements;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 
 import java.nio.file.Path;
@@ -48,5 +50,16 @@ public final class ProtectedContent {
                 .withSmimeDecryption(signing().getPkcs12Config())
                 .withSession(jakarta.mail.Session.getInstance(new java.util.Properties()))
                 .toEmail();
+    }
+
+    /** Explicit application approval for these local fixtures; receive-key availability does not provide this approval. */
+    public static ProtectionRequirements requiredBodyProtection() throws Exception {
+        final java.security.cert.X509Certificate certificate;
+        try (var input = java.nio.file.Files.newInputStream(Path.of("/opt/demo/partner.crt"))) {
+            certificate = (java.security.cert.X509Certificate) java.security.cert.CertificateFactory.getInstance("X.509").generateCertificate(input);
+        }
+        return ProtectionRequirements.builder()
+                .requireVerifiedSignatureFrom(ApprovedSigners.builder().addSmimeCertificate(certificate).build())
+                .requireDecryptedContent().requireAllSignaturesVerified().build();
     }
 }

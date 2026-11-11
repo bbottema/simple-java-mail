@@ -33,7 +33,8 @@ import java.util.TreeSet;
 final class ConfigurationContractInventory {
     static final String MAIN = "simple-java-mail";
     private static final List<Class<?>> EXTRA_ROOTS = List.of(ConfigLoader.class, SimpleJavaMail.class,
-            EmailStartingBuilder.class, ExactEmailBuilder.class, ConfiguredEmailConverter.class);
+            EmailStartingBuilder.class, ExactEmailBuilder.class, ConfiguredEmailConverter.class,
+            org.simplejavamail.api.email.ApprovedSigners.class, org.simplejavamail.api.email.ProtectionRequirements.class);
 
     private ConfigurationContractInventory() { }
 

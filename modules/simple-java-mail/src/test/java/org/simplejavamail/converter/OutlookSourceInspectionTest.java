@@ -45,7 +45,8 @@ class OutlookSourceInspectionTest {
         assertThat(email.getSourceData().getFormat()).isEqualTo(EmailSourceData.Format.OUTLOOK_MSG);
         assertThat(headerValues(email.getSourceData(), "Received")).containsExactly("first", "second");
         assertThat(propertyValues(email.getSourceData(), "propertyCode")).isNotEmpty();
-        assertThat(email.getHeaders().keySet()).noneMatch(value -> value.equalsIgnoreCase("Received") || value.equalsIgnoreCase("Comments"));
+        assertThat(email.getHeaders().get("received")).containsExactly("first", "second");
+        assertThat(email.getHeaders().get("COMMENTS")).containsExactly("=?X-NO-SUCH-CHARSET?Q?note?=");
         Email copy = MAIL.emailBuilder().copying(email).fixingMessageId("<copy@example.org>").buildEmail();
         assertThat(headerValues(copy.getSourceData(), "Received")).containsExactly("first", "second");
     }

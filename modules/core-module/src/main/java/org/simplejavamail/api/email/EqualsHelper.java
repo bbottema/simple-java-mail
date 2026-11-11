@@ -4,10 +4,14 @@ import jakarta.activation.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.internal.email.HeaderRoles;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 import static org.simplejavamail.internal.util.MiscUtil.normalizeNewlines;
 
@@ -84,8 +88,10 @@ public final class EqualsHelper {
         if (!isEqualUnorderedList("attachments", email1.getAttachments(), email2.getAttachments())) {
             return false;
         }
-        if (!email1.getHeaders().equals(email2.getHeaders())) {
-            log.debug("Email unqual for headers: {} vs {}", email1.getHeaders(), email2.getHeaders());
+        final Map<String, Collection<String>> headers = comparableHeaders(email1);
+        final Map<String, Collection<String>> otherHeaders = comparableHeaders(email2);
+        if (!headers.equals(otherHeaders)) {
+            log.debug("Email unqual for headers: {} vs {}", headers, otherHeaders);
             return false;
         }
         if (!Objects.equals(email1.getUseDispositionNotificationTo(), email2.getUseDispositionNotificationTo())) {
@@ -113,9 +119,6 @@ public final class EqualsHelper {
                     email1.isTlsRequiredForOnwardDelivery(), email2.isTlsRequiredForOnwardDelivery());
             return false;
         }
-        if (!fieldIsEqual(email1.getOriginalSmimeDetails(), email2.getOriginalSmimeDetails(), "originalSmimeDetails")) {
-            return false;
-        }
         if (!fieldIsEqual(email1.getDkimConfig(), email2.getDkimConfig(), "dkimConfig")) {
             return false;
         }
@@ -131,10 +134,16 @@ public final class EqualsHelper {
         if (!fieldIsEqual(email1.getOpenPgpEncryptionConfig(), email2.getOpenPgpEncryptionConfig(), "openPgpEncryptionConfig")) {
             return false;
         }
-        if (!fieldIsEqual(email1.getOriginalOpenPgpDetails(), email2.getOriginalOpenPgpDetails(), "originalOpenPgpDetails")) {
-            return false;
-        }
         return fieldIsEqual(email1.getReturnReceiptToRecipients(), email2.getReturnReceiptToRecipients(), "returnReceiptTo");
+    }
+
+    private static Map<String, Collection<String>> comparableHeaders(final Email email) {
+        final Map<String, Collection<String>> selected = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        email.getHeaders().forEach((name, values) -> {
+            final HeaderRoles.Role role = HeaderRoles.classify(name);
+            if (role == HeaderRoles.Role.ADDITIONAL || role == HeaderRoles.Role.EXPLICIT_AUTHORED) selected.put(name, values);
+        });
+        return selected;
     }
 
     private static <T> boolean isEqualUnorderedList(final String fieldName, final List<T> values, final List<T> otherValues) {

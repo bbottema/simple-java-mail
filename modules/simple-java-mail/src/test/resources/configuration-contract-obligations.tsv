@@ -1,4 +1,23 @@
 # Finite contract obligations, independent of successful evidence.
+rule	email.helper-option-selection	simple-java-mail	library
+rule	email.helper-option-copy	simple-java-mail	library
+rule	email.original-forwarding	simple-java-mail	library
+rule	converter.local-content-permission	simple-java-mail	library
+rule	protection.application-requirements	simple-java-mail	library
+rule	protection.approved-signing-keys	simple-java-mail	library
+rule	protection.application-policy-copy	simple-java-mail	library
+case	email.helper-options	simple-java-mail	library
+case	email.helper-option-copy	simple-java-mail	library
+case	converter.permission-isolation	simple-java-mail	library
+case	protection.policy-selection	simple-java-mail	library
+case	protection.key-selection	simple-java-mail	library
+case	protection.policy-copy	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ReceivedProtectionConfigurationContractTest#everyHelperOptionChangesItsQuoteOrActualOutputPermission	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ReceivedProtectionConfigurationContractTest#everyConversionPermissionRouteControlsOutputWithoutChangingTheDraft	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ReceivedProtectionConfigurationContractTest#everyRequirementChoiceAssessesTheActualCapturedDocument	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ReceivedProtectionConfigurationContractTest#everyApprovalChoicePinsOnlyItsSelectedKeyFamily	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ReceivedProtectionConfigurationContractTest#optionCopiesPreserveChoicesWhileEditsControlTheNewDraftOnly	simple-java-mail	library
+test	org.simplejavamail.mailer.internal.ReceivedProtectionConfigurationContractTest#requirementAndApprovalCopiesRetainTheirIndependentApplicationChoices	simple-java-mail	library
 field	factory.smime-key-cache	simple-java-mail	library
 rule	smime.cache-capacity	simple-java-mail	library
 adapter	factory.smime-runtime	simple-java-mail	library
@@ -37,7 +56,7 @@ test	org.simplejavamail.converter.ImportLimitsTest#aDepthStopSummarizesAnUnvisit
 test	org.simplejavamail.converter.ImportLimitsTest#concurrentImportsReuseChoicesWithoutSharingTheAllowance	simple-java-mail	library
 test	org.simplejavamail.converter.ImportProtectionLimitsTest#omittingANeighborDoesNotTurnAnIndependentSignedFileIntoParentProtection	simple-java-mail	library
 test	org.simplejavamail.converter.ImportProtectionLimitsTest#anUnvisitedProtectedInnerBodyKeepsTheCompletedNativeOuterViewAndItsOwnInspection	simple-java-mail	library
-test	org.simplejavamail.converter.ImportProtectionLimitsTest#aReadableRetainedBodyStillMergesWhenOnlyALaterFileIsOmitted	simple-java-mail	library
+test	org.simplejavamail.converter.ImportProtectionLimitsTest#aReadableProtectedBodyIsSelectedWhenOnlyALaterFileIsOmitted	simple-java-mail	library
 test	org.simplejavamail.converter.ImportProtectionLimitsTest#anOmittedDeclaredNativeEnvelopeKeepsItsUninspectedFactsUnknown	simple-java-mail	library
 test	org.simplejavamail.springsupport.SpringEnvironmentConfigSourceTest#importLimitsKeepSpringPrecedencePlaceholdersAndLockedMetadata	spring-module	full
 test	org.simplejavamail.springsupport.SpringModulePackagingTest#importLimitsHaveWidthSpecificMetadataForOrdinaryAndLockedConfiguration	spring-module	full
@@ -431,7 +450,6 @@ cli	--email:clearPlainTextContentTransferEncoding|org.simplejavamail.api.interna
 cli	--email:clearRecipients|org.simplejavamail.api.email.EmailPopulatingBuilder#clearRecipients():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearReplyTo|org.simplejavamail.api.email.EmailPopulatingBuilder#clearReplyTo():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearReturnReceiptTo|org.simplejavamail.api.email.EmailPopulatingBuilder#clearReturnReceiptTo():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
-cli	--email:clearSMIMESignedAttachmentMergingBehavior|org.simplejavamail.api.email.EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearSentDate|org.simplejavamail.api.email.EmailPopulatingBuilder#clearSentDate():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearSmime|org.simplejavamail.api.email.EmailPopulatingBuilder#clearSmime():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:clearSmimeEncryption|org.simplejavamail.api.email.EmailPopulatingBuilder#clearSmimeEncryption():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
@@ -449,7 +467,6 @@ cli	--email:forwarding|org.simplejavamail.api.email.EmailStartingBuilder#forward
 cli	--email:from|org.simplejavamail.api.email.EmailPopulatingBuilder#from(java.lang.String,java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:ignoringDefaultsYesNo|org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#ignoringDefaults(boolean):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:ignoringOverridesYesNo|org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#ignoringOverrides(boolean):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
-cli	--email:notMergingSingleSMIMESignedAttachment|org.simplejavamail.api.email.EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment():org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:prependText|org.simplejavamail.api.email.EmailPopulatingBuilder#prependPlainText(java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:prependTextFromFile|org.simplejavamail.api.email.EmailPopulatingBuilder#prependPlainText(java.io.File):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
 cli	--email:prependTextHTML|org.simplejavamail.api.email.EmailPopulatingBuilder#prependHTMLText(java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
@@ -648,7 +665,7 @@ test	org.simplejavamail.mailer.internal.MailerAdoptionRegressionTest#groupReplac
 test	org.simplejavamail.mailer.internal.MailerAdoptionRegressionTest#aCreationAgeClearBlocksTheConfiguredValueUntilRestoration	simple-java-mail	library
 test	org.simplejavamail.email.internal.EmailConfigurationIdentityTest#subjectAndBodyKeepSeparateLogicalTargetsDespiteSharingTheirJavaType	simple-java-mail	library
 test	org.simplejavamail.email.internal.SmimeHeaderResolutionTest#innerHeadersReplaceWholeOuterListsWithoutChangingEitherSource	simple-java-mail	library
-test	org.simplejavamail.email.internal.SmimeHeaderResolutionTest#disablingSignedContentMergeKeepsOuterHeaders	simple-java-mail	library
+test	org.simplejavamail.email.internal.SmimeHeaderResolutionTest#copyingSelectedHeadersDoesNotRestoreDisplacedCarrierValues	simple-java-mail	library
 test	org.simplejavamail.email.internal.SmimeHeaderResolutionTest#templateGovernanceStillAppliesAfterTheSignedContentMerge	simple-java-mail	library
 test	org.simplejavamail.email.internal.SmimeHeaderResolutionTest#legacyCaseCollisionsRetainLastMatchingEntryPrecedence	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.SubjectResolutionContractTest#subjectPresenceAndSuppressionRulesPreserveTheirOwnPrecedence	simple-java-mail	library
@@ -914,3 +931,5 @@ test	org.simplejavamail.internal.clisupport.daemon.DaemonExistingMailerLeaseTest
 test	org.simplejavamail.internal.clisupport.daemon.CliDkimKeyRotationTest#coldValidationReadsCurrentKeyMaterialWithoutSeedingTheSendingCache	cli-module	full
 test	org.simplejavamail.mailer.internal.CliPreparationContractTest#purePoolConstraintsStillApplyWithoutActivatingThePool	simple-java-mail	library
 test	org.simplejavamail.mailer.internal.CliPreparationContractTest#absentBatchSupportKeepsItsUnusedPoolSettingsInactive	simple-java-mail	library
+cli	--email:forwardingWithOptions|org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder#forwarding(jakarta.mail.internet.MimeMessage,boolean):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full
+cli	--email:replyingWithOptions|org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder#replyingTo(jakarta.mail.internet.MimeMessage,boolean,java.lang.String,boolean):org.simplejavamail.api.email.EmailPopulatingBuilder	cli-module	full

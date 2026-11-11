@@ -451,18 +451,19 @@ class RecipientDsnSubmissionTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void rehearsalAndValidationRejectTheSameEnvelopePolicyMismatchAsSendPreparation(final boolean processSecurity) throws Exception {
+        final String newsgroup = "example.discussion";
         final Email email = mail.emailBuilder().copying(email(recipient(RecipientType.TO, NEVER)))
-                .withHeader("To", "additional@example.test").buildEmailCompletedWithDefaultsAndOverrides();
+                .withHeader("Newsgroups", newsgroup).buildEmailCompletedWithDefaultsAndOverrides();
         try (Mailer mailer = mail.mailerBuilder().withSMTPServer("localhost", 1).withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).build()).buildMailer()) {
             final Throwable preparationFailure = catchThrowable(() ->
                     SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(mailer.getSession(), email));
             assertThat(preparationFailure).isInstanceOf(MailTransportCompatibilityException.class)
                     .hasMessageContaining("final SMTP recipient list has 2 entries")
                     .hasMessageContaining("Email recipient list has 1")
-                    .hasMessageContaining("withRecipients(...)")
-                    .hasMessageContaining("withHeader(...)")
+                    .hasMessageContaining("SMTP mailbox recipients")
+                    .hasMessageContaining("non-SMTP destinations such as Newsgroups")
                     .hasMessageContaining("withOverrideReceivers(...)");
-            assertThat(preparationFailure.getMessage()).doesNotContain(ADDRESS, "additional@example.test", "one mailbox per Recipient");
+            assertThat(preparationFailure.getMessage()).doesNotContain(ADDRESS, newsgroup, "one mailbox per Recipient");
             assertThatThrownBy(() -> mailer.rehearse(email, processSecurity))
                     .hasCauseInstanceOf(MailTransportCompatibilityException.class).hasRootCauseMessage(preparationFailure.getMessage());
             assertThatThrownBy(() -> mailer.validate(email, processSecurity))

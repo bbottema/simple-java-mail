@@ -10,6 +10,7 @@ import org.pgpainless.util.ArmorUtils;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,14 +24,15 @@ final class SignaturePacketReader {
         try (InputStream raw = new ByteArrayInputStream(encoded);
              InputStream decoded = ArmorUtils.getDecoderStream(raw)) {
             readObjects(decoded, result);
-        } catch (Exception failure) {
+        } catch (IOException failure) {
+            org.simplejavamail.internal.util.InterruptedIoGuard.rethrowIfInterrupted(failure);
             result.fail("Unable to read the OpenPGP signature packets");
         }
         if (result.signatures.isEmpty()) result.fail("No OpenPGP signature packet was available");
         return result;
     }
 
-    private static void readObjects(final InputStream source, final Packets result) throws Exception {
+    private static void readObjects(final InputStream source, final Packets result) throws IOException {
         final PGPObjectFactory packets = OpenPGPImplementation.getInstance().pgpObjectFactory(source);
         Object packet;
         while ((packet = packets.nextObject()) != null) {

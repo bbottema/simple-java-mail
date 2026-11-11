@@ -42,136 +42,166 @@ class SmimeReceiveBoundaryTest {
 
 	@TestFactory
 	Stream<DynamicTest> ordinaryInspectionStillWorksWithoutTheModule() {
-		return Stream.of("eml", "mime", "outlook").flatMap(source -> Stream.of(false, true).map(fluent -> DynamicTest.dynamicTest(source + (fluent ? " fluent" : " static"), () -> {
+		return Stream.of("eml", "mime", "outlook").flatMap(source -> Stream.of(false, true).map(fluent ->
+				DynamicTest.dynamicTest(source + (fluent ? " fluent" : " static"), () -> {
 			try (WithoutSmime runtime = runtime()) {
-				final Object details = details(runtime, importMail(runtime, source, fluent, false));
-				assertThat(read(runtime, details, "getSmimeMode").toString()).isEqualTo("PLAIN");
-				assertThat(read(runtime, details, "getVerificationStatus").toString()).isEqualTo("NOT_SIGNED");
-				assertThat(read(runtime, details, "getDecryptionStatus").toString()).isEqualTo("NOT_ENCRYPTED");
-				assertThat(read(runtime, details, "getOriginalProtectedMessage")).isNull();
+				final Object email = importMail(runtime, source, fluent, false);
+				final Object family = details(runtime, email);
+				assertThat(read(runtime, family, "isInspectionComplete")).isEqualTo(true);
+				assertThat((java.util.List<?>) read(runtime, family, "getSignatures")).isEmpty();
+				assertThat((java.util.List<?>) read(runtime, family, "getDecryptions")).isEmpty();
 			}
 		})));
 	}
 
 	@Test
-	void encryptedEmlWithoutTheModuleRetainsUnknownResultsAndExactSource() throws Exception {
-		final byte[] original = Files.readAllBytes(protectedFixture("encrypted.eml"));
+	void encryptedEmlWithoutTheModuleRetainsUnavailableProcessingAndExactOriginal() throws Exception {
+		final byte[] bytes = Files.readAllBytes(protectedFixture("encrypted.eml"));
 		try (WithoutSmime runtime = runtime()) {
-			final Object email = importProtectedEml(runtime, original);
-			final Object details = details(runtime, email);
-			assertUnknown(runtime, details, "ENCRYPTED");
-			assertThat((byte[]) read(runtime, details, "getOriginalProtectedMessage")).containsExactly(original);
+			final Object email = importProtectedEml(runtime, bytes);
+			assertUnavailable(runtime, email, false);
+			assertThat(original(runtime, email)).containsExactly(bytes);
 		}
 	}
 
 	@TestFactory
 	Stream<DynamicTest> protectedImportsReportUnavailableInspectionOnEveryRoute() {
 		return Stream.of("eml", "mime", "outlook").flatMap(source -> Stream.of(false, true).flatMap(fluent ->
-				Stream.of("signed", "encrypted").map(protection -> DynamicTest.dynamicTest(source + " " + protection + (fluent ? " fluent" : " static"), () -> {
-					try (WithoutSmime runtime = runtime()) {
-						final Object details = details(runtime, importMail(runtime, source, fluent, false, false, protection));
-						assertUnknown(runtime, details, protection.equals("signed") ? "SIGNED" : "ENCRYPTED");
-						final byte[] retained = (byte[]) read(runtime, details, "getOriginalProtectedMessage");
-						if (source.equals("outlook")) {
-							assertThat(retained).as("MSG has no exact original EML").isNull();
-						} else if (source.equals("eml")) {
-							assertThat(retained).containsExactly(Files.readAllBytes(protectedFixture(protection + ".eml")));
-						} else {
-							assertThat(retained).isNotEmpty();
-						}
-					}
-				}))));
+				Stream.of("signed", "encrypted").map(protection -> DynamicTest.dynamicTest(source + " " + protection
+						+ (fluent ? " fluent" : " static"), () -> {
+			try (WithoutSmime runtime = runtime()) {
+				final Object email = importMail(runtime, source, fluent, false, false, protection);
+				assertUnavailable(runtime, email, protection.equals("signed"));
+				if (source.equals("mime")) {
+					assertThat(original(runtime, email)).as("a MIME object is not captured file input").isNull();
+				} else {
+					assertThat(original(runtime, email)).containsExactly(Files.readAllBytes(protectedFixture(
+							protection + (source.equals("outlook") ? ".msg" : ".eml"))));
+				}
+			}
+		}))));
 	}
 
 	@TestFactory
-	Stream<DynamicTest> ambiguousAndAliasedDeclarationsKeepUnknownFacts() {
+	Stream<DynamicTest> ambiguousAndAliasedDeclarationsKeepHonestFacts() {
 		return Stream.of(
 				new String[] {"application/pkcs7-mime", "UNKNOWN"},
 				new String[] {"application/x-pkcs7-mime; smime-type=unrecognized", "UNKNOWN"},
 				new String[] {"APPLICATION/X-PKCS7-MIME; smime-type=ENVELOPED-DATA", "ENCRYPTED"},
 				new String[] {"application/pkcs7-mime; smime-type=signed-data", "SIGNED"}
 		).map(example -> DynamicTest.dynamicTest(example[0], () -> {
-			final byte[] source = ("From: sender@example.org\r\nContent-Type: " + example[0]
+			final byte[] bytes = ("From: sender@example.org\r\nContent-Type: " + example[0]
 					+ "\r\nContent-Transfer-Encoding: base64\r\n\r\nAQID\r\n").getBytes(UTF_8);
 			try (WithoutSmime runtime = runtime()) {
-				final Object details = details(runtime, importProtectedEml(runtime, source));
-				assertUnknown(runtime, details, example[1]);
-				assertThat((byte[]) read(runtime, details, "getOriginalProtectedMessage")).containsExactly(source);
+				final Object email = importProtectedEml(runtime, bytes);
+				if (example[1].equals("UNKNOWN")) assertUnclassified(runtime, email);
+				else assertUnavailable(runtime, email, example[1].equals("SIGNED"));
+				assertThat(original(runtime, email)).containsExactly(bytes);
 			}
 		}));
 	}
 
 	@TestFactory
 	Stream<DynamicTest> malformedRootDeclarationsRemainUnknownWithoutTheModule() {
-		return Stream.of("not-a-content-type", "application/pkcs7-mime; =broken")
-				.map(type -> DynamicTest.dynamicTest(type, () -> {
-					final byte[] source = ("From: sender@example.org\r\nContent-Type: " + type
-							+ "\r\n\r\nOrdinary content").getBytes(UTF_8);
-					try (WithoutSmime runtime = runtime()) {
-						assertUnknown(runtime, details(runtime, importProtectedEml(runtime, source)), "UNKNOWN");
-					}
-				}));
+		return Stream.of("not-a-content-type", "application/pkcs7-mime; =broken").map(type -> DynamicTest.dynamicTest(type, () -> {
+			final byte[] bytes = ("From: sender@example.org\r\nContent-Type: " + type + "\r\n\r\nOrdinary content").getBytes(UTF_8);
+			try (WithoutSmime runtime = runtime()) {
+				assertUnclassified(runtime, importProtectedEml(runtime, bytes));
+			}
+		}));
 	}
 
 	@Test
-	void protectedInputFactsSurviveCopyAndSerializationButNotOutgoingCompletion() throws Exception {
-		final byte[] source = Files.readAllBytes(protectedFixture("encrypted.eml"));
+	void protectedInputFactsSurviveCopySerializationAndOutgoingCompletion() throws Exception {
+		final byte[] bytes = Files.readAllBytes(protectedFixture("encrypted.eml"));
 		try (WithoutSmime runtime = runtime()) {
-			final Object email = importProtectedEml(runtime, source);
-			final Object details = details(runtime, email);
-			final byte[] firstRead = (byte[]) read(runtime, details, "getOriginalProtectedMessage");
+			final Object email = importProtectedEml(runtime, bytes);
+			final byte[] firstRead = original(runtime, email);
 			firstRead[0] ^= 1;
-			assertThat((byte[]) read(runtime, details, "getOriginalProtectedMessage")).containsExactly(source);
-
+			assertThat(original(runtime, email)).containsExactly(bytes);
 			final Class<?> factoryType = runtime.loadClass("org.simplejavamail.api.SimpleJavaMail");
 			final Object factory = factoryType.getMethod("fromDefaults").invoke(null);
 			final Object starter = factoryType.getMethod("emailBuilder").invoke(factory);
 			final Object builder = runtime.loadClass("org.simplejavamail.api.email.EmailStartingBuilder")
 					.getMethod("copying", runtime.loadClass("org.simplejavamail.api.email.Email")).invoke(starter, email);
 			final Class<?> builderType = runtime.loadClass("org.simplejavamail.api.email.EmailPopulatingBuilder");
-			final Object copied = builderType.getMethod("buildEmail").invoke(builder);
-			assertUnknown(runtime, details(runtime, copied), "ENCRYPTED");
-			assertThat((byte[]) read(runtime, details(runtime, copied), "getOriginalProtectedMessage")).containsExactly(source);
-			final Object restored = roundTrip(runtime, copied);
-			assertUnknown(runtime, details(runtime, restored), "ENCRYPTED");
-			assertThat((byte[]) read(runtime, details(runtime, restored), "getOriginalProtectedMessage")).containsExactly(source);
-
-			final Object completed = builderType.getMethod("buildEmailCompletedWithDefaultsAndOverrides").invoke(builder);
-			assertThat(read(runtime, details(runtime, completed), "getSmimeMode").toString()).isEqualTo("PLAIN");
-			assertThat(read(runtime, details(runtime, completed), "getOriginalProtectedMessage")).isNull();
+			for (Object retained : new Object[] {builderType.getMethod("buildEmail").invoke(builder),
+					roundTrip(runtime, email), builderType.getMethod("buildEmailCompletedWithDefaultsAndOverrides").invoke(builder)}) {
+				assertUnavailable(runtime, retained, false);
+				assertThat(original(runtime, retained)).containsExactly(bytes);
+			}
 		}
 	}
 
 	@Test
 	void unrelatedProtectedAttachmentDoesNotBecomeAnOwningEnvelopeFact() throws Exception {
-		final byte[] source = ("From: sender@example.org\r\nContent-Type: multipart/mixed; boundary=parts\r\n\r\n"
+		final byte[] bytes = ("From: sender@example.org\r\nContent-Type: multipart/mixed; boundary=parts\r\n\r\n"
 				+ "--parts\r\nContent-Type: text/plain\r\n\r\nPlain parent\r\n"
 				+ "--parts\r\nContent-Type: application/pkcs7-mime; smime-type=enveloped-data\r\n"
 				+ "Content-Disposition: attachment; filename=independent.p7m\r\nContent-Transfer-Encoding: base64\r\n\r\nAQID\r\n"
 				+ "--parts--\r\n").getBytes(UTF_8);
 		try (WithoutSmime runtime = runtime()) {
-			final Object details = details(runtime, importProtectedEml(runtime, source));
-			assertThat(read(runtime, details, "getSmimeMode").toString()).isEqualTo("PLAIN");
-			assertThat(read(runtime, details, "getVerificationStatus").toString()).isEqualTo("NOT_SIGNED");
-			assertThat(read(runtime, details, "getDecryptionStatus").toString()).isEqualTo("NOT_ENCRYPTED");
-			assertThat(read(runtime, details, "getOriginalProtectedMessage")).isNull();
+			final Object email = importProtectedEml(runtime, bytes);
+			final Object family = details(runtime, email);
+			assertThat((java.util.List<?>) read(runtime, family, "getSignatures")).isEmpty();
+			final Class<?> inspectionType = runtime.loadClass("org.simplejavamail.api.email.EmailInspection");
+			final Class<?> valueType = runtime.loadClass("org.simplejavamail.api.email.ValueInspection");
+			final Object value = inspectionType.getMethod("getPlainText").invoke(inspection(runtime, email));
+			assertThat(valueType.getMethod("getSignatureStatus").invoke(value).toString()).isEqualTo("UNSIGNED");
+			assertThat(valueType.getMethod("getEncryptionStatus").invoke(value).toString()).isEqualTo("NOT_ENCRYPTED");
+			assertThat((java.util.List<?>) valueType.getMethod("getDecryptions").invoke(value)).isEmpty();
+			final Object file = inspectionType.getMethod("getAttachment", int.class).invoke(inspection(runtime, email), 0);
+			assertThat(valueType.getMethod("getEncryptionStatus").invoke(file).toString()).isEqualTo("ENCRYPTED");
+			final java.util.List<?> attempts = (java.util.List<?>) valueType.getMethod("getDecryptions").invoke(file);
+			final java.util.List<?> history = (java.util.List<?>) read(runtime, family, "getDecryptions");
+			assertThat(attempts).hasSize(1);
+			assertThat(history).hasSize(1);
+			final Class<?> attemptType = runtime.loadClass("org.simplejavamail.api.email.DecryptionInspection");
+			assertThat(attemptType.getMethod("getStatus").invoke(attempts.get(0)).toString()).isEqualTo("UNAVAILABLE");
+			assertThat(attemptType.getMethod("getReference").invoke(attempts.get(0)))
+					.isEqualTo(attemptType.getMethod("getReference").invoke(history.get(0)));
+			assertThat(original(runtime, email)).containsExactly(bytes);
 		}
 	}
 
+	private static Object inspection(final WithoutSmime runtime, final Object email) throws Exception {
+		return runtime.loadClass("org.simplejavamail.api.email.Email").getMethod("getInspection").invoke(email);
+	}
+
 	private static Object details(final WithoutSmime runtime, final Object email) throws Exception {
-		return runtime.loadClass("org.simplejavamail.api.email.Email").getMethod("getOriginalSmimeDetails").invoke(email);
+		return runtime.loadClass("org.simplejavamail.api.email.EmailInspection").getMethod("getSmime").invoke(inspection(runtime, email));
 	}
 
-	private static Object read(final WithoutSmime runtime, final Object details, final String getter) throws Exception {
-		return runtime.loadClass("org.simplejavamail.api.email.OriginalSmimeDetails").getMethod(getter).invoke(details);
+	private static Object read(final WithoutSmime runtime, final Object family, final String getter) throws Exception {
+		return runtime.loadClass("org.simplejavamail.api.email.ProtectionInspection").getMethod(getter).invoke(family);
 	}
 
-	private static void assertUnknown(final WithoutSmime runtime, final Object details, final String mode) throws Exception {
-		assertThat(read(runtime, details, "getSmimeMode").toString()).isEqualTo(mode);
-		assertThat(read(runtime, details, "getVerificationStatus").toString()).isEqualTo("UNKNOWN");
-		assertThat(read(runtime, details, "getDecryptionStatus").toString()).isEqualTo("UNKNOWN");
-		assertThat(read(runtime, details, "getSmimeSignatureValid")).isNull();
-		assertThat(read(runtime, details, "getFailureReason")).isNull();
+	private static byte[] original(final WithoutSmime runtime, final Object email) throws Exception {
+		final Object resource = runtime.loadClass("org.simplejavamail.api.email.EmailInspection").getMethod("getOriginalMessage").invoke(inspection(runtime, email));
+		return resource == null ? null : (byte[]) runtime.loadClass("org.simplejavamail.api.email.AttachmentResource").getMethod("readAllBytes").invoke(resource);
+	}
+
+	private static void assertUnavailable(final WithoutSmime runtime, final Object email, final boolean signed) throws Exception {
+		final Object family = details(runtime, email);
+		final java.util.List<?> signatures = (java.util.List<?>) read(runtime, family, "getSignatures");
+		final java.util.List<?> decryptions = (java.util.List<?>) read(runtime, family, "getDecryptions");
+		assertThat(read(runtime, family, "isInspectionComplete")).isEqualTo(false);
+		assertThat(signatures).isEmpty();
+		if (signed) {
+			assertThat(decryptions).isEmpty();
+		} else {
+			assertThat(decryptions).isNotEmpty();
+			for (Object decryption : decryptions) {
+				assertThat(runtime.loadClass("org.simplejavamail.api.email.DecryptionInspection").getMethod("getStatus").invoke(decryption).toString()).isEqualTo("UNAVAILABLE");
+			}
+		}
+	}
+
+	private static void assertUnclassified(final WithoutSmime runtime, final Object email) throws Exception {
+		final Object family = details(runtime, email);
+		assertThat(read(runtime, family, "isInspectionComplete")).isEqualTo(false);
+		assertThat((java.util.List<?>) read(runtime, family, "getSignatures")).isEmpty();
+		assertThat((java.util.List<?>) read(runtime, family, "getDecryptions")).isEmpty();
 	}
 
 	private static Object roundTrip(final WithoutSmime runtime, final Object email) throws Exception {

@@ -211,7 +211,11 @@ public interface ConfiguredEmailConverter {
 		@NotNull EmailConversionResult<byte[]> toEmlBytesResult();
 	}
 
-	/** Converts Email to MIME or EML. Exact/protected-message rules continue to apply. */
+	/**
+	 * Converts Email to finalized MIME or EML. Exact/protected-message rules continue to apply. Automatically reused confidential helper
+	 * content requires successful suitable outgoing encryption or deliberate permission on the draft or this conversion.
+	 * @see ConfiguredEmailConverter#fromEmail(Email)
+	 */
 	interface EmailConversion {
 
 		/** Uses this Session for MIME conversion; the conversion does not own or close it. Otherwise a temporary empty Session is used. */
@@ -228,6 +232,25 @@ public interface ConfiguredEmailConverter {
 
 		/** @see #withEmailGovernance(EmailGovernance) */
 		@NotNull EmailConversion clearEmailGovernance();
+
+		/**
+		 * Deliberately permits automatically reused confidential helper content in unencrypted output from this conversion only.
+		 * Every MIME/EML direct or diagnostic terminal uses this choice. The default is false. This does not change the source Email,
+		 * its draft permission or a later send/fresh conversion. Configured and mandatory encryption still apply and must succeed.
+		 * Use this when another application component will protect the returned artifact, for example:
+		 * {@code converter.fromEmail(reply).allowUnencryptedContent().toEmlBytes()}.
+		 */
+		@NotNull EmailConversion allowUnencryptedContent();
+
+		/** Restores the default local refusal of unencrypted confidential helper content.
+		 * @see #allowUnencryptedContent()
+		 */
+		@NotNull EmailConversion clearUnencryptedContentPermission();
+
+		/** Returns only this conversion's supplied permission, independently of the source draft's choice.
+		 * @see #allowUnencryptedContent()
+		 */
+		boolean isUnencryptedContentAllowed();
 
 		/** Produces a MIME message using the selected Session and optional governance. */
 		@NotNull MimeMessage toMimeMessage();

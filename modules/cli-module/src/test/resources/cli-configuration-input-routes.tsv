@@ -37,7 +37,6 @@
 --email:clearRecipients	org.simplejavamail.api.email.EmailPopulatingBuilder#clearRecipients():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearReplyTo	org.simplejavamail.api.email.EmailPopulatingBuilder#clearReplyTo():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearReturnReceiptTo	org.simplejavamail.api.email.EmailPopulatingBuilder#clearReturnReceiptTo():org.simplejavamail.api.email.EmailPopulatingBuilder
---email:clearSMIMESignedAttachmentMergingBehavior	org.simplejavamail.api.email.EmailPopulatingBuilder#clearSMIMESignedAttachmentMergingBehavior():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearSentDate	org.simplejavamail.api.email.EmailPopulatingBuilder#clearSentDate():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearSmime	org.simplejavamail.api.email.EmailPopulatingBuilder#clearSmime():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:clearSmimeEncryption	org.simplejavamail.api.email.EmailPopulatingBuilder#clearSmimeEncryption():org.simplejavamail.api.email.EmailPopulatingBuilder
@@ -52,10 +51,10 @@
 --email:fixingMessageId	org.simplejavamail.api.email.EmailPopulatingBuilder#fixingMessageId(java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:fixingSentDate	org.simplejavamail.api.email.EmailPopulatingBuilder#fixingSentDate(java.util.Date):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:forwarding	org.simplejavamail.api.email.EmailStartingBuilder#forwarding(jakarta.mail.internet.MimeMessage):org.simplejavamail.api.email.EmailPopulatingBuilder
+--email:forwardingWithOptions	org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder#forwarding(jakarta.mail.internet.MimeMessage,boolean):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:from	org.simplejavamail.api.email.EmailPopulatingBuilder#from(java.lang.String,java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:ignoringDefaultsYesNo	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#ignoringDefaults(boolean):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:ignoringOverridesYesNo	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#ignoringOverrides(boolean):org.simplejavamail.api.email.EmailPopulatingBuilder
---email:notMergingSingleSMIMESignedAttachment	org.simplejavamail.api.email.EmailPopulatingBuilder#notMergingSingleSMIMESignedAttachment():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:prependText	org.simplejavamail.api.email.EmailPopulatingBuilder#prependPlainText(java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:prependTextFromFile	org.simplejavamail.api.email.EmailPopulatingBuilder#prependPlainText(java.io.File):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:prependTextHTML	org.simplejavamail.api.email.EmailPopulatingBuilder#prependHTMLText(java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder
@@ -65,6 +64,7 @@
 --email:replyingToAllWithDefaultQuoteMarkup	org.simplejavamail.api.email.EmailStartingBuilder#replyingToAll(jakarta.mail.internet.MimeMessage):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:replyingToSender	org.simplejavamail.api.email.EmailStartingBuilder#replyingTo(jakarta.mail.internet.MimeMessage,java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:replyingToSenderWithDefaultQuoteMarkup	org.simplejavamail.api.email.EmailStartingBuilder#replyingTo(jakarta.mail.internet.MimeMessage):org.simplejavamail.api.email.EmailPopulatingBuilder
+--email:replyingWithOptions	org.simplejavamail.api.internal.clisupport.CliEmailHelperBuilder#replyingTo(jakarta.mail.internet.MimeMessage,boolean,java.lang.String,boolean):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:signWithSmime	org.simplejavamail.api.internal.clisupport.CliEmailConfigurationBuilder#signWithSmime(java.io.File,java.lang.String,java.lang.String,java.lang.String,java.lang.String):org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:startingBlank	org.simplejavamail.api.email.EmailStartingBuilder#startingBlank():org.simplejavamail.api.email.EmailPopulatingBuilder
 --email:startingFromExactEml	org.simplejavamail.api.email.EmailStartingBuilder#startingFromExactEml(byte[]):org.simplejavamail.api.email.ExactEmailBuilder

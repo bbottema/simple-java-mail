@@ -40,8 +40,8 @@ import java.util.stream.Stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.simplejavamail.api.email.EmailStartingBuilder.DEFAULT_QUOTING_MARKUP;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.DecryptionStatus.DECRYPTED;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
+import static org.simplejavamail.api.email.EncryptionStatus.DECRYPTED;
+import static org.simplejavamail.api.email.SignatureStatus.VERIFIED;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
 class ReadableProtectedReplyTest {
@@ -312,12 +312,12 @@ class ReadableProtectedReplyTest {
         final Email sent = original().withPlainText(PLAIN).signWithSmime(smimeSigning).encryptWithSmime(smimeEncryption).buildEmail();
         final Email received = Protection.SMIME.open(MAIL.converter().fromEmail(sent).toEmlBytes());
         final Email original = MAIL.emailBuilder().copying(received).encryptWithSmime(smimeEncryption).buildEmail();
-        final byte[] history = original.getOriginalSmimeDetails().getOriginalProtectedMessage();
+        final byte[] history = original.getInspection().getOriginalMessage().readAllBytes();
         final Email reply = MAIL.emailBuilder().replyingTo(original).buildEmail();
         assertThat(reply.getPlainText()).isEqualTo("> " + PLAIN);
-        assertThat(original.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(history);
-        assertThat(original.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
-        assertThat(original.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
+        assertThat(original.getInspection().getOriginalMessage().readAllBytes()).containsExactly(history);
+        assertThat(original.getInspection().getPlainText().getSignatureStatus()).isEqualTo(VERIFIED);
+        assertThat(original.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(DECRYPTED);
     }
 
     private static EmailPopulatingBuilder original() {
@@ -365,8 +365,8 @@ class ReadableProtectedReplyTest {
             @Override EmailPopulatingBuilder signAndEncrypt(final EmailPopulatingBuilder builder) { return encrypt(builder.signWithSmime(smimeSigning)); }
             @Override Email open(final byte[] eml) {
                 final Email result = MAIL.converter().fromEml(eml).withSmimeDecryption(keys).toEmail();
-                assertThat(result.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(DECRYPTED);
-                assertThat(result.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
+                assertThat(result.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(DECRYPTED);
+                assertThat(result.getInspection().getPlainText().getSignatureStatus()).isEqualTo(VERIFIED);
                 return result;
             }
             @Override void assertConfigured(final Email email) { assertThat(email.getSmimeEncryptionConfig()).isSameAs(smimeEncryption); }
@@ -376,10 +376,8 @@ class ReadableProtectedReplyTest {
             @Override EmailPopulatingBuilder signAndEncrypt(final EmailPopulatingBuilder builder) { return encrypt(builder.signWithOpenPgp(pgpSigning)); }
             @Override Email open(final byte[] eml) {
                 final Email result = MAIL.converter().fromEml(eml).withOpenPgpReceiveConfig(pgpReceiving).toEmail();
-                assertThat(result.getOriginalOpenPgpDetails().getDecryptionStatus())
-                        .isEqualTo(org.simplejavamail.api.email.OriginalOpenPgpDetails.DecryptionStatus.DECRYPTED);
-                assertThat(result.getOriginalOpenPgpDetails().getSignatureStatus())
-                        .isEqualTo(org.simplejavamail.api.email.OriginalOpenPgpDetails.SignatureStatus.VALID);
+                assertThat(result.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(DECRYPTED);
+                assertThat(result.getInspection().getPlainText().getSignatureStatus()).isEqualTo(VERIFIED);
                 return result;
             }
             @Override void assertConfigured(final Email email) { assertThat(email.getOpenPgpEncryptionConfig()).isSameAs(pgpEncryption); }

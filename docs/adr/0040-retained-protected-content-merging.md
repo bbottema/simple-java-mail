@@ -1,6 +1,6 @@
 # ADR 0040: Define the merged view of retained protected-message content
 
-- Status: Accepted for the bounded legacy retained-content view
+- Status: Historical retained-content decision; logical selection amendment accepted 10 November 2026
 - Decision date: 2026-11-03
 - Implementation status: Calendar projection implemented for unreleased 10.0.0 under [#960](https://github.com/bbottema/simple-java-mail/issues/960)
 - Proposal date: 2026-11-03
@@ -9,6 +9,65 @@
 - Related decisions: [0008](0008-minimal-mime-structures-and-protection-order.md), [0035](0035-tolerant-reading-and-strict-production.md), [0036](0036-structural-message-snapshots-and-borrowed-content.md), [0037](0037-repeatable-email-completion.md), [0002](0002-email-defaults-and-overrides.md)
 
 This record consolidates the established retained-content design for 10.0.0 after reconstructing its history. It carries forward the existing view, ownership and copy contracts and the earlier agreed calendar fallback. It does not introduce a general recursive merge, change ordinary copy/import ID policy or claim support for every protected-header representation. Conformance is checked separately from accepting the contract.
+
+## One logical readable Email (accepted 10 November 2026)
+
+The received-message continuation of [#961](https://github.com/bbottema/simple-java-mail/issues/961) replaces the legacy two-Email
+merge below with deliberate selection of one logical message and its available representations. The earlier sections remain decision
+history; their sole-attachment heuristic, public merge controls, retained-inner Email access and flattened decrypted list are superseded.
+This amendment was approved for implementation and delivery for unreleased 10.0.0; the issue records delivery status.
+
+Ordinary getters expose usable selected content after supported incoming decryption. The grammar/source relationship identifies this
+message's body envelope, ordinary file, independent attached message and related inline resource. A filename, sole attachment or generated
+EML adapter does not establish a body envelope. An independent protected file stays one attachment; a recognized attached message can
+expose its already materialized child through `AttachmentResource.getEmail()`. Child fields/resources remain child-owned. Passive getters
+do not parse, decrypt, verify or read external content.
+
+Prefer each present protected body alternative, including an empty String; use a materialized native alternative when that protected
+alternative is absent or unavailable. Select calendar text and method together. Select HTML with its associated resource occurrences,
+using only unambiguous same-message fallback. Unused materialized inline images become ordinary attachments; independent children do
+not supply parent images. Each selected value/resource keeps its own source, derivation and established protection facts.
+
+A present readable protected subject wins, including an explicitly empty value; an absent/unavailable protected subject retains an
+available earlier/native subject with that candidate's own source/protection. A truly absent/unavailable subject stays null rather than
+acquiring the old parsed-empty sentinel. A recognized real protected authored-header view supplies address roles, Message-ID, stated sent
+date and logical threading. Meaningful omission in that authored identity/address view stays omitted; do not union outer recipients or
+splice in outer identity/ancestry. A protected body-only entity does not replace the native authored headers. A protected subject alone
+does not establish an entire authored-address view.
+Generated adapter headers and independently attached messages never supply parent authored identity. MSG sent-date interpretation uses
+an actual client-submit value or usable Date header, not creation/modification time or an unqualified reader-date fallback.
+
+`Email.getInspection()` explains current selected values and incoming family processing; `getSourceData()` remains captured history.
+Inspection contains no duplicate content model, public evidence builder or whole-Email trust verdict. Full signature verification,
+coverage and explicitly approved actual signing-key identity must belong to the same observation to satisfy a signer requirement.
+Known partial coverage cannot qualify; unavailable evidence is not invalidity or proof of absence. Independent child success does not
+become parent success. [ADR 0041](0041-email-source-inspection-and-problems.md#complete-original-input-and-selected-value-inspection-accepted-10-november-2026)
+owns complete-original retention and Problems; [ADR 0031](0031-public-api-and-internal-construction.md#received-value-inspection-and-application-requirements-accepted-10-november-2026)
+owns the small application checking API.
+
+Copy the current represented view without reapplying selection. Unchanged fields retain associations; an explicit setter, even with an
+equal value, makes that field caller-supplied with unknown incoming protection. Occurrences are not matched by names, equality or payload
+reads. Historical originals survive edits. New helper-derived confidentiality requirements are separate from incoming facts, so resetting
+inspection claims cannot permit disclosure; [ADR 0036](0036-structural-message-snapshots-and-borrowed-content.md#selected-values-originals-and-helper-requirements-accepted-10-november-2026)
+owns that copy/snapshot lifecycle.
+
+Completion retains the submitted draft's historical source/Problems/originals and unchanged selected associations; defaults/overrides
+replacements have caller-supplied/unknown incoming facts. Templates cannot donate received evidence or disclosure consent. This supersedes
+the earlier legacy completion-history reset below; [ADR 0037's dated amendment](0037-repeatable-email-completion.md#preserve-helper-requirements-without-inheriting-consent-accepted-10-november-2026)
+owns this refinement without changing ordinary collection/suppression/lock resolution.
+
+Interpreted forwarding renders current represented content and selected usable payloads. `forwardingOriginal(Email)` carries a complete
+retained original in its actual EML/MSG format and fails clearly if one is unavailable. Neither operation is exact SMTP relay. Reply/forward
+helpers that automatically reuse confidential content require suitable final outgoing protection or explicit operation consent. A private
+received subject stays readable, while the new outer subject uses a positively known public counterpart or neutral wording. Body encryption
+does not protect every outer header. [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#confidential-content-at-final-output-accepted-10-november-2026)
+owns final output ordering and the narrower conversion-local permission.
+
+An extracted child's original may be plaintext because the enclosing parent's encryption is absent from that file. Original forwarding
+preserves its actual bytes/format while retaining the helper's confidentiality requirement for such exposed input. Child body encryption
+does not protect ancestor-private outer headers; an intact root encrypted original and signing-only input have different coverage. The
+existing conversion-local permission permits a deliberate individual export without a new original-forward overload or generic Email
+mode. Safe generated carrier filename/description/Content-ID do not rewrite the original getter's historical metadata.
 
 ## Context
 

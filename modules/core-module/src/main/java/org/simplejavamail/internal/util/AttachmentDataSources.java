@@ -5,6 +5,7 @@ import jakarta.activation.FileTypeMap;
 import jakarta.mail.EncodingAware;
 import lombok.Builder;
 import org.jetbrains.annotations.Nullable;
+import org.simplejavamail.api.email.EmailSourceContent;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -34,6 +35,25 @@ public final class AttachmentDataSources {
         return new ByteSource(data, name, contentType, encoding);
     }
 
+    /** Internal ownership transfer; the caller must never mutate or expose the supplied array afterward. */
+    public static DataSource fromOwnedBytes(final byte[] data, final String name, final String contentType) {
+        return new ByteSource(data, name, contentType, null, false);
+    }
+
+    /** Shares complete library-owned captured input without allocating a second archive or retaining its reader. */
+    public static DataSource fromCapturedContent(final EmailSourceContent content, final String name, final String contentType) {
+        requireNonNull(content, "capturedContent");
+        if (!content.isFullyCaptured()) throw new IllegalArgumentException("An incomplete capture is not an original resource");
+        return new CapturedSource(content, name, contentType);
+    }
+
+    /** Captures only immutable library-owned bytes by sharing their storage; borrowed implementations are never opened or probed. */
+    @Nullable
+    public static EmailSourceContent capturedOwnedContent(final DataSource source) {
+        return source instanceof ByteSource ? org.simplejavamail.internal.email.EmailInspection.ownedContent(((ByteSource) source).data,
+                EmailSourceContent.Representation.READER_BYTES, true) : null;
+    }
+
     static boolean sameSource(final DataSource first, final DataSource second) {
         if (first == second) {
             return true;
@@ -46,6 +66,23 @@ public final class AttachmentDataSources {
         }
         // Do not call user-provided equals, metadata getters or streams to discover identity.
         return false;
+    }
+
+    private static final class CapturedSource implements DataSource {
+        private final EmailSourceContent content;
+        private final String name;
+        private final String contentType;
+
+        private CapturedSource(final EmailSourceContent content, final String name, final String contentType) {
+            this.content = content;
+            this.name = name;
+            this.contentType = contentType;
+        }
+
+        @Override public InputStream getInputStream() { return content.openStream(); }
+        @Override public OutputStream getOutputStream() throws IOException { throw new IOException("Captured originals are read-only"); }
+        @Override public String getContentType() { return contentType; }
+        @Override public String getName() { return name; }
     }
 
     private static final class PathSource implements DataSource {
@@ -78,7 +115,11 @@ public final class AttachmentDataSources {
         private final String encoding;
 
         private ByteSource(final byte[] data, final String name, final String contentType, final String encoding) {
-            this.data = data.clone();
+            this(data, name, contentType, encoding, true);
+        }
+
+        private ByteSource(final byte[] data, final String name, final String contentType, final String encoding, final boolean copy) {
+            this.data = copy ? data.clone() : data;
             this.name = name;
             this.contentType = contentType;
             this.encoding = encoding;

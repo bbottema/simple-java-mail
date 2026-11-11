@@ -6,8 +6,9 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.converter.config.ImportLimitsConfig;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
-import org.simplejavamail.api.email.OriginalOpenPgpDetails;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.SignatureVerification;
+
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
@@ -131,13 +132,9 @@ class ExactEmailProtectionModuleAbsenceTest {
             final org.simplejavamail.api.email.EmailSourceContent prefix = imported.getSourceData().getParts().get(0).getContent();
             require(prefix.getSize() == 16 && !prefix.isFullyCaptured(), "The retained prefix must be bounded and incomplete");
             require(Arrays.equals(prefix.readAllBytes(), Arrays.copyOf(source, 16)), "The captured raw prefix must remain exact");
-            require(imported.getOriginalSmimeDetails().getSmimeMode() == OriginalSmimeDetails.SmimeMode.UNKNOWN,
-                    "A raw stop cannot establish S/MIME mode");
-            require(imported.getOriginalSmimeDetails().getVerificationStatus() == OriginalSmimeDetails.VerificationStatus.UNKNOWN
-                    && imported.getOriginalSmimeDetails().getDecryptionStatus() == OriginalSmimeDetails.DecryptionStatus.UNKNOWN,
-                    "A raw stop cannot establish S/MIME processing facts");
-            require(imported.getOriginalOpenPgpDetails().getOpenPgpMode() == OriginalOpenPgpDetails.OpenPgpMode.UNKNOWN,
-                    "A raw stop cannot establish OpenPGP mode");
+            require(!imported.getInspection().getSmime().isInspectionComplete(), "A raw stop cannot establish S/MIME processing");
+            require(!imported.getInspection().getOpenPgp().isInspectionComplete(), "A raw stop cannot establish OpenPGP processing");
+            require(imported.getInspection().getOriginalMessage() == null, "A raw prefix is not a complete original file");
         }
 
         private static void assertLimitedDiagnosticsDoNotReadOmittedContent(final SimpleJavaMail mail, final String protocol) throws Exception {
@@ -164,18 +161,13 @@ class ExactEmailProtectionModuleAbsenceTest {
                     .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(2).build()).toEmail();
             require(imported.getPlainText().contains("Readable limited body"), "Limited readable body must remain available");
             require(imported.getAttachments().isEmpty(), "The unadmitted attachment must remain omitted");
-            if ("application/pgp-signature".equals(protocol)) {
-                require(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null, "Diagnostics must not acquire omitted OpenPGP bytes");
-                require(imported.getOriginalOpenPgpDetails().getOpenPgpMode() == OriginalOpenPgpDetails.OpenPgpMode.SIGNED,
-                        "The source OpenPGP declaration must remain available");
-                require(imported.getOriginalOpenPgpDetails().getSignatureStatus() == OriginalOpenPgpDetails.SignatureStatus.UNKNOWN,
-                        "Unavailable OpenPGP verification must remain unknown");
-            } else {
-                require(imported.getOriginalSmimeDetails().getOriginalProtectedMessage() == null, "Diagnostics must not manufacture protected bytes");
-                require(protocol.equals(imported.getOriginalSmimeDetails().getSmimeProtocol()), "The source declaration must remain available");
-                require(imported.getOriginalSmimeDetails().getVerificationStatus() == OriginalSmimeDetails.VerificationStatus.UNKNOWN,
-                        "Unvisited protection facts must remain unknown");
-            }
+            require(imported.getInspection().getOriginalMessage() == null, "Object-only input must not manufacture an original file");
+            require(imported.getSourceData().getHeaders().stream().anyMatch(header -> "Content-Type".equalsIgnoreCase(header.getName())
+                    && header.getRawValue().contains(protocol)), "The actual source protection declaration remains available");
+            require(imported.getInspection().getSmime().getSignatures().stream().noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED),
+                    "Unvisited S/MIME protection must not become verified");
+            require(imported.getInspection().getOpenPgp().getSignatures().stream().noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED),
+                    "Unavailable OpenPGP verification must not become verified");
             require(imported.getProblems().stream().anyMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED),
                     "The limit stop must remain observable");
         }
@@ -186,8 +178,8 @@ class ExactEmailProtectionModuleAbsenceTest {
             final byte[] completeBytes = EmailConverter.mimeMessageToEMLByteArray(complete);
             final ImportLimitsConfig fitting = ImportLimitsConfig.builder().withMaximumPartCount(3).build();
             final Email admitted = mail.converter().fromMimeMessage(complete).withImportLimitsConfig(fitting).toEmail();
-            require(Arrays.equals(admitted.getOriginalOpenPgpDetails().getOriginalProtectedMessage(), completeBytes),
-                    "A fully admitted bounded supplied message must retain its complete protected representation");
+            require(admitted.getInspection().getOriginalMessage() == null,
+                    "A MIME object supplies no captured original file, even when its complete projection is readable");
             require(admitted.getPlainText().contains("Readable limited body") && admitted.getAttachments().size() == 1
                     && "signature.asc".equals(admitted.getAttachments().get(0).getName()),
                     "A fitting import retains the existing body and signature-attachment collection semantics");
@@ -195,14 +187,14 @@ class ExactEmailProtectionModuleAbsenceTest {
 
             final Email captured = mail.converter().fromEml(completeBytes)
                     .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(2).build()).toEmail();
-            require(Arrays.equals(captured.getOriginalOpenPgpDetails().getOriginalProtectedMessage(), completeBytes),
+            require(Arrays.equals(captured.getInspection().getOriginalMessage().readAllBytes(), completeBytes),
                     "Already captured raw bytes must survive a later traversal stop");
 
             final jakarta.mail.internet.MimeMessage invalidEncoding = protectedMessage(true);
             invalidEncoding.addHeader("Content-Transfer-Encoding", "8bit");
             invalidEncoding.addHeader("Content-Transfer-Encoding", "binary");
             final Email incomplete = mail.converter().fromMimeMessage(invalidEncoding).withImportLimitsConfig(fitting).toEmail();
-            require(incomplete.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null,
+            require(incomplete.getInspection().getOriginalMessage() == null,
                     "An unreadable container must not serialize unvisited children for protected-byte evidence");
             require(incomplete.getProblems().stream().noneMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED),
                     "An unreadable container is not evidence of a limit stop");
@@ -216,7 +208,7 @@ class ExactEmailProtectionModuleAbsenceTest {
             foreign.addHeader("Content-Transfer-Encoding", "8bit");
             foreign.addHeader("Content-Transfer-Encoding", "binary");
             final Email foreignProjection = mail.converter().fromMimeMessage(foreign).withImportLimitsConfig(fitting).toEmail();
-            require(foreignProjection.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null,
+            require(foreignProjection.getInspection().getOriginalMessage() == null,
                     "Incomplete foreign MIME must keep unavailable bytes unavailable without new raw-source reads");
 
             final jakarta.mail.internet.MimeMessage unreadableChild = protectedMessage(true, new jakarta.mail.internet.MimeMultipart("signed") {
@@ -227,7 +219,7 @@ class ExactEmailProtectionModuleAbsenceTest {
             });
             final Email partial = mail.converter().fromMimeMessage(unreadableChild).withImportLimitsConfig(fitting).toEmail();
             require(partial.getPlainText().contains("Readable limited body"), "Completed neighbors of an unavailable child must survive");
-            require(partial.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null,
+            require(partial.getInspection().getOriginalMessage() == null,
                     "Admitting a slot whose child was unavailable is not a complete projection");
             require(partial.getProblems().stream().noneMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED),
                     "Child-access recovery must remain distinct from a limit stop");
@@ -246,7 +238,7 @@ class ExactEmailProtectionModuleAbsenceTest {
                     .withImportLimitsConfig(fitting).toEmail();
             require(opaqueProjection.getPlainText().contains("Readable limited body"), "An opaque attachment must not suppress the readable body");
             require(opaqueProjection.getAttachments().size() == 1, "The admitted opaque attachment remains available");
-            require(opaqueProjection.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null,
+            require(opaqueProjection.getInspection().getOriginalMessage() == null,
                     "An admitted opaque container does not prove that its nested children were admitted");
 
             final jakarta.mail.internet.MimeMessage unexpectedText = protectedMessage(false);
@@ -267,7 +259,7 @@ class ExactEmailProtectionModuleAbsenceTest {
             unexpectedRoot.getBodyPart(1).setHeader("Content-Transfer-Encoding", "7bit");
             final Email unexpectedProjection = mail.converter().fromMimeMessage(unexpectedText).withFetchAttachmentData(false)
                     .withImportLimitsConfig(fitting).toEmail();
-            require(unexpectedProjection.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null,
+            require(unexpectedProjection.getInspection().getOriginalMessage() == null,
                     "An unexpected structured text-handler value must not permit serialization of its unvisited children");
             require(unexpectedProjection.getProblems().stream().noneMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED),
                     "The opaque handler control must not depend on a budget omission");
@@ -288,7 +280,7 @@ class ExactEmailProtectionModuleAbsenceTest {
             final Email stoppedLater = mail.converter().fromMimeMessage(laterStop).withFetchAttachmentData(false)
                     .withImportLimitsConfig(fitting).toEmail();
             require(stoppedLater.getAttachments().size() == 1
-                    && stoppedLater.getOriginalOpenPgpDetails().getOriginalProtectedMessage() == null,
+                    && stoppedLater.getInspection().getOriginalMessage() == null,
                     "A later limit stop leaves an admitted deferred resource borrowed without diagnostic acquisition");
         }
 
@@ -306,14 +298,14 @@ class ExactEmailProtectionModuleAbsenceTest {
             require(limited.getSourceData().getHeaders().stream().noneMatch(header ->
                     "Date".equalsIgnoreCase(header.getName()) || "Message-ID".equalsIgnoreCase(header.getName())),
                     "The captured supplied-header view must remain the originally observed view");
-            require(limited.getOriginalOpenPgpDetails().getOriginalProtectedMessage() != null,
-                    "A complete admitted projection can still retain a diagnostic protected representation");
-            require(limitedInput.getSentDate() != null && limitedInput.getMessageID() != null,
-                    "The control must exercise real later serializer-generated metadata");
+            require(limited.getInspection().getOriginalMessage() == null,
+                    "A complete supplied MIME projection is not a captured original file");
+            require(limitedInput.getSentDate() == null && limitedInput.getMessageID() == null,
+                    "Inspection must not manufacture supplied-object metadata by serializing it");
 
             final Email legacy = mail.converter().fromMimeMessage(declaredUnsavedProtectedMessage()).toEmail();
-            require(legacy.getSentDate() != null && legacy.getId() != null,
-                    "The unlimited ordinary import keeps its existing pre-parse serialization behavior");
+            require(legacy.getSentDate() == null && legacy.getId() == null,
+                    "Unlimited ordinary import also keeps absent received metadata absent");
         }
 
         private static jakarta.mail.internet.MimeMessage declaredUnsavedProtectedMessage() throws Exception {
@@ -365,7 +357,7 @@ class ExactEmailProtectionModuleAbsenceTest {
             message.addHeader("Content-Transfer-Encoding", "binary");
             final Email imported = mail.converter().fromMimeMessage(message)
                     .withImportLimitsConfig(ImportLimitsConfig.builder().withMaximumPartCount(3).build()).toEmail();
-            require(imported.getOriginalSmimeDetails().getOriginalProtectedMessage() == null,
+            require(imported.getInspection().getOriginalMessage() == null,
                     "Unavailable S/MIME evidence must not serialize children hidden by container recovery");
             require(imported.getProblems().stream().noneMatch(problem -> problem.getCode() == EmailProblem.Code.IMPORT_LIMIT_EXCEEDED),
                     "Container recovery alone must not invent a limit stop");
@@ -381,28 +373,20 @@ class ExactEmailProtectionModuleAbsenceTest {
         }
 
         private static void assertFacts(final Email exact, final Specimen specimen, final byte[] source) {
-            final OriginalSmimeDetails smime = exact.getOriginalSmimeDetails();
-            final OriginalOpenPgpDetails openPgp = exact.getOriginalOpenPgpDetails();
-            if (specimen.family == Family.SMIME) {
-                require(smime.getSmimeMode().name().equals(specimen.mode), specimen.name + ": S/MIME declaration was lost");
-                require(smime.getVerificationStatus() == OriginalSmimeDetails.VerificationStatus.UNKNOWN,
-                        specimen.name + ": absent S/MIME cannot establish verification");
-                require(smime.getDecryptionStatus() == OriginalSmimeDetails.DecryptionStatus.UNKNOWN,
-                        specimen.name + ": absent S/MIME cannot establish decryption");
-                require(Arrays.equals(smime.getOriginalProtectedMessage(), source), specimen.name + ": original S/MIME bytes changed");
-            } else {
-                require(smime.getSmimeMode() == OriginalSmimeDetails.SmimeMode.PLAIN, specimen.name + ": unrelated S/MIME mode changed");
-            }
-            if (specimen.family == Family.OPENPGP) {
-                require(openPgp.getOpenPgpMode().name().equals(specimen.mode), specimen.name + ": OpenPGP declaration was lost");
-                require(openPgp.getSignatureStatus() == OriginalOpenPgpDetails.SignatureStatus.UNKNOWN,
-                        specimen.name + ": absent OpenPGP cannot establish verification");
-                require(openPgp.getDecryptionStatus() == OriginalOpenPgpDetails.DecryptionStatus.UNKNOWN,
-                        specimen.name + ": an outer signature does not establish absence of inner encryption");
-                require(Arrays.equals(openPgp.getOriginalProtectedMessage(), source), specimen.name + ": original OpenPGP bytes changed");
-            } else {
-                require(openPgp.getOpenPgpMode() == OriginalOpenPgpDetails.OpenPgpMode.PLAIN, specimen.name + ": unrelated OpenPGP mode changed");
-            }
+            require(exact.getInspection().getSmime().getSignatures().stream().noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED
+                    || signature.getStatus() == SignatureVerification.INVALID), specimen.name + ": unavailable S/MIME cannot establish verification");
+            require(exact.getInspection().getOpenPgp().getSignatures().stream().noneMatch(signature -> signature.getStatus() == SignatureVerification.VERIFIED
+                    || signature.getStatus() == SignatureVerification.INVALID), specimen.name + ": unavailable OpenPGP cannot establish verification");
+            require(exact.getInspection().getSmime().getDecryptions().stream().noneMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED),
+                    specimen.name + ": unavailable S/MIME cannot establish decryption");
+            require(exact.getInspection().getOpenPgp().getDecryptions().stream().noneMatch(attempt -> attempt.getStatus() == DecryptionStatus.DECRYPTED),
+                    specimen.name + ": unavailable OpenPGP cannot establish decryption");
+            require(exact.getSourceData().getHeaders().stream().anyMatch(header -> "Content-Type".equalsIgnoreCase(header.getName())
+                    && header.getRawValue().contains(specimen.contentType.split(";", 2)[0])), specimen.name + ": actual MIME declaration was lost");
+            require(exact.getInspection().getOriginalMessage() != null
+                    && Arrays.equals(exact.getInspection().getOriginalMessage().readAllBytes(), source), specimen.name + ": complete original input changed");
+            if (specimen.family == Family.SMIME) require(!exact.getInspection().getSmime().isInspectionComplete(), specimen.name + ": missing module is not complete inspection");
+            if (specimen.family == Family.OPENPGP) require(!exact.getInspection().getOpenPgp().isInspectionComplete(), specimen.name + ": missing module is not complete inspection");
         }
 
         private static void assertRawView(final Email exact, final Specimen specimen) {
@@ -411,8 +395,7 @@ class ExactEmailProtectionModuleAbsenceTest {
             require(exact.getRecipients().size() == 2, specimen.name + ": raw To/Bcc view changed");
             require(exact.getOverrideReceivers().size() == 1
                     && exact.getOverrideReceivers().get(0).getAddress().equals("relay@example.org"), specimen.name + ": explicit envelope changed");
-            require(exact.getDecryptedAttachments().isEmpty(), specimen.name + ": inspection must not add decrypted attachments");
-            require(exact.getSmimeSignedEmail() == null, specimen.name + ": inspection must not replace the raw signed view");
+
             require(specimen.rawPlainText == null ? exact.getPlainText() == null
                     : exact.getPlainText() != null && exact.getPlainText().contains(specimen.rawPlainText), specimen.name + ": raw body view changed");
         }

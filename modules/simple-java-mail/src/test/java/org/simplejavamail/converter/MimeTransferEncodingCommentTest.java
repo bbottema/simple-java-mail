@@ -245,7 +245,7 @@ class MimeTransferEncodingCommentTest {
 				+ "--signature\r\nContent-Type: application/pgp-signature\r\n\r\noriginal signature bytes\r\n--signature--\r\n").getBytes(UTF_8);
 		final Email email = MAIL.converter().fromEml(original).toEmail();
 		assertThat(email.getPlainText()).isEqualTo("Hello!");
-		assertThat(email.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).isEqualTo(original);
+		assertThat(email.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(original);
 	}
 
 	private static String body(final String encoding, final String content) {

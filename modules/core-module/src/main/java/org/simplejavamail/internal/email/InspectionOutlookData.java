@@ -33,7 +33,8 @@ public final class InspectionOutlookData implements OutlookMessageData {
             .messageClass(value.getMessageClass()).displayTo(value.getDisplayTo()).displayCc(value.getDisplayCc()).displayBcc(value.getDisplayBcc())
             .date(value.getDate()).clientSubmitTime(value.getClientSubmitTime()).creationDate(value.getCreationDate())
             .lastModificationDate(value.getLastModificationDate()).lastModifierName(value.getLastModifierName())
-            .propertiesAsHex(value.getPropertiesAsHex()).propertyCodes(value.getPropertyCodes()).propertyListing(value.getPropertyListing()).build();
+            .propertiesAsHex(value.getPropertiesAsHex()).propertyCodes(value.getPropertyCodes()).propertyListing(value.getPropertyListing())
+            .bodyHTML(value.getBodyHTML()).bodyRTF(value.getBodyRTF()).build();
     }
 
 
@@ -53,6 +54,8 @@ public final class InspectionOutlookData implements OutlookMessageData {
 	private final Set<String> propertiesAsHex;
 	private final Set<Integer> propertyCodes;
 	private final String propertyListing;
+	private final String bodyHTML;
+	private final String bodyRTF;
 
 	@Builder
 	private InspectionOutlookData(
@@ -69,7 +72,9 @@ public final class InspectionOutlookData implements OutlookMessageData {
 			@Nullable final String lastModifierName,
 			@Nullable final Set<String> propertiesAsHex,
 			@Nullable final Set<Integer> propertyCodes,
-			@Nullable final String propertyListing) {
+			@Nullable final String propertyListing,
+			@Nullable final String bodyHTML,
+			@Nullable final String bodyRTF) {
 		this.headers = copyHeaders(headers);
 		this.rawHeaders = rawHeaders;
 		this.messageClass = messageClass;
@@ -84,6 +89,8 @@ public final class InspectionOutlookData implements OutlookMessageData {
 		this.propertiesAsHex = copySet(propertiesAsHex);
 		this.propertyCodes = copySet(propertyCodes);
 		this.propertyListing = propertyListing;
+		this.bodyHTML = bodyHTML;
+		this.bodyRTF = bodyRTF;
 	}
 
 	/** @see OutlookMessageData#getHeaders() */
@@ -197,6 +204,16 @@ public final class InspectionOutlookData implements OutlookMessageData {
 	public String getPropertyListing() {
 		return propertyListing;
 	}
+
+	/** @see OutlookMessageData#getBodyHTML() */
+	@Override
+	@Nullable
+	public String getBodyHTML() { return bodyHTML; }
+
+	/** @see OutlookMessageData#getBodyRTF() */
+	@Override
+	@Nullable
+	public String getBodyRTF() { return bodyRTF; }
 
 	@NotNull
 	private static Map<String, List<String>> copyHeaders(@Nullable final Map<String, ? extends Collection<String>> headers) {

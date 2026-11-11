@@ -350,9 +350,11 @@ class DeliveryStatusReportTest {
 		assertThat(parsed.getDeliveryStatusReport().getEnvelopeId()).isEqualTo("order-123");
 		assertThat(parsed.getDeliveryStatusReport().getRecipients().get(0).getStatusCode().toString()).isEqualTo("5.1.1");
 		assertThat(parsed.getDeliveryStatusReport().getWarnings()).singleElement().asString().contains("zero-padded");
-		assertThat(parsed.getOriginalSmimeDetails().getVerificationStatus())
-				.isEqualTo(org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID);
-		assertThat(parsed.getOriginalSmimeDetails().getOriginalProtectedMessage()).containsExactly(protectedBytes);
+		assertThat(parsed.getInspection().getSmime().getSignatures()).extracting("status")
+				.containsOnly(org.simplejavamail.api.email.SignatureVerification.VERIFIED);
+		assertThat(parsed.getInspection().getOriginalMessage()).as("a supplied MIME object has no captured original file").isNull();
+		assertThat(SimpleJavaMail.fromDefaults().converter().fromEml(protectedBytes).toEmail()
+				.getInspection().getOriginalMessage().readAllBytes()).containsExactly(protectedBytes);
 		assertThat(EmailConverter.mimeMessageToEMLByteArray(received)).containsExactly(protectedBytes);
 	}
 

@@ -11,6 +11,27 @@ construct from a controlled `ValidatedMailerPlan` for the complete owned graph. 
 remain implementation details. The construction plan retains completed values and borrowed identities, never a live builder. Deliberate
 internal injection constructors retain their completed-facts semantics; no application-facing construction API is added.
 
+## Received-value inspection and application requirements (accepted 10 November 2026)
+
+The [#961](https://github.com/bbottema/simple-java-mail/issues/961) continuation keeps ordinary values on Email/AttachmentResource and
+adds shared read-only inspection rather than a second Email model. Named field getters and indexed resource occurrences return immutable
+metadata even when the ordinary value is unavailable. Family processing and per-signature coverage reuse captured observations; library
+evidence has no public builder/bootstrap, selector DSL or optional-provider signature dependency. A passive child-Email getter exposes
+only an already materialized child and has no application setter.
+
+Application-owned `ApprovedSigners` and `ProtectionRequirements` are immutable core configuration values with explicit builders,
+stored-choice inspection and clear/reset/copy semantics. The deliberately small requirements vocabulary checks one selected value:
+an approved fully covering verified signature, recovered encrypted content, and an optional all-relevant-signatures condition on the
+signer requirement. Bind verification, full coverage and actual approved key to the same witness. Pure checks return SATISFIED,
+NOT_SATISFIED or INDETERMINATE and stable reasons without mutating Email Problems. Key approval is explicit public-key pinning,
+including rotation, not automatic certificate/organization trust, revocation discovery or approval from From text.
+
+Immutable reply/forward operation options own deliberate disclosure consent; reply options also own the quotation choice. A conversion
+can hold narrower consent without changing its source Email. Templates cannot manufacture either consent. Read-only facts, application
+checks and these operation choices have no sensible global default/property/EmailProperty owner. Preserve existing useful helper
+conveniences without multiplying quotation-by-permission overloads. Remove superseded flattened S/MIME/decrypted-list/merge/retained-inner
+surfaces in the clean 10.0.0 break rather than exposing internal compatibility aliases; released migration remains explicit and semantic.
+
 ## Required choices and explicit removal (accepted 22 October 2026)
 
 A required, non-null configuration argument rejects null before changing a builder's stored choice. Missing configuration is an argument error, not an implicit request to clear or reset an earlier choice. Provide named clear/reset companions for removal or restoration, consistently with the API expansion workflow. This does not change explicitly nullable component choices that select documented defaults.
@@ -145,6 +166,11 @@ The public value contains supplied choices only; per-import counters and cross-m
 methods do not acquire parallel limit-taking overload families.
 
 ### Individual OpenPGP result inspection (accepted 28 October 2026)
+
+The type/getter names in this historical paragraph are superseded by the
+[10 November received-value amendment](#received-value-inspection-and-application-requirements-accepted-10-november-2026).
+Current applications use the shared field/family/observation reading contracts under `Email.getInspection()`; the unreleased predecessor
+is not a supported compatibility alias or a released-9.x migration input.
 
 The complete signature-result decision in [ADR 0008](0008-minimal-mime-structures-and-protection-order.md#complete-incoming-openpgp-signature-results-accepted-28-october-2026)
 adds `OpenPgpSignatureResult` as a core-owned, serializable reading contract exposed by `OriginalOpenPgpDetails.getSignatures()`.

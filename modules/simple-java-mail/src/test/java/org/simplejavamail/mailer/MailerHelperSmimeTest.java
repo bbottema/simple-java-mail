@@ -21,7 +21,11 @@ import org.mockito.Mockito;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.SignatureVerification;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
+import org.simplejavamail.api.email.ProtectionCoverage;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.api.email.config.DkimConfig;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
@@ -365,13 +369,18 @@ class MailerHelperSmimeTest {
 		assertThat(message.isMimeType(protection.encrypt ? "application/pkcs7-mime" : "multipart/signed")).isTrue();
 		final Email restored = importProtected(message, protection);
 		assertThat(restored.getPlainText()).isEqualTo(expectedBody);
-		assertThat(restored.getOriginalSmimeDetails().getSmimeMode()).isEqualTo(protection.sign
-				? (protection.encrypt ? OriginalSmimeDetails.SmimeMode.SIGNED_ENCRYPTED : OriginalSmimeDetails.SmimeMode.SIGNED)
-				: OriginalSmimeDetails.SmimeMode.ENCRYPTED);
-		assertThat(restored.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(protection.sign
-				? OriginalSmimeDetails.VerificationStatus.VALID : OriginalSmimeDetails.VerificationStatus.NOT_SIGNED);
-		assertThat(restored.getOriginalSmimeDetails().getDecryptionStatus()).isEqualTo(protection.encrypt
-				? OriginalSmimeDetails.DecryptionStatus.DECRYPTED : OriginalSmimeDetails.DecryptionStatus.NOT_ENCRYPTED);
+		assertThat(restored.getInspection().getPlainText().getSignatureStatus()).isEqualTo(protection.sign
+				? SignatureStatus.VERIFIED : SignatureStatus.UNSIGNED);
+		assertThat(restored.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(protection.encrypt
+				? EncryptionStatus.DECRYPTED : EncryptionStatus.NOT_ENCRYPTED);
+		assertThat(restored.getInspection().getSmime().getSignatures()).hasSize(protection.sign ? 1 : 0)
+				.allSatisfy(signature -> assertThat(signature.getStatus()).isEqualTo(SignatureVerification.VERIFIED));
+		assertThat(restored.getInspection().getSmime().getDecryptions()).hasSize(protection.encrypt ? 1 : 0)
+				.allSatisfy(decryption -> assertThat(decryption.getStatus()).isEqualTo(DecryptionStatus.DECRYPTED));
+		if (protection.sign) {
+			assertThat(restored.getInspection().getPlainText().getSignatures()).singleElement()
+					.satisfies(signature -> assertThat(signature.getCoverage()).isEqualTo(ProtectionCoverage.FULL));
+		}
 	}
 
 	private Email importProtected(final MimeMessage message, final Protection protection) throws Exception {

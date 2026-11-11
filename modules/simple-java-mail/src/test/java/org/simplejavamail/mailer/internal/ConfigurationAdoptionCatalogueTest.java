@@ -42,10 +42,10 @@ class ConfigurationAdoptionCatalogueTest {
     }
 
     @Test
-    void everyDeclaredCategoryHasARecordedConsumer() {
+    void everyDeclaredCategoryHasARecordedConsumer() throws Exception {
         final Set<ConfigurationAdoptionCatalogue.Owner> assigned = EnumSet.noneOf(ConfigurationAdoptionCatalogue.Owner.class);
         assigned.addAll(ConfigurationAdoptionCatalogue.PROPERTIES.values());
-        assigned.addAll(ConfigurationAdoptionCatalogue.API_OWNERS.values());
+        ConfigurationContractInventory.apiOwners().values().forEach(owner -> assigned.add(ConfigurationAdoptionCatalogue.Owner.valueOf(owner)));
         assertThat(assigned).containsExactlyInAnyOrderElementsOf(EnumSet.allOf(ConfigurationAdoptionCatalogue.Owner.class));
     }
 

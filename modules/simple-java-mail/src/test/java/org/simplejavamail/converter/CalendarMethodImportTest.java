@@ -123,7 +123,7 @@ class CalendarMethodImportTest {
 		final Email imported = mail.converter().fromEml(original).toEmail();
 		assertThat(imported.getCalendarMethod()).isEqualTo(CalendarMethod.REQUEST);
 		assertThat(imported.getCalendarText()).isEqualTo(calendar);
-		assertThat(imported.getOriginalOpenPgpDetails().getOriginalProtectedMessage()).isEqualTo(original);
+		assertThat(imported.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(original);
 	}
 
 	@Test

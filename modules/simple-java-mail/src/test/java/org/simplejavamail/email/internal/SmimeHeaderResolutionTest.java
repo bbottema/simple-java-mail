@@ -34,7 +34,7 @@ class SmimeHeaderResolutionTest {
         final Map<String, Collection<String>> outerBefore = new LinkedHashMap<>(outer.getHeaders());
         final Email merged = outer.buildEmail();
 
-        assertThat(merged.getHeaders()).hasSize(3).containsEntry("X-Route", List.of("inner-one", "inner-two"))
+        assertThat(merged.getHeaders()).containsEntry("X-Route", List.of("inner-one", "inner-two"))
                 .containsEntry("X-Outer", List.of("outer-only")).containsEntry("X-Inner", List.of("inner-only"));
         assertThat(outer.getHeaders()).isEqualTo(outerBefore);
         assertThat(inner.getHeaders()).hasSize(2).containsEntry(innerName, List.of("inner-one", "inner-two"));
@@ -45,12 +45,13 @@ class SmimeHeaderResolutionTest {
     }
 
     @Test
-    void disablingSignedContentMergeKeepsOuterHeaders() {
+    void copyingSelectedHeadersDoesNotRestoreDisplacedCarrierValues() throws Exception {
         final Email inner = mail.emailBuilder().startingBlank().withHeader("x-route", "inner").buildEmail();
-        final Email outer = outerWithSignedContent(inner).notMergingSingleSMIMESignedAttachment().buildEmail();
-        assertThat(outer.getHeaders()).hasSize(2).containsEntry("X-Route", List.of("outer-one", "outer-two"));
-        final Email merged = mail.emailBuilder().copying(outer).clearSMIMESignedAttachmentMergingBehavior().buildEmail();
-        assertThat(merged.getHeaders()).hasSize(2).containsEntry("X-Route", List.of("inner"));
+        final Email outer = outerWithSignedContent(inner).buildEmail();
+        assertThat(outer.getSourceData().getHeaders()).filteredOn(header -> "X-Route".equalsIgnoreCase(header.getName()))
+                .extracting(org.simplejavamail.api.email.EmailSourceHeader::getRawValue).containsExactly("outer-one", "outer-two");
+        final Email selected = mail.emailBuilder().copying(outer).buildEmail();
+        assertThat(selected.getHeaders()).containsEntry("X-Route", List.of("inner"));
     }
 
     @ParameterizedTest
@@ -84,16 +85,13 @@ class SmimeHeaderResolutionTest {
             final Email completed = mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(
                     source == LegacySource.SUBMITTED ? legacy : empty);
             assertThat(completed.getHeaders()).hasSize(1).containsEntry("X-Route", List.of("last-one", "last-two"));
-            assertThat(legacy.getHeaders()).hasSize(2).containsEntry("X-Route", List.of("first"))
-                    .containsEntry("x-route", List.of("last-one", "last-two"));
+            assertThat(legacy.getHeaders()).hasSize(1).containsEntry("X-Route", List.of("last-one", "last-two"));
         }
     }
 
-    private InternalEmailPopulatingBuilder outerWithSignedContent(final Email inner) {
-        final InternalEmailPopulatingBuilder outer = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
-        outer.withHeaders(Map.of("X-Route", List.of("outer-one", "outer-two"), "X-Outer", List.of("outer-only")));
-        outer.withSmimeSignedEmail(inner);
-        return outer;
+    private InternalEmailPopulatingBuilder outerWithSignedContent(final Email inner) throws Exception {
+        final Email received = mail.converter().fromEml(ProtectedHeaderFixture.signed(mail, inner)).toEmail();
+        return (InternalEmailPopulatingBuilder) mail.emailBuilder().copying(received);
     }
 
     private Email legacyEmailWithCaseCollisions() throws Exception {

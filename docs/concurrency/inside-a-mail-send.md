@@ -157,6 +157,13 @@ See [telemetry concurrency](13-mail-send-telemetry.md) for scope retirement, ret
 
 ## Local preparation and submission facts
 
+The received-message helper requirement accepted on 10 November 2026 under [#961](https://github.com/bbottema/simple-java-mail/issues/961)
+belongs to existing final MIME preparation: resolve outgoing settings/locks, construct and protect the complete representation, then
+permit release/provider entry only when automatically reused confidential material is protected or has applicable explicit consent.
+It adds no transport owner, worker, lock, lease or send-state transition, so the five-layer artwork and website derivative remain unchanged.
+Internal reconstruction while assembling an interpreted forward is not a premature final-output boundary; suitable outer encryption can
+cover it. See [ADR 0008](../adr/0008-minimal-mime-structures-and-protection-order.md#confidential-content-at-final-output-accepted-10-november-2026).
+
 The [local preparation boundary](01-send-operation.md#local-preparation-and-provider-entry) remains inside the existing Mailer/execution/transport resource layers. A connected socket alone supplies no submission facts; a local MIME/envelope mismatch completes as PREPARATION with no receipt. The shared responsibility overview and artwork keep the same owners and layer relationships. Use the operation guide and ADR 0011 for classification and narrow lease-health provenance under [#865](https://github.com/bbottema/simple-java-mail/issues/865); no new resource owner or graphical layer follows.
 
 The retry owner also retains a previous refusal on library-owned failures while waiting or acquiring the next connection, until another

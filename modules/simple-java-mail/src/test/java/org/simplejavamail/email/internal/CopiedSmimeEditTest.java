@@ -33,7 +33,7 @@ class CopiedSmimeEditTest {
     void importedSignedMsgCopiesAcceptBodyReplacementAndClearing() {
         final Email received = mail.converter().fromOutlookMsg(Path.of(determineResourceFolder("simple-java-mail"),
                 "test/resources/test-messages/SMIME (signed and clear text).msg")).toEmail();
-        assertThat(received.getSmimeSignedEmail()).isNotNull();
+        assertThat(received.getInspection().getSmime().getSignatures()).isNotEmpty();
         final String original = received.getPlainText();
 
         final Email replaced = mail.emailBuilder().copying(received).withPlainText("Replacement").withHTMLText("<p>Replacement</p>").buildEmail();
@@ -43,8 +43,8 @@ class CopiedSmimeEditTest {
         assertThat(replaced.getHTMLText()).isEqualTo("<p>Replacement</p>");
         assertThat(cleared.getPlainText()).isNull();
         assertThat(cleared.getHTMLText()).isNull();
-        assertThat(replaced.getSmimeSignedEmail()).isSameAs(received.getSmimeSignedEmail());
-        assertThat(replaced.getOriginalSmimeDetails()).isEqualTo(received.getOriginalSmimeDetails());
+        assertThat(replaced.getInspection().getSmime().getSignatures()).containsExactlyElementsOf(received.getInspection().getSmime().getSignatures());
+        assertThat(replaced.getInspection().getOriginalMessage().readAllBytes()).containsExactly(received.getInspection().getOriginalMessage().readAllBytes());
         assertThat(received.getPlainText()).isEqualTo(original);
     }
 
@@ -56,7 +56,7 @@ class CopiedSmimeEditTest {
         final Email untouched = mail.emailBuilder().copying(received).buildEmail();
         final Email cleared = mail.emailBuilder().copying(received).clearHeaders().buildEmail();
         assertThat(untouched.getHeaders()).isEqualTo(received.getHeaders());
-        assertThat(cleared.getHeaders()).isEmpty();
+        assertThat(cleared.getHeaders()).doesNotContainKeys("X-Route", "Received", "Content-Type");
     }
 
     @Test
@@ -80,19 +80,17 @@ class CopiedSmimeEditTest {
 
     @Test
     void copyBuilderStartsWithTheCompleteVisibleContent() {
-        final Email original = merged();
+        final Email original = selected();
         final EmailPopulatingBuilder copy = mail.emailBuilder().copying(original);
         assertThat(copy.getAttachments()).containsExactlyElementsOf(original.getAttachments());
         assertThat(copy.getEmbeddedImages()).containsExactlyElementsOf(original.getEmbeddedImages());
-        assertThat(copy.getDecryptedAttachments()).containsExactlyElementsOf(original.getDecryptedAttachments());
         assertThat(copy.getHeaders()).isEqualTo(original.getHeaders());
         assertThat(copy.getPlainText()).isEqualTo(original.getPlainText());
-        assertThat(copy.isMergeSingleSMIMESignedAttachment()).isTrue();
     }
 
     @Test
     void copiedBodiesCanBeAugmentedAndTheirEncodingsReplacedOrCleared() {
-        final Email original = merged();
+        final Email original = selected();
         final Email edited = mail.emailBuilder().copying(original)
                 .prependPlainText("before ").appendPlainText(" after")
                 .prependHTMLText("<header/>").appendHTMLText("<footer/>")
@@ -107,34 +105,32 @@ class CopiedSmimeEditTest {
 
     @Test
     void explicitHeaderReplacementAndClearingAreNotOverwrittenByInnerHistory() {
-        final Email original = merged();
+        final Email original = selected();
         final Email replaced = mail.emailBuilder().copying(original).withHeader("x-route", "edited", true).buildEmail();
         final Email appended = mail.emailBuilder().copying(original).withHeader("x-route", "later").buildEmail();
         final Email cleared = mail.emailBuilder().copying(original).clearHeaders().buildEmail();
         assertThat(replaced.getHeaders().get("X-Route")).containsExactly("edited");
         assertThat(appended.getHeaders().get("X-Route")).containsExactly("inner", "later");
-        assertThat(cleared.getHeaders()).isEmpty();
+        assertThat(cleared.getHeaders()).doesNotContainKeys("X-Route", "Received", "Content-Type");
         assertThat(original.getHeaders().get("X-Route")).containsExactly("inner");
     }
 
     @Test
     void explicitResourceClearsAndReplacementsDoNotResurrectInnerOccurrences() {
-        final Email original = merged();
+        final Email original = selected();
         final AttachmentResource replacement = resource("replacement");
         final InternalEmailPopulatingBuilder copy = (InternalEmailPopulatingBuilder) mail.emailBuilder().copying(original);
         copy.clearAttachments().withAttachments(List.of(replacement));
         copy.clearEmbeddedImages().withEmbeddedImages(List.of(replacement, replacement));
-        copy.clearDecryptedAttachments().withDecryptedAttachments(List.of(replacement));
         final Email edited = copy.buildEmail();
         assertThat(edited.getAttachments()).containsExactly(replacement);
         assertThat(edited.getEmbeddedImages()).containsExactly(replacement, replacement);
-        assertThat(edited.getDecryptedAttachments()).containsExactly(replacement);
         assertThat(original.getAttachments()).hasSize(3);
     }
 
     @Test
     void resourceAdditionsFollowAllCopiedOccurrences() {
-        final Email original = merged();
+        final Email original = selected();
         final AttachmentResource extra = resource("extra");
         final Email edited = mail.emailBuilder().copying(original).withAttachments(List.of(extra)).buildEmail();
         assertThat(edited.getAttachments()).containsExactly(original.getAttachments().get(0), original.getAttachments().get(1),
@@ -155,34 +151,32 @@ class CopiedSmimeEditTest {
             current = mail.emailBuilder().copying(current).buildEmail();
             assertThat(current.getAttachments()).containsExactly(borrowed, borrowed, borrowed);
             assertThat(current.getEmbeddedImages()).containsExactly(borrowed, borrowed, borrowed);
-            assertThat(current.getDecryptedAttachments()).containsExactly(borrowed, borrowed, borrowed);
             assertThat(current.getPlainText()).isEqualTo("inner plain");
-            assertThat(((InternalEmail) current).wasMergedWithSmimeSignedMessage()).isTrue();
         }
     }
 
     @Test
     void copyingAnEditedBuilderDoesNotRestoreItsHistoricalContent() {
-        final EmailPopulatingBuilder first = mail.emailBuilder().copying(merged()).withPlainText("Edited").clearAttachments();
+        final EmailPopulatingBuilder first = mail.emailBuilder().copying(selected()).withPlainText("Edited").clearAttachments();
         final Email second = mail.emailBuilder().copying(first).appendPlainText(" again").buildEmail();
         assertThat(second.getPlainText()).isEqualTo("Edited again");
         assertThat(second.getAttachments()).isEmpty();
     }
 
     @Test
-    void disablingMergeOnMaterializedCopyKeepsItsVisibleContent() {
-        final Email original = merged();
-        final Email copy = mail.emailBuilder().copying(original).notMergingSingleSMIMESignedAttachment().buildEmail();
+    void copyingMaterializedSelectionKeepsItsVisibleContent() {
+        final Email original = selected();
+        final Email copy = mail.emailBuilder().copying(original).buildEmail();
         assertThat(copy.getPlainText()).isEqualTo(original.getPlainText());
         assertThat(copy.getAttachments()).containsExactlyElementsOf(original.getAttachments());
         assertThat(copy.getEmbeddedImages()).containsExactlyElementsOf(original.getEmbeddedImages());
     }
 
     @Test
-    void restoringMergeOnUnmergedCopyIsExplicitAndLaterEditsLead() {
+    void readingMaterializedSelectionAndLaterEditsRemainIndependent() {
         final AttachmentResource resource = resource("resource");
-        final Email original = outer(inner(resource), resource).notMergingSingleSMIMESignedAttachment().buildEmail();
-        final EmailPopulatingBuilder copy = mail.emailBuilder().copying(original).clearSMIMESignedAttachmentMergingBehavior();
+        final Email original = outer(inner(resource), resource).buildEmail();
+        final EmailPopulatingBuilder copy = mail.emailBuilder().copying(original);
         assertThat(copy.getPlainText()).isEqualTo("inner plain");
         assertThat(copy.getAttachments()).hasSize(3);
         assertThat(copy.buildEmail().getPlainTextContentTransferEncoding()).isEqualTo(BASE_64);
@@ -191,40 +185,41 @@ class CopiedSmimeEditTest {
         assertThat(edited.getPlainText()).isEqualTo("After merge");
         assertThat(edited.getAttachments()).isEmpty();
         assertThat(edited.getHeaders()).isEmpty();
-        assertThat(original.getPlainText()).isEqualTo("outer plain");
+        assertThat(original.getPlainText()).isEqualTo("inner plain");
     }
 
     @Test
-    void explicitMergeClearsOuterEncodingWhenTheInnerChoiceIsAbsent() {
-        final Email inner = mail.emailBuilder().startingBlank().withPlainText("Inner").buildEmail();
-        final InternalEmailPopulatingBuilder source = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
-        source.withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BASE_64).build());
-        final Email separate = source.withSmimeSignedEmail(inner).notMergingSingleSMIMESignedAttachment().buildEmail();
-        final Email merged = mail.emailBuilder().copying(separate).clearSMIMESignedAttachmentMergingBehavior().buildEmail();
-        assertThat(merged.getPlainTextContentTransferEncoding()).isNull();
-        assertThat(separate.getPlainTextContentTransferEncoding()).isEqualTo(BASE_64);
+    void explicitlyClearedSelectedEncodingDoesNotAcquireHistoricalEncodingOnCopy() {
+        final Email original = selected();
+        final Email selected = mail.emailBuilder().copying(original)
+                .withContentEncodingConfig(ContentEncodingConfig.builder().build()).buildEmail();
+        final Email copied = mail.emailBuilder().copying(selected).buildEmail();
+        assertThat(copied.getPlainTextContentTransferEncoding()).isNull();
+        assertThat(copied.getHTMLTextContentTransferEncoding()).isNull();
+        assertThat(original.getPlainTextContentTransferEncoding()).isEqualTo(BASE_64);
+        assertThat(copied.getInspection().getOriginalMessage()).isNotNull();
     }
 
     @Test
-    void disablingMaterializedMergeDoesNotLoseCopyHistoryAndResurrectResourcesLater() {
-        final Email edited = mail.emailBuilder().copying(merged()).notMergingSingleSMIMESignedAttachment()
+    void repeatedCopiesDoNotLoseHistoryOrResurrectResources() {
+        final Email edited = mail.emailBuilder().copying(selected())
                 .clearAttachments().clearPlainText().buildEmail();
-        final Email next = mail.emailBuilder().copying(edited).clearSMIMESignedAttachmentMergingBehavior().buildEmail();
+        final Email next = mail.emailBuilder().copying(edited).buildEmail();
         assertThat(next.getAttachments()).isEmpty();
         assertThat(next.getPlainText()).isNull();
     }
 
     @Test
-    void repeatedMergeResetDoesNotResurrectClearedCopiedContent() {
-        final Email edited = mail.emailBuilder().copying(merged()).clearAttachments().clearPlainText()
-                .clearSMIMESignedAttachmentMergingBehavior().clearSMIMESignedAttachmentMergingBehavior().buildEmail();
+    void repeatedExplicitClearsDoNotResurrectCopiedContent() {
+        final Email edited = mail.emailBuilder().copying(selected()).clearAttachments().clearPlainText()
+                .clearAttachments().clearPlainText().buildEmail();
         assertThat(edited.getPlainText()).isNull();
         assertThat(edited.getAttachments()).isEmpty();
     }
 
     @Test
     void serializedEditedCopiesKeepEditsAndHistoryWhenCopiedAgain() throws Exception {
-        final Email edited = mail.emailBuilder().copying(merged()).withPlainText("Persisted").clearAttachments().buildEmail();
+        final Email edited = mail.emailBuilder().copying(selected()).withPlainText("Persisted").clearAttachments().buildEmail();
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ObjectOutputStream output = new ObjectOutputStream(bytes)) { output.writeObject(edited); }
         final Email restored;
@@ -232,12 +227,12 @@ class CopiedSmimeEditTest {
         final Email copiedAgain = mail.emailBuilder().copying(restored).buildEmail();
         assertThat(copiedAgain.getPlainText()).isEqualTo("Persisted");
         assertThat(copiedAgain.getAttachments()).isEmpty();
-        assertThat(copiedAgain.getSmimeSignedEmail()).isEqualTo(edited.getSmimeSignedEmail());
+        assertThat(copiedAgain.getInspection().getOriginalMessage().readAllBytes()).containsExactly(edited.getInspection().getOriginalMessage().readAllBytes());
     }
 
     @Test
     void normalGovernanceStillOverridesTheEditedCopy() throws Exception {
-        final Email edited = mail.emailBuilder().copying(merged()).withPlainText("Edited").buildEmail();
+        final Email edited = mail.emailBuilder().copying(selected()).withPlainText("Edited").buildEmail();
         try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true)
                 .withEmailOverrides(mail.emailBuilder().startingBlank().withPlainText("Policy").buildEmail()).buildMailer()) {
             assertThat(mailer.getEmailGovernance().produceEmailApplyingDefaultsAndOverrides(edited).getPlainText()).isEqualTo("Policy");
@@ -255,7 +250,8 @@ class CopiedSmimeEditTest {
         assertThat(mail.converter().fromEmail(exact).toEmlBytes()).containsExactly(eml);
     }
 
-    private Email merged() {
+    /** Model-isolated fixture: selected content is already materialized; it has no retained inner Email or crypto verdict. */
+    private Email selected() {
         final AttachmentResource resource = resource("resource");
         return outer(inner(resource), resource).buildEmail();
     }
@@ -266,15 +262,22 @@ class CopiedSmimeEditTest {
                 .withAttachments(List.of(resource)).withEmbeddedImages(List.of(resource))
                 .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BASE_64)
                         .withHTMLTextContentTransferEncoding(BASE_64).build());
-        return inner.withDecryptedAttachments(List.of(resource)).buildEmail();
+        return inner.buildEmail();
     }
 
     private InternalEmailPopulatingBuilder outer(final Email inner, final AttachmentResource resource) {
         final InternalEmailPopulatingBuilder outer = (InternalEmailPopulatingBuilder) mail.emailBuilder().startingBlank();
-        outer.withPlainText("outer plain").withHTMLText("<p>outer</p>").withHeader("X-Route", "outer")
-                .withAttachments(List.of(resource, resource)).withEmbeddedImages(List.of(resource, resource))
-                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(QUOTED_PRINTABLE).build());
-        return outer.withDecryptedAttachments(List.of(resource, resource)).withSmimeSignedEmail(inner);
+        outer.withPlainText(inner.getPlainText()).withHTMLText(inner.getHTMLText()).withHeader("X-Route", "inner")
+                .withAttachments(List.of(resource, resource, resource)).withEmbeddedImages(List.of(resource, resource, resource))
+                .withContentEncodingConfig(ContentEncodingConfig.builder().withPlainTextContentTransferEncoding(BASE_64)
+                        .withHTMLTextContentTransferEncoding(BASE_64).build());
+        outer.retainSelectionInspection(org.simplejavamail.internal.email.ReceivedEmailInspection.builder()
+                .attachments(java.util.Collections.nCopies(3, org.simplejavamail.internal.email.ValueInspectionImpl.unknown()))
+                .embeddedImages(java.util.Collections.nCopies(3, org.simplejavamail.internal.email.ValueInspectionImpl.unknown()))
+                .originalAttachments(List.of(resource, resource, resource))
+                .originalMessage(AttachmentResource.builder().withName("source.eml").withData(
+                        "Content-Type: text/plain\r\n\r\nHistorical body\r\n".getBytes(UTF_8), "message/rfc822").build()).build());
+        return outer;
     }
 
     private static AttachmentResource resource(final String name) {

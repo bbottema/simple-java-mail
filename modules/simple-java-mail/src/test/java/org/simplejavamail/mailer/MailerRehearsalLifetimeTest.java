@@ -38,7 +38,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.simplejavamail.api.email.OriginalSmimeDetails.VerificationStatus.VALID;
+import static org.simplejavamail.api.email.SignatureStatus.VERIFIED;
 import static org.simplejavamail.api.mailer.MailFailureKind.PREPARATION;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 
@@ -152,7 +152,8 @@ class MailerRehearsalLifetimeTest {
         final MailRehearsal preview = mailer.rehearse(email);
         assertThat(preview.getEnvelopeRecipients()).contains("recipient@example.org", "archive@example.org");
         final Email inspected = EmailConverter.emlToEmail(new ByteArrayInputStream(preview.getEmlBytes()));
-        assertThat(inspected.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(VALID);
+        assertThat(inspected.getPlainText()).isEqualTo("Protected after close");
+        assertThat(inspected.getInspection().getPlainText().getSignatureStatus()).isEqualTo(VERIFIED);
         assertThat(email.getRecipients()).extracting(recipient -> recipient.getAddress()).containsExactly("recipient@example.org");
     }
 

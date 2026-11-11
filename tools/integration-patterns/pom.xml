@@ -13,6 +13,10 @@
     <sjm.version>9.3.5</sjm.version>
     <spring-boot.version>3.5.6</spring-boot.version>
     <bouncycastle.version>1.84</bouncycastle.version>
+    <jakarta.mail.version>2.2.0-M1</jakarta.mail.version>
+    <jakarta.activation.version>2.2.0-M1</jakarta.activation.version>
+    <angus.mail.version>2.1.0-SNAPSHOT</angus.mail.version>
+    <angus.activation.version>2.1.0-M1</angus.activation.version>
   </properties>
   <modules>
     <module>common</module>
@@ -34,22 +38,22 @@
       <dependency>
         <groupId>jakarta.mail</groupId>
         <artifactId>jakarta.mail-api</artifactId>
-        <version>2.1.5</version>
+        <version>${jakarta.mail.version}</version>
       </dependency>
       <dependency>
         <groupId>jakarta.activation</groupId>
         <artifactId>jakarta.activation-api</artifactId>
-        <version>2.1.4</version>
+        <version>${jakarta.activation.version}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.angus</groupId>
         <artifactId>angus-mail</artifactId>
-        <version>2.0.5</version>
+        <version>${angus.mail.version}</version>
       </dependency>
       <dependency>
         <groupId>org.eclipse.angus</groupId>
         <artifactId>angus-activation</artifactId>
-        <version>2.0.3</version>
+        <version>${angus.activation.version}</version>
       </dependency>
       <!-- Keep the crypto family aligned with the checked-out library, not a framework BOM's older PKIX jar. -->
       <dependency>
@@ -104,6 +108,14 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
+  <repositories>
+    <repository>
+      <id>central-snapshots</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+      <releases><enabled>false</enabled></releases>
+      <snapshots><enabled>true</enabled><updatePolicy>always</updatePolicy><checksumPolicy>fail</checksumPolicy></snapshots>
+    </repository>
+  </repositories>
   <!-- These tests belong to the runnable applications, not the published SJM library or its dependency surface. -->
   <dependencies>
     <dependency>

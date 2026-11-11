@@ -6,16 +6,21 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.simplejavamail.api.email.*;
-import org.simplejavamail.api.internal.smimesupport.builder.SmimeParseResult;
+import org.simplejavamail.api.email.Email;
+import org.simplejavamail.api.email.EmailProblem;
+import org.simplejavamail.api.email.EmailSourceData;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.converter.EmailConverter;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class ProtectedSourceInspectionTest {
     private static Path resources;
@@ -34,43 +39,51 @@ class ProtectedSourceInspectionTest {
     }
 
     @ParameterizedTest @ValueSource(booleans = {true, false})
-    void retainedInnerFindingsAreDiscoverableAtTheRootWithTheirOwnOrigins(boolean merge) {
-        EmailPopulatingBuilder builder = ProtectedCalendarFixture.MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg))
-                .withSmimeDecryption(ProtectedCalendarFixture.keys(resources)).toEmailBuilder();
-        if (!merge) builder.notMergingSingleSMIMESignedAttachment();
-        Email email = builder.buildEmail();
-        Email inner = email.getSmimeSignedEmail();
-        assertThat(inner).isNotNull();
+    void openedSameMessageFindingsKeepTheirOwnOriginsAtTheRoot(boolean fluent) {
+        Email email = fluent ? ProtectedCalendarFixture.MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg))
+                .withSmimeDecryption(ProtectedCalendarFixture.keys(resources)).toEmail()
+                : EmailConverter.outlookMsgToEmailBuilder(new ByteArrayInputStream(msg), ProtectedCalendarFixture.keys(resources)).buildEmail();
         assertThat(email.getSourceData().getFormat()).isEqualTo(EmailSourceData.Format.OUTLOOK_MSG);
         assertThat(email.getSourceData().getRepresentation()).isEqualTo(EmailSourceData.Representation.RECEIVED);
-        assertThat(inner.getSourceData().getRepresentation()).isEqualTo(EmailSourceData.Representation.GENERATED);
-        assertThat(email.getSourceData().getDerivedSources()).anySatisfy(source -> assertThat(source).isSameAs(inner.getSourceData()));
-        assertThat(inner.getDeliveryStatusReport().getWarnings()).isNotEmpty();
-        assertThat(email.getDeliveryStatusReport()).isNull();
-        assertThat(inner.getProblems()).isNotEmpty();
+        assertThat(email.getSourceData().getDerivedSources()).isNotEmpty();
+        assertThat(email.getPlainText()).contains("Readable feedback");
+        assertThat(email.getDeliveryStatusReport()).isNotNull();
+        assertThat(email.getDeliveryStatusReport().getWarnings()).isNotEmpty();
+        final List<EmailSourceData> observed = sources(email.getSourceData());
         assertThat(email.getProblems()).anySatisfy(problem -> {
             assertThat(problem.getCode()).isEqualTo(EmailProblem.Code.INTERPRETATION_WARNING);
-            assertThat(problem.getLocation()).startsWith("source/derived[");
-            assertThat(problem.getOrigin().getReference()).isEqualTo(inner.getProblems().get(0).getOrigin().getReference());
+            assertThat(problem.getSources()).isNotEmpty();
+            assertThat(observed).anyMatch(source -> source.getOrigin() != null
+                    && source.getOrigin().getReference().equals(problem.getOrigin().getReference()));
         });
-        assertThat(email.getProblems()).noneMatch(problem -> SmimeParseResult.GENERATED_MESSAGE_ID.equals(problem.getOrigin().getMessageId()));
+        assertThat(email.getProblems()).noneMatch(problem ->
+                "<generated-for-smime-signed-attachment@simple-java-mail>".equals(problem.getOrigin().getMessageId()));
         int count = email.getProblems().size();
-        for (int i = 0; i < 3; i++) {
-            email = ProtectedCalendarFixture.MAIL.emailBuilder().copying(email).fixingMessageId("<copy" + i + "@example.org>").buildEmail();
+        for (int index = 0; index < 3; index++) {
+            email = ProtectedCalendarFixture.MAIL.emailBuilder().copying(email).fixingMessageId("<copy" + index + "@example.org>").buildEmail();
             assertThat(email.getProblems()).hasSize(count);
+            SmimeInspectionAssertions.assertOriginal(email, msg);
         }
     }
 
     @Test void protectedEmlKeepsReceivedAndReadableSourceHeadersSeparate() {
         Email email = ProtectedCalendarFixture.MAIL.converter().fromEml(protectedEml)
                 .withSmimeDecryption(ProtectedCalendarFixture.keys(resources)).toEmail();
-        assertThat(email.getSourceData().getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase("Content-Type")).findFirst().orElseThrow().getRawValue()).containsIgnoringCase("application/pkcs7-mime");
-        assertThat(email.getSourceData().getDerivedSources()).isNotEmpty();
+        assertThat(email.getSourceData().getHeaders().stream().filter(header -> header.getName().equalsIgnoreCase("Content-Type"))
+                .findFirst().orElseThrow().getRawValue()).containsIgnoringCase("application/pkcs7-mime");
         assertThat(email.getSourceData().getRepresentation()).isEqualTo(EmailSourceData.Representation.RECEIVED);
-        assertThat(email.getSourceData().getDerivedSources()).anySatisfy(source ->
+        assertThat(sources(email.getSourceData())).anySatisfy(source ->
                 assertThat(source.getRepresentation()).isEqualTo(EmailSourceData.Representation.EXTRACTED));
         assertThat(email.getProblems()).isNotEmpty();
-        assertThat(email.getOriginalSmimeDetails().getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.VALID);
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.VERIFIED);
         assertThat(email.getProblems()).noneMatch(problem -> problem.getCode() == EmailProblem.Code.SIGNATURE_INVALID);
+        SmimeInspectionAssertions.assertOriginal(email, protectedEml);
+    }
+
+    private static List<EmailSourceData> sources(EmailSourceData root) {
+        List<EmailSourceData> all = new ArrayList<>();
+        all.add(root);
+        for (EmailSourceData child : root.getDerivedSources()) all.addAll(sources(child));
+        return all;
     }
 }

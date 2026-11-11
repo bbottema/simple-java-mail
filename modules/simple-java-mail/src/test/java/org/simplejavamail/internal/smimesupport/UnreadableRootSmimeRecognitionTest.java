@@ -14,13 +14,14 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailProblem;
-import org.simplejavamail.api.email.OriginalSmimeDetails;
+import org.simplejavamail.api.email.SignatureStatus;
+import org.simplejavamail.api.email.EncryptionStatus;
+import org.simplejavamail.api.email.DecryptionStatus;
 import org.simplejavamail.api.email.config.SmimeEncryptionConfig;
-import org.simplejavamail.api.internal.smimesupport.model.SmimePreprocessingResult;
+import org.simplejavamail.internal.protection.ProtectionLayerResult;
 import org.simplejavamail.api.mailer.config.Pkcs12Config;
 import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.converter.EmailConverter;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InterruptedIOException;
@@ -54,7 +55,7 @@ class UnreadableRootSmimeRecognitionTest {
                 ? MAIL.converter().fromMimeMessage(source).withFetchAttachmentData(fetchAttachmentData).toEmail()
                 : EmailConverter.mimeMessageToEmail(source, null, fetchAttachmentData);
 
-        assertUnknown(email.getOriginalSmimeDetails());
+        assertUnknown(email);
         assertThat(email.getSubject()).isEqualTo(SUBJECT);
         assertThat(email.getPlainText()).isEqualTo(BODY);
         assertThat(email.getFromRecipient().getAddress()).isEqualTo("sender@example.org");
@@ -73,7 +74,7 @@ class UnreadableRootSmimeRecognitionTest {
             assertThat(header.getName()).isEqualToIgnoringCase("Content-Type");
             assertThat(header.getRawValue()).isEqualTo(CONTENT_TYPE);
         });
-        assertUnknown(MAIL.emailBuilder().copying(email).buildEmail().getOriginalSmimeDetails());
+        assertUnknown(MAIL.emailBuilder().copying(email).buildEmail());
     }
 
     private static Stream<Arguments> importPaths() {
@@ -92,14 +93,17 @@ class UnreadableRootSmimeRecognitionTest {
 
         final Email email = MAIL.converter().fromMimeMessage(source).toEmail();
 
-        assertUnknown(email.getOriginalSmimeDetails());
+        assertUnknown(email);
         assertThat(email.getPlainText()).isEqualTo(BODY);
         assertThat(email.getAttachments()).extracting("name").contains("independent-signed.mime");
-        assertThat(email.getDecryptedAttachments()).anySatisfy(attachment -> {
-            assertThat(attachment.getDataSource().getContentType()).isEqualTo("message/rfc822");
-            assertThat(attachment.readAllData(UTF_8)).contains("For testing purposes");
+        assertThat(email.getInspection().getAttachment(0).getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(email.getInspection().getAttachment(0).getSignatures()).singleElement().satisfies(signature -> {
+            assertThat(signature.getObservation().getStatus()).isEqualTo(org.simplejavamail.api.email.SignatureVerification.VERIFIED);
+            assertThat(signature.getCoverage()).isEqualTo(org.simplejavamail.api.email.ProtectionCoverage.FULL);
         });
-        assertThat(email.getSmimeSignedEmail()).isNull();
+        assertThat(email.getAttachments().get(0).readAllData(UTF_8)).contains("For testing purposes");
+        assertThat(email.getAttachments().get(0).getEmail()).isNull();
+
     }
 
     @ParameterizedTest
@@ -110,36 +114,39 @@ class UnreadableRootSmimeRecognitionTest {
         final Email email = MAIL.converter().fromMimeMessage(source).withSmimeDecryption(loadPkcs12KeyStore())
                 .withFetchAttachmentData(fetchAttachmentData).toEmail();
 
-        assertUnknown(email.getOriginalSmimeDetails());
+        assertUnknown(email);
         assertThat(email.getPlainText()).isEqualTo(BODY);
         assertThat(email.getAttachments()).extracting("name").contains("independent-encrypted.p7m");
-        assertThat(email.getDecryptedAttachments()).singleElement().satisfies(attachment -> {
-            assertThat(attachment.getDataSource().getContentType()).isEqualTo("message/rfc822");
-            assertThat(attachment.readAllData(UTF_8)).contains("Independent decrypted content");
-        });
-        assertThat(email.getSmimeSignedEmail()).isNull();
+        assertThat(email.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.DECRYPTED);
+        assertThat(email.getAttachments().get(0).readAllData(UTF_8)).contains("Independent decrypted content");
+        assertThat(email.getInspection().getOriginalAttachment(0)).isNotNull();
+        assertThat(email.getAttachments().get(0).getEmail()).isNull();
+
     }
 
     @Test
-    void anUnrelatedDecryptionKeyStillFailsForAnEncryptedChild() throws Exception {
+    void anUnrelatedLoadedDecryptionKeyKeepsTheProtectedChildAndReadableRoot() throws Exception {
         final MimeMessage source = unreadableWithAttachment(encryptedAttachment(true));
-
-        assertThatThrownBy(() -> MAIL.converter().fromMimeMessage(source).withSmimeDecryption(loadPkcs12KeyStore()).toEmail())
-                .isInstanceOf(SmimeException.class)
-                .hasRootCauseMessage("The supplied S/MIME key is not a recipient of this message");
+        final Email email = MAIL.converter().fromMimeMessage(source).withSmimeDecryption(loadPkcs12KeyStore()).toEmail();
+        assertThat(email.getPlainText()).isEqualTo(BODY);
+        assertThat(email.getAttachments()).singleElement();
+        assertThat(email.getInspection().getAttachment(0).getEncryptionStatus()).isEqualTo(EncryptionStatus.ENCRYPTED);
+        assertThat(email.getInspection().getAttachment(0).getDecryptions()).singleElement()
+                .satisfies(attempt -> assertThat(attempt.getStatus()).isEqualTo(DecryptionStatus.UNAVAILABLE));
+        assertThat(email.getProblems()).anyMatch(problem -> problem.getCode() == EmailProblem.Code.PROTECTION_FAILED);
     }
 
     @Test
     void failedDeclarationReadDoesNotClaimProtectionRecognition() throws Exception {
         final MimeMessage source = unreadableType(new MessagingException(FAILURE_MESSAGE));
 
-        final SmimePreprocessingResult result = new SMIMESupport().processIncoming(source.getSession(), source, null);
+        final ProtectionLayerResult result = new SMIMESupport().openIncomingLayer(source.getSession(), source, null);
 
         assertThat(result.isRecognized()).isFalse();
         assertThat(result.getEffectiveMimeMessage()).isSameAs(source);
-        assertUnknown(result.getDetails());
-        assertThat(result.getProtectedAttachments()).isEmpty();
-        assertThat(result.getDecryptedArtifacts()).isEmpty();
+        assertThat(result.isInspectionComplete()).isFalse();
+        assertThat(result.getSignatures()).isEmpty();
+        assertThat(result.getDecryptions()).isEmpty();
     }
 
     @Test
@@ -149,7 +156,7 @@ class UnreadableRootSmimeRecognitionTest {
         final MimeMessage source = unreadableType(failure);
 
         assertThat(Thread.currentThread().isInterrupted()).isFalse();
-        assertThatThrownBy(() -> new SMIMESupport().processIncoming(source.getSession(), source, null))
+        assertThatThrownBy(() -> new SMIMESupport().openIncomingLayer(source.getSession(), source, null))
                 .isInstanceOf(CancellationException.class).hasCause(failure);
         assertThat(Thread.currentThread().isInterrupted()).isFalse();
     }
@@ -161,17 +168,14 @@ class UnreadableRootSmimeRecognitionTest {
             @Override public String getContentType() { throw failure; }
         };
 
-        assertThatThrownBy(() -> new SMIMESupport().processIncoming(source.getSession(), source, null))
+        assertThatThrownBy(() -> new SMIMESupport().openIncomingLayer(source.getSession(), source, null))
                 .isSameAs(failure);
     }
 
-    private static void assertUnknown(final OriginalSmimeDetails details) {
-        assertThat(details.getSmimeMode()).isEqualTo(OriginalSmimeDetails.SmimeMode.UNKNOWN);
-        assertThat(details.getVerificationStatus()).isEqualTo(OriginalSmimeDetails.VerificationStatus.UNKNOWN);
-        assertThat(details.getDecryptionStatus()).isEqualTo(OriginalSmimeDetails.DecryptionStatus.UNKNOWN);
-        assertThat(details.getSmimeSignatureValid()).isNull();
-        assertThat(details.getFailureReason()).isNull();
-        assertThat(details.getOriginalProtectedMessage()).isNull();
+    private static void assertUnknown(final Email email) {
+        assertThat(email.getInspection().getPlainText().getSignatureStatus()).isEqualTo(SignatureStatus.UNKNOWN);
+        assertThat(email.getInspection().getPlainText().getEncryptionStatus()).isEqualTo(EncryptionStatus.UNKNOWN);
+        assertThat(email.getInspection().getPlainText().getSignatures()).isEmpty();
     }
 
     private static MimeMessage unreadableType(final MessagingException failure) throws Exception {

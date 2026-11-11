@@ -23,6 +23,12 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- core dependencies -->
         <dependency>
             <groupId>org.simplejavamail</groupId>

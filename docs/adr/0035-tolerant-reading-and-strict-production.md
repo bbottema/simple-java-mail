@@ -4,6 +4,27 @@
 - Decision recorded: 2026-10-17; records the maintainer's established import philosophy, not an invented original decision date
 - Applies to: Inbound MIME, EML and Outlook conversion, interpreted source facts, and their boundary with outbound production
 
+## Readable selected headers and semantic output (accepted 10 November 2026)
+
+The received-Email continuation of [#961](https://github.com/bbottema/simple-java-mail/issues/961) keeps useful parsed header/transport
+data directly readable on Email. `getHeaders()` is an immutable case-insensitive view with actual per-name occurrence order. Known typed
+fields and header reads have one selected authority; explicit typed replacements cannot leave stale conflicting active generic values.
+Unknown/untypable useful source values remain available with their limitations. Select complete additional-header lists from the chosen
+authored view rather than joining competing protected/outer values. Other source alternatives stay historical evidence.
+
+Ordinary reconstructed output emits current typed authored fields once, lets the producer own MIME structure/encoding, and emits
+appropriate additional headers. Received/Return-Path trace, upstream authentication reports and obsolete DKIM/ARC signatures are readable
+history and are not automatically emitted as current claims. Explicit reserved/custom choices need a clear supported contract or focused
+rejection. Apply this by header role, not a hidden parsed-versus-composed switch. The interpreted Bounce-To still supplies its ordinary
+envelope value; omitting an old Return-Path header must not erase it. Exact relay/original attachments keep their actual bytes.
+
+Readable protected headers of the same logical message can supply authored identity/address/date/threading with meaningful omissions;
+generated adapters and independent children cannot. Body-only protection preserves native headers. Native fallback remains readable with
+its own coverage, and invalid signatures do not discard content. Actual incoming component failures preserve complete originals and
+neighbors under [ADR 0041](0041-email-source-inspection-and-problems.md#complete-original-input-and-selected-value-inspection-accepted-10-november-2026);
+configuration defects and cancellation retain operation failure. This amendment supersedes older blanket explicit-decryption failure
+wording only for the approved automatic incoming Email interpretation boundary.
+
 ### Missing Outlook attachment types (accepted 1 November 2026)
 
 An Outlook attachment with readable binary content remains importable when neither a MIME type nor either filename property is available.

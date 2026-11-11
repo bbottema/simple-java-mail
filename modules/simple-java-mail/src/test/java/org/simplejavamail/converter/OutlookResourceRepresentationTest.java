@@ -117,6 +117,24 @@ class OutlookResourceRepresentationTest {
         });
     }
 
+    @Test
+    void collidingNativeCidOccurrencesRemainAvailableWithoutChoosingAnImageByOrder() throws Exception {
+        final byte[] msg = source("first.png", CID, "<img src=\"cid:" + CID + "\">", "second.png", CID);
+        final Email email = MAIL.converter().fromOutlookMsg(new ByteArrayInputStream(msg)).toEmail();
+        assertThat(email.getEmbeddedImages()).isEmpty();
+        assertThat(email.getAttachments()).extracting(AttachmentResource::getName).containsExactly("first.png", "second.png");
+        assertThat(email.getAttachments().get(0).readAllBytes()).isEqualTo(IMAGE);
+        assertThat(email.getAttachments().get(1).readAllBytes()).isEqualTo(DOCUMENT);
+        assertThat(email.getProblems()).anySatisfy(problem -> {
+            assertThat(problem.getSourceValue()).isEqualTo(CID);
+            assertThat(problem.getSources()).isNotEmpty();
+        });
+        final Email reconstructed = MAIL.converter().fromEml(MAIL.converter().fromEmail(email).toEmlBytes()).toEmail();
+        assertThat(reconstructed.getEmbeddedImages()).isEmpty();
+        assertThat(reconstructed.getAttachments()).hasSize(2).allSatisfy(resource -> assertThat(resource.getContentId()).isNull());
+        assertThat(email.getInspection().getOriginalMessage().readAllBytes()).isEqualTo(msg);
+    }
+
     private static void assertSelectedResource(final Email email, final String html, final String filename,
             final String contentId, final String otherFilename) {
         assertThat(email.getHTMLText()).isEqualTo(html);
