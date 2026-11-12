@@ -1,0 +1,13 @@
+# Preserve the received delivery-report identifier
+
+The maintainer approved implementation and a commit under the original issue on 29 October 2026, explicitly without a new GitHub issue. This follows [#763](https://github.com/bbottema/simple-java-mail/issues/763), which introduced the report parser; [#736](https://github.com/bbottema/simple-java-mail/issues/736) owns the outgoing ENVID counterpart. No issue creation or reopening is needed.
+
+Preserve the Original-Envelope-Id value received from Jakarta Mail after normal unfolding, including trailing spaces. Compare repeated identifier values without token-field trimming so different spellings remain conflicting. Keep the existing missing/empty and duplicate warning rules, neighboring field parsing, exact/protected source bytes, snapshots and stream ownership. Do not add an xtext decoding pass or change Jakarta Mail's existing leading field-whitespace interpretation. ADR 0022, ADR 0035 and ADR 0008 govern the correction.
+
+Root owns DeliveryStatusReportParser, the new DeliveryStatusEnvelopeIdTest, an ADR 0022 clarification and the corresponding scoped documentation. Focused regressions precede the repair and run against an isolated source snapshot on Java 21 and real Java 11. The remaining surface matrix includes public API/Javadoc, configuration/CLI/Spring, copying/serialization, website, Journal/case studies/downloadables and OpenRewrite runtime guidance.
+
+Other approved repairs are concurrent. The #919 body worker owns shared documentation and both repositories' delivery first; the #920 Content-ID worker follows. Root waits for both to finish before editing shared release/index/OpenRewrite/website/cleanup files or committing. Preserve their delivery and all historical staged/unstaged work. Task scratch and the original staged patch are retained under `.local/envid-spelling-763-20261029`.
+
+This follow-up is authorized for implementation and local selective commits. No push, release, deployment or history rewriting is requested. Commit subjects use #763 and bodies name the governing ADRs; verification evidence stays in the maintainer conversation. Obtain an independent review of the final combined diff and evidence before committing. Retain the existing guarded cleanup blocker and add only exact owned scratch/plan allowlist entries; no deletion is included.
+
+Completed locally in main `b66b99b5db699b84f6ff3f23621fe3954ce90070` and website `bb705d806669b33b24427485785f817ec0e0dc58` after independent combined review. No new issue or GitHub mutation was made. This retired untracked plan and task scratch remain on their exact cleanup allowlists behind the existing reparse-point guard.
