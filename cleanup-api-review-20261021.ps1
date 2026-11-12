@@ -64,6 +64,8 @@ $registeredWorktrees = @(
 # #960: unlink this task-owned dependency junction before cleanup; keep the reparse-point guard intact.
 # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\.local\decrypted-merge-contract-20261103\repair\website-source\node_modules' -Force
 $relativeTargets = @(
+    # Retained records for the earlier-plan retirement.
+    '.local/legacy-plan-retirement-20261112'
     # Completed received-email review scratch and planning-retirement records (#961).
     '.local/received-email-review-20261111'
     '.local/received-email-retirement-20261111'
@@ -149,10 +151,9 @@ $relativeTargets = @(
     '.local/connection-conflict-20261024'
 )
 $relativeFileTargets = @(
-    # #976: retire this task's plan after delivery.
-    'docs/plans/976-cli-integer-input.md'
+    # Earlier review plans were archived in 791387dca7f01459fe1fd2e6ac498d7725efa5be and retired at the maintainer's request.
+    # Historical custody notes retain earlier blocks on other files and worktrees.
     # BEGIN outlook-daemon-review-20261108 custody (#974, #975, #488)
-    'docs/plans/outlook-daemon-review-20261108.md'
     # END outlook-daemon-review-20261108 custody
     # BEGIN review-delivery-20261108 custody
     # Retired plan: .local/api-review-20261108-evidence/retired-approved-review-20261108-completed.md
@@ -160,63 +161,20 @@ $relativeFileTargets = @(
     # BEGIN openpgp-inspection-review-20261107 retired plan
     'docs/plans/openpgp-inspection-review-20261107.md'
     # END openpgp-inspection-review-20261107 retired plan
-    # #704/#822: completed plan retained after automatic approval review refused its deletion.
-    'docs/plans/smime-declaration-repairs-20261107.md'
-    # #966: the retired work packet remains available for individual cleanup after inspection.
-    # Remove-Item -LiteralPath 'C:\workstation\simple-java-mail\docs\plans\pooled-oauth-protocol-20261105.md' -Force
-    'docs/plans/pooled-oauth-protocol-20261105.md'
+    # The #704/#822 plan was archived after an earlier automatic-review block.
+    # The #966 work packet was archived before retirement.
     # Retire the active merge-contract review plan before running cleanup.
     'docs/plans/decrypted-merge-contract-20261103.md'
-    'docs/plans/smime-helper-id-contract-20261103.md'
-    'docs/plans/text-body-streams-20261102.md'
-    'docs/plans/selected-review-20261102.md'
-    'docs/plans/958-reused-session-oauth2-20261102.md'
-    'docs/plans/957-image-validation-20261102.md'
-    'docs/plans/709-rehearsal-lifetime-20261102.md'
-    'docs/plans/approved-review-20261102.md'
     'docs/plans/cli-metadata-build-cache-20261101.md'
-    'docs/plans/952-html-resource-boundaries-20261101.md'
-    'docs/plans/951-cli-unused-default-files-20261101.md'
-    'docs/plans/950-readable-reply-20261101.md'
-    'docs/plans/949-late-cancellation-cleanup-20261101.md'
-    'docs/plans/selected-review-repairs-20261101.md'
-    'docs/plans/wide-review-repairs-20261101.md'
-    'docs/plans/exact-eml-inspection-20261101.md'
-    'docs/plans/batch-cancel-boundary-20261101.md'
-    'docs/plans/accepted-review-20261101.md'
-    'docs/plans/oauth-inherited-20261101.md'
-    'docs/plans/review-followup-20261031.md'
     'docs/plans/934-imported-header-order.md'
-    'docs/plans/protection-review-20261031.md'
     'docs/plans/927-929-review-round-20261031.md'
     'docs/plans/928-cli-help-config.md'
     'docs/plans/926-key-material-atomicity.md'
     'docs/plans/925-tls-inspection.md'
-    'docs/plans/924-bounded-daemon-shutdown.md'
-    'docs/plans/923-openpgp-jpms.md'
-    'docs/plans/763-envelope-id-preservation-20261029.md'
     'docs/plans/local-socks-request-validation.md'
     'docs/plans/921-socks-setup-capacity.md'
-    'docs/plans/920-content-id-comments.md'
     'docs/plans/918-retained-smime-signatures.md'
-    'docs/plans/919-body-null-fragments.md'
-    'docs/plans/917-dsn-action-comments.md'
-    'docs/plans/916-imported-filename-sentinel.md'
-    'docs/plans/914-imported-addresses.md'
-    'docs/plans/915-daemon-control-admission.md'
-    'docs/plans/review-daemon-address-import-20261029.md'
-    'docs/plans/908-typed-delivery-validation.md'
-    'docs/plans/909-pending-socks-setup.md'
-    'docs/plans/908-909-feature-review-followup.md'
     'docs/plans/910-913-socks-protocol-repairs.md'
-    'docs/plans/901-902-socks-auth.md'
-    'docs/plans/907-socks-tunnel-timeout.md'
-    'docs/plans/900-retry-receipt.md'
-    'docs/plans/905-906-smime.md'
-    'docs/plans/903-dsn-zone.md'
-    'docs/plans/904-calendar-input.md'
-    'docs/plans/config-loader-required-inputs-20261029.md'
-    'docs/plans/feature-review-20261029.md'
     '.local/899-red.log'
     '.local/899-green.log'
     '.local/899-jdk11.log'
@@ -224,10 +182,8 @@ $relativeFileTargets = @(
     '.local/899-site-build.log'
     '.local/899-cleanup-dryrun.log'
     '.local/899-cleanup-delivery.index'
-    'docs/plans/899-imported-filenames.md'
     # '.local/api-review-example.log'
     # 'docs/plans/example-completed-plan.md'
-    'docs/plans/897-898-image-attributes-cli-guide.md'
     'docs/plans/867-connection-conflict-policy.md'
 )
 # External directories require both the exact absolute path and its direct parent.
