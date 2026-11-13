@@ -409,7 +409,7 @@ class SmtpsOAuth2Test {
 
         Peer(final String host, final int connections, final Script script) throws IOException {
             server = new ServerSocket(0, 4, InetAddress.getByName(host));
-            server.setSoTimeout(10000);
+            // Cold caller construction can precede connect; accepted conversations keep their socket timeout.
             completion = CompletableFuture.runAsync(() -> {
                 try {
                     for (int i = 0; i < connections; i++) {
@@ -422,8 +422,8 @@ class SmtpsOAuth2Test {
         int port() { return server.getLocalPort(); }
 
         public void close() throws Exception {
-            try { completion.get(15, SECONDS); }
-            finally { server.close(); executor.shutdownNow(); assertThat(executor.awaitTermination(5, SECONDS)).isTrue(); }
+            try { server.close(); completion.get(15, SECONDS); }
+            finally { executor.shutdownNow(); assertThat(executor.awaitTermination(5, SECONDS)).isTrue(); }
         }
     }
 }
