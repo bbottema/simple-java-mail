@@ -4,6 +4,7 @@ import datetime
 import hashlib
 import json
 import os
+import fnmatch
 from pathlib import Path
 import platform
 import re
@@ -90,6 +91,23 @@ def main():
     missing = sorted(set(selected) - executed)
     if missing:
         exit_code = exit_code or 1
+    pom = ET.parse("pom.xml").getroot()
+    ns = {"m": "http://maven.apache.org/POM/4.0.0"}
+    filters = [node.text.strip().replace(".", "/") for node in pom.findall(
+        ".//m:plugin[m:artifactId='jacoco-maven-plugin']/m:executions/"
+        "m:execution[m:id='prepare-agent']/m:configuration/m:includes/m:include", ns)]
+    outside_coverage_scope = []
+    if filters:
+        for module in Path("modules").iterdir():
+            classes = module / "target/classes"
+            for compiled in classes.rglob("*.class"):
+                name = compiled.relative_to(classes).as_posix()[:-6]
+                if name == "module-info" or name.startswith("META-INF/"):
+                    continue
+                if not any(fnmatch.fnmatchcase(name, pattern) for pattern in filters):
+                    outside_coverage_scope.append(str(compiled))
+        if outside_coverage_scope:
+            exit_code = exit_code or 1
     snapshot_artifacts = []
     repository = Path.home() / ".m2/repository"
     for artifact in repository.glob("org/eclipse/angus/angus-mail/*SNAPSHOT/*.jar"):
@@ -119,6 +137,7 @@ def main():
         "mavenTotalTime": total_line,
         "exitCode": exit_code,
         "missingSelectedClasses": missing,
+        "classesOutsideCoverageScope": sorted(outside_coverage_scope),
         "failedClasses": sorted(failed_classes),
         "reportFiles": report_count,
         "suiteCounts": sorted(suite_counts, key=lambda row: (row["module"], row["class"])),
