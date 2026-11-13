@@ -39,6 +39,7 @@ def main():
             "SmtpContentNegotiationCharacterizationTest", "SmtpMessageSizeLifecycleTest",
             "ExactEmailProtectionInspectionTest", "PreEncodedReplyResourceTest",
             "FailoverPoolContractTest",
+            "MailSendRateLimiterTest",
         ]
         command += ["-pl", "modules/simple-java-mail", "-am", "test",
                     "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]

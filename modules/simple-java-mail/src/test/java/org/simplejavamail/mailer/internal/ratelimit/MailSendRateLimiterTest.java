@@ -117,6 +117,33 @@ class MailSendRateLimiterTest {
 	}
 
 	@Test
+	void cancellationBetweenStopCheckAndTimedWaitCannotLoseTheWakeup() throws Exception {
+		final TestClock clock = new TestClock();
+		final MailSendControl cancelled = control();
+		final AtomicBoolean cancelOnRead = new AtomicBoolean();
+		final MailSendRateLimiter limiter = limiter(1, null, true, () -> {
+			if (cancelOnRead.getAndSet(false)) cancelled.requestCancellation();
+			return clock.getAsLong();
+		});
+		final MailSendControl initial = control();
+		try (MailSendRateLimiter.Reservation reservation = limiter.reserve(1, initial)) {
+			reservation.commit(initial);
+		}
+		cancelOnRead.set(true);
+		final Future<MailSendRateLimiter.Reservation> waiting = workers.submit(() -> limiter.reserve(1, cancelled));
+		assertThatThrownBy(() -> waiting.get(5, SECONDS)).isInstanceOf(ExecutionException.class)
+				.hasCauseInstanceOf(MailSendCancelledException.class);
+		assertThat(clock.now.get()).isZero();
+
+		clock.now.set(PERIOD);
+		final MailSendControl next = control();
+		final Future<MailSendRateLimiter.Reservation> following = workers.submit(() -> limiter.reserve(1, next));
+		try (MailSendRateLimiter.Reservation reservation = following.get(5, SECONDS)) {
+			reservation.commit(next);
+		}
+	}
+
+	@Test
 	void bothRulesMustAllowTheSameSubmission() throws Exception {
 		final TestClock clock = new TestClock();
 		final SendingRateLimit messageRule = new SendingRateLimit(1, Duration.ofNanos(PERIOD));
