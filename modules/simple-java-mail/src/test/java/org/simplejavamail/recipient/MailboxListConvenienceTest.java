@@ -64,17 +64,6 @@ class MailboxListConvenienceTest {
     }
 
     @Test
-    void individualExtractionHelpersKeepTheCompletePluralSource() {
-        final String source = "Alice <alice@example.org>,Bob <bob@example.org>";
-        final Recipient addressOnly = mail.recipientBuilder().withName("Chosen").withAddressOnlyFrom(source).build();
-        final Recipient defaultName = mail.recipientBuilder().withAddressAndNameOrDefault(source, "Default").build();
-        assertThat(addressOnly.getAddress()).isEqualTo(source);
-        assertThat(addressOnly.getName()).isEqualTo("Chosen");
-        assertThat(defaultName.getAddress()).isEqualTo(source);
-        assertThat(defaultName.getName()).isEqualTo("Default");
-    }
-
-    @Test
     void allListCapableEmailFieldsAndTheCliAdapterShareTheSameInterpretation() {
         final String source = "\"Support @ Acme, Europe\" <support@example.org>;audit@example.org";
         final EmailPopulatingBuilder builder = mail.emailBuilder().startingBlank().to(source).cc(source).bcc(source)

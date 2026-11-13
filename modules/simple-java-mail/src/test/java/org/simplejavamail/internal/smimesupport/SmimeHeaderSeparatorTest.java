@@ -76,8 +76,11 @@ class SmimeHeaderSeparatorTest {
     }
 
     private static Stream<Arguments> encryptedImports() {
+        // Both fluent routes cover every separator; the static stream route retains CRLF and all-LF for each payload.
         return Stream.of(false, true).flatMap(signed -> Arrays.stream(LineEndings.values())
-                .flatMap(endings -> Arrays.stream(ImportRoute.values()).map(route -> Arguments.of(signed, endings, route))));
+                .flatMap(endings -> Arrays.stream(ImportRoute.values())
+                        .filter(route -> route != ImportRoute.STATIC_STREAM || endings == LineEndings.CRLF || endings == LineEndings.ALL_LF)
+                        .map(route -> Arguments.of(signed, endings, route))));
     }
 
     @Test

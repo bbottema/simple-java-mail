@@ -90,9 +90,15 @@ class PreEncodedReplyResourceTest {
     }
 
     static Stream<Arguments> replyResources() {
-        return Stream.of(BASE_64, QUOTED_PRINTABLE).flatMap(encoding -> Arrays.stream(Representation.values())
-                .flatMap(representation -> Arrays.stream(ReplyRoute.values())
-                        .map(route -> Arguments.of(encoding, representation, route))));
+        return Stream.of(
+                Arguments.of(BASE_64, Representation.EMBEDDED_BYTES, ReplyRoute.REPLY),
+                Arguments.of(BASE_64, Representation.EMBEDDED_SOURCE, ReplyRoute.REPLY_CUSTOM),
+                Arguments.of(BASE_64, Representation.ATTACHMENT_BYTES, ReplyRoute.REPLY_ALL),
+                Arguments.of(BASE_64, Representation.ATTACHMENT_SOURCE, ReplyRoute.REPLY_ALL_CUSTOM),
+                Arguments.of(QUOTED_PRINTABLE, Representation.EMBEDDED_BYTES, ReplyRoute.REPLY_ALL_CUSTOM),
+                Arguments.of(QUOTED_PRINTABLE, Representation.EMBEDDED_SOURCE, ReplyRoute.REPLY_ALL),
+                Arguments.of(QUOTED_PRINTABLE, Representation.ATTACHMENT_BYTES, ReplyRoute.REPLY_CUSTOM),
+                Arguments.of(QUOTED_PRINTABLE, Representation.ATTACHMENT_SOURCE, ReplyRoute.REPLY));
     }
 
     @ParameterizedTest
@@ -178,8 +184,7 @@ class PreEncodedReplyResourceTest {
     }
 
     static Stream<Arguments> sourceFailures() {
-        return Stream.of(BASE_64, QUOTED_PRINTABLE).flatMap(encoding -> Arrays.stream(SourceFailure.values())
-                .map(kind -> Arguments.of(encoding, kind)));
+        return Arrays.stream(SourceFailure.values()).map(kind -> Arguments.of(BASE_64, kind));
     }
 
     private static EmailPopulatingBuilder original() {

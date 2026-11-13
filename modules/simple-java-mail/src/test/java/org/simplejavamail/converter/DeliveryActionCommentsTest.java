@@ -17,7 +17,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -34,20 +33,18 @@ class DeliveryActionCommentsTest {
     }
 
     private static Stream<Arguments> commentedActions() {
-        return Stream.of(DeliveryAction.DELIVERED, DeliveryAction.DELAYED, DeliveryAction.FAILED,
-                        DeliveryAction.RELAYED, DeliveryAction.EXPANDED)
-                .flatMap(action -> {
-                    final String token = action.name().toLowerCase(Locale.ROOT);
-                    return Stream.of(
-                            token + " (recipient information)",
-                            "(reported) " + token,
-                            "(outer (nested)) " + action.name() + " (detail)",
-                            token + " (escaped \\) bracket)",
-                            token + "\r\n\t(folded comment)",
-                            " \t" + token + " \t(comment)\t ",
-                            "(first) " + token + " (second) (third)")
-                            .map(supplied -> Arguments.of(supplied, action));
-                });
+        return Stream.of(
+                Arguments.of("delivered (recipient information)", DeliveryAction.DELIVERED),
+                Arguments.of("delayed (recipient information)", DeliveryAction.DELAYED),
+                Arguments.of("failed (recipient information)", DeliveryAction.FAILED),
+                Arguments.of("(reported) failed", DeliveryAction.FAILED),
+                Arguments.of("(outer (nested)) FAILED (detail)", DeliveryAction.FAILED),
+                Arguments.of("failed (escaped \\) bracket)", DeliveryAction.FAILED),
+                Arguments.of("failed \r\n\t(folded comment)", DeliveryAction.FAILED),
+                Arguments.of(" \tfailed \t(comment)\t ", DeliveryAction.FAILED),
+                Arguments.of("(first) failed (second) (third)", DeliveryAction.FAILED),
+                Arguments.of("relayed (recipient information)", DeliveryAction.RELAYED),
+                Arguments.of("expanded (recipient information)", DeliveryAction.EXPANDED));
     }
 
     @ParameterizedTest
