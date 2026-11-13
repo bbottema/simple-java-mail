@@ -65,7 +65,7 @@ $gh = if ($env:SJM_GH) { $env:SJM_GH } else { "gh" }
 & $gh auth status
 ```
 
-Use JDK 17 or newer for a full-reactor build. Use a real JDK 11 for the separate library compatibility check:
+Use one local JDK, normally JDK 17, for focused development checks. The pipeline owns full-reactor verification and the real JDK 11/17/21 compatibility lanes. Reproduce a demonstrated version-specific failure narrowly; do not run every local test on every JDK:
 
 ```powershell
 if (-not $env:JAVA_HOME) {
@@ -232,28 +232,29 @@ For dependency PRs:
 
 ## 6. Verify
 
-Use focused tests first, then full verification before release.
+Choose focused checks during development using the matrix and commands in [TESTING.md](TESTING.md), on one local JDK. The pipeline owns complete verification and the JDK/platform matrix, including release checkpoints. Run a local full suite only when explicitly requested. Confirm selected tests actually ran and describe partial checks as partial.
 
 Useful focused commands:
 
 ```powershell
-mvn -pl modules/simple-java-mail -Dtest=SomeTest test
+mvn -pl modules/simple-java-mail -am "-Dtest=SomeTest" "-Dsurefire.failIfNoSpecifiedTests=false" test
 mvn -pl modules/cli-module -am -Ppublish-cli -DskipTests package
 ```
 
-Before merging to `master` for a release, run the library reactor on a real JDK 11:
+Before merging to `master` for a release, confirm the pipeline's library check passed on a real JDK 11. Its reference command is:
 
 ```powershell
 mvn -pl '!modules/cli-module,!modules/jacoco-aggregator-module' clean verify -Dmaven.javadoc.skip=true
 ```
 
-Then run the full reactor, including CLI publication metadata, on JDK 17 or newer:
+Also confirm the pipeline's full reactor, including CLI publication metadata, passed on JDK 17 or newer. Its reference command is:
 
 ```powershell
 mvn clean verify -Ppublish-cli
 ```
 
 The separate [SMTP conformance job](../tools/smtp-conformance/README.md) and the normal build must both pass before any release approval.
+Keep these full and cross-JDK checks in the pipeline; do not duplicate them locally for routine coding or test-consolidation work.
 On a development branch, run the CircleCI pipeline with `run-smtp-conformance: true`; that workflow has no deployment job.
 Keep the sanitized evidence with the tested commit's CI artifacts. Do not copy raw EML captures, fixture private keys or raw SMTP logs into release attachments.
 An assertion failure, missing test, infrastructure error or cleanup failure blocks the gate; it is not an allowed skip.
@@ -426,7 +427,7 @@ Before release:
 
 1. Perform the defensive Dependabot sweep below against the current `develop` branch.
 2. Merge every safe, release-ready patch-level library update selected by the sweep into `develop`.
-3. Run the JDK 11 library verification and JDK 17+ full-reactor verification on the final release candidate, including the lifted dependency patches.
+3. Confirm the pipeline's JDK 11 library and JDK 17+ full-reactor verification passed on the final release candidate, including the lifted dependency patches.
 4. Confirm the README's current version and release links match the release candidate, and confirm `RELEASE_HISTORY.md` includes a compact dependency-maintenance note when patches were lifted.
 5. Create or reuse the exact-version GitHub milestone, without a `v` prefix, set its due date to the planned release date, and keep it open during the release.
 6. Assign all release issues and PRs to it, including applicable closed Dependabot PRs and maintenance roll-ups.
@@ -538,7 +539,7 @@ Dependabot PR handling follows the same workflow with extra Java-baseline cautio
 2. Check each proposed dependency against the Java 11 library and Java 17 CLI baselines.
 3. Update or add `.github/dependabot.yml` ignores for impossible upgrade lines.
 4. Merge compatible PRs into `develop`.
-5. Run the JDK 11 library and JDK 17+ full-reactor verification.
+5. Confirm the pipeline's JDK 11 library and JDK 17+ full-reactor verification passed.
 6. Once the release version is selected, create or reuse its exact-version milestone without a `v` prefix.
 7. Assign every Dependabot PR accounted for by the release, including closed PRs consolidated into a maintainer roll-up.
 8. Add a compact dependency-maintenance release-note entry.

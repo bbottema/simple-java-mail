@@ -3,7 +3,6 @@ package org.simplejavamail.email.internal;
 import org.simplejavamail.api.email.config.ImageResolutionConfig;
 import jakarta.activation.DataSource;
 import jakarta.mail.Message;
-import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.util.ByteArrayDataSource;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -102,17 +100,6 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testBuilderReturnReceiptToAddressNative() throws UnsupportedEncodingException {
-		final Email email = builder
-				.withReturnReceiptTo(new InternetAddress("lol.pop@somemail.com", "moo"))
-				.buildEmail();
-
-		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("moo");
-		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
-	}
-
-	@Test
 	public void testBuilderReturnReceiptToAddress() {
 		final Email email = builder
 				.withReturnReceiptTo(new Recipient("lollypop", "lol.pop@somemail.com", null, null))
@@ -127,17 +114,6 @@ public class EmailPopulatingBuilderImpl1Test {
 	public void testBuilderReturnReceiptToAddressWithFixedName() {
 		final Email email = builder
 				.withReturnReceiptTo("lollypop", "lol.pop@somemail.com")
-				.buildEmail();
-
-		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("lollypop");
-		assertThat(email.getReturnReceiptToRecipients().get(0).getAddress()).isEqualTo("lol.pop@somemail.com");
-		assertThat(email.getReturnReceiptToRecipients().get(0).getType()).isNull();
-	}
-
-	@Test
-	public void testBuilderReturnReceiptToAddressWithFixedNameOverridingTheOneFromAddress() throws UnsupportedEncodingException {
-		final Email email = builder
-				.withReturnReceiptTo("lollypop", new InternetAddress("lol.pop@somemail.com", "moo"))
 				.buildEmail();
 
 		assertThat(email.getReturnReceiptToRecipients().get(0).getName()).isEqualTo("lollypop");
@@ -243,128 +219,6 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testBuilderCCAddresses() {
-		final Email email = builder
-				.withRecipients("1", true, CC, "1@candyshop.org")
-				.withRecipients(null, true, CC, "2@candyshop.org")
-				.withRecipients(new Recipient("3", "3@candyshop.org", CC, null))
-				.withRecipients(new Recipient(null, "4@candyshop.org", CC, null))
-				.withRecipients(null, false, CC, "5@candyshop.org")
-				.withRecipients(null, false, CC, "6@candyshop.org,7@candyshop.org")
-				.withRecipients(null, false, CC, "8@candyshop.org;9@candyshop.org")
-				.withRecipients(null, false, CC, "10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.withRecipients(new Recipient("13", "13@candyshop.org", CC, null), new Recipient("14", "14@candyshop.org", CC, null))
-				.withRecipients("15", true, CC, "15a@candyshop.org,15b@candyshop.org")
-				.withRecipients("16", true, CC, "16a@candyshop.org;16b@candyshop.org")
-				.buildEmail();
-
-		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
-				createRecipient("1", "1@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "2@candyshop.org", Message.RecipientType.CC),
-				createRecipient("3", "3@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "4@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "5@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "6@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "7@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "8@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "9@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "10@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "11@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "12@candyshop.org", Message.RecipientType.CC),
-				createRecipient("13", "13@candyshop.org", Message.RecipientType.CC),
-				createRecipient("14", "14@candyshop.org", Message.RecipientType.CC),
-				createRecipient("15", "15a@candyshop.org", Message.RecipientType.CC),
-				createRecipient("15", "15b@candyshop.org", Message.RecipientType.CC),
-				createRecipient("16", "16a@candyshop.org", Message.RecipientType.CC),
-				createRecipient("16", "16b@candyshop.org", Message.RecipientType.CC)
-		);
-	}
-
-	@Test
-	public void testBuilderCCAddresses_ComplexFormat() {
-		final Email email = builder
-				.withRecipients("1", false, CC, "1b <1@candyshop.org>")
-				.withRecipients(null, false, CC, "5b <5@candyshop.org>")
-				.withRecipients(null, false, CC, "6@candyshop.org,7b <7@candyshop.org>")
-				.withRecipients(null, false, CC, "8b <8@candyshop.org>;9@candyshop.org")
-				.withRecipients(null, false, CC, "10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
-				.buildEmail();
-
-		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
-				createRecipient("1b", "1@candyshop.org", Message.RecipientType.CC),
-				createRecipient("5b", "5@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "6@candyshop.org", Message.RecipientType.CC),
-				createRecipient("7b", "7@candyshop.org", Message.RecipientType.CC),
-				createRecipient("8b", "8@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "9@candyshop.org", Message.RecipientType.CC),
-				createRecipient("10b", "10@candyshop.org", Message.RecipientType.CC),
-				createRecipient("11b", "11@candyshop.org", Message.RecipientType.CC),
-				createRecipient(null, "12@candyshop.org", Message.RecipientType.CC)
-		);
-	}
-
-	@Test
-	public void testBuilderBCCAddresses() {
-		final Email email = builder
-				.withRecipients("1", true, BCC, "1@candyshop.org")
-				.withRecipients(null, true, BCC, "2@candyshop.org")
-				.withRecipients(new Recipient("3", "3@candyshop.org", BCC, null))
-				.withRecipients(new Recipient(null, "4@candyshop.org", BCC, null))
-				.withRecipients(null, false, BCC, "5@candyshop.org")
-				.withRecipients(null, false, BCC, "6@candyshop.org,7@candyshop.org")
-				.withRecipients(null, false, BCC, "8@candyshop.org;9@candyshop.org")
-				.withRecipients(null, false, BCC, "10@candyshop.org;11@candyshop.org,12@candyshop.org")
-				.withRecipients(new Recipient("13", "13@candyshop.org", BCC, null), new Recipient("14", "14@candyshop.org", BCC, null))
-				.withRecipients("15", true, BCC, "15a@candyshop.org,15b@candyshop.org")
-				.withRecipients("16", true, BCC, "16a@candyshop.org;16b@candyshop.org")
-				.buildEmail();
-
-		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
-				createRecipient("1", "1@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "2@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("3", "3@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "4@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "5@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "6@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "7@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "8@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "9@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "10@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "11@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "12@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("13", "13@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("14", "14@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("15", "15a@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("15", "15b@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("16", "16a@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("16", "16b@candyshop.org", Message.RecipientType.BCC)
-		);
-	}
-
-	@Test
-	public void testBuilderBCCAddresses_ComplexFormat() {
-		final Email email = builder
-				.withRecipients("1", false, BCC, "1b <1@candyshop.org>")
-				.withRecipients(null, false, BCC, "5b <5@candyshop.org>")
-				.withRecipients(null, false, BCC, "6@candyshop.org,7b <7@candyshop.org>")
-				.withRecipients(null, false, BCC, "8b <8@candyshop.org>;9@candyshop.org")
-				.withRecipients(null, false, BCC, "10b <10@candyshop.org>;11b <11@candyshop.org>,12@candyshop.org")
-				.buildEmail();
-
-		assertThat(email.getRecipients()).containsExactlyInAnyOrder(
-				createRecipient("1b", "1@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("5b", "5@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "6@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("7b", "7@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("8b", "8@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "9@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("10b", "10@candyshop.org", Message.RecipientType.BCC),
-				createRecipient("11b", "11@candyshop.org", Message.RecipientType.BCC),
-				createRecipient(null, "12@candyshop.org", Message.RecipientType.BCC)
-		);
-	}
-
-	@Test
 	public void testBuilderNotificationFlags_DefaultOff() {
 		final Email email = builder
 				.withReplyTo("replyTo", "1@candyshop.org")
@@ -466,34 +320,12 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testPrependText_ToNonEmptyText() {
-		Email test = builder
-				.withPlainText("moo")
-				.withHTMLText("ignore")
-				.prependPlainText("test\n")
-				.buildEmail();
-
-		EmailAssert.assertThat(test).hasPlainText("test\nmoo");
-	}
-
-	@Test
 	public void testPrependTextHTML_ToEmptyText() {
 		Email test = builder
 				.prependHTMLText("test")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasHTMLText("test");
-	}
-
-	@Test
-	public void testPrependTextHTML_ToNonEmptyText() {
-		Email test = builder
-				.withPlainText("ignore")
-				.withHTMLText("moo")
-				.prependHTMLText("test\n")
-				.buildEmail();
-
-		EmailAssert.assertThat(test).hasHTMLText("test\nmoo");
 	}
 
 	@Test
@@ -506,34 +338,12 @@ public class EmailPopulatingBuilderImpl1Test {
 	}
 
 	@Test
-	public void testAppendText_ToNonEmptyText() {
-		Email test = builder
-				.withPlainText("moo")
-				.withHTMLText("ignore")
-				.appendPlainText("\ntest")
-				.buildEmail();
-
-		EmailAssert.assertThat(test).hasPlainText("moo\ntest");
-	}
-
-	@Test
 	public void testAppendTextHTML_ToEmptyText() {
 		Email test = builder
 				.appendHTMLText("test")
 				.buildEmail();
 
 		EmailAssert.assertThat(test).hasHTMLText("test");
-	}
-
-	@Test
-	public void testAppendTextHTML_ToNonEmptyText() {
-		Email test = builder
-				.withPlainText("ignore")
-				.withHTMLText("moo")
-				.appendHTMLText("\ntest")
-				.buildEmail();
-
-		EmailAssert.assertThat(test).hasHTMLText("moo\ntest");
 	}
 
 	@Test

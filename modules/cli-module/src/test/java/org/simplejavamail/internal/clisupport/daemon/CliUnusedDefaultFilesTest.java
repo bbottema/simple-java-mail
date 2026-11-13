@@ -77,7 +77,7 @@ class CliUnusedDefaultFilesTest {
         final Properties properties = material.properties(key.toString());
         final MailerProvider provider = daemon ? new DaemonMailerRegistry(3, Duration.ofMinutes(1)) : new OneShotMailerProvider();
         try (FileChannel ignored = lockAgainstReading(key);
-                CliExecutionEnvironment environment = new CliExecutionEnvironment(config(properties), provider, directory)) {
+                CliExecutionEnvironment environment = new CliExecutionEnvironment(runtimeConfig(properties), provider, directory)) {
             assertUnreadable(key);
             final CliExecutionResult result = validate(environment, daemon, WITHOUT);
             assertThat(result.exitCode()).as(result.stderr()).isZero();
@@ -111,7 +111,7 @@ class CliUnusedDefaultFilesTest {
     void actualCommandRespectsTheLastDefaultSelection() throws Exception {
         final Path key = Files.writeString(directory.resolve("ordered.key"), "ordinary key");
         try (FileChannel ignored = lockAgainstReading(key);
-                CliExecutionEnvironment environment = new CliExecutionEnvironment(config(Material.DKIM.properties(key.toString())),
+                CliExecutionEnvironment environment = new CliExecutionEnvironment(runtimeConfig(Material.DKIM.properties(key.toString())),
                         new OneShotMailerProvider(), directory)) {
             assertThat(validate(environment, false, RESTORE, WITHOUT).exitCode()).isZero();
             final CliExecutionResult restored = validate(environment, false, WITHOUT, RESTORE);
@@ -123,14 +123,15 @@ class CliUnusedDefaultFilesTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void actualDaemonReuseTracksOnlyUsedDefaultMaterial(final boolean disabled) throws Exception {
-        final Wiser smtp = Wiser.create(SMTPServer.port(0));
+        final Wiser smtp = Wiser.create(SMTPServer.port(0).hostName("localhost"));
         smtp.start();
         final Path key = Files.writeString(directory.resolve("rotation.key"), "first ordinary key");
         final Properties properties = Material.DKIM.properties(key.toString());
         properties.setProperty("simplejavamail.smtp.port", Integer.toString(smtp.getServer().getPortAllocated()));
+        properties.setProperty(ConfigLoader.Property.SMTP_CLIENT_HOSTNAME.key(), "localhost");
         final DaemonMailerRegistry registry = new DaemonMailerRegistry(4, Duration.ofMinutes(1));
         final RecordingProvider provider = new RecordingProvider(registry);
-        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(config(properties), provider, directory)) {
+        try (CliExecutionEnvironment environment = new CliExecutionEnvironment(runtimeConfig(properties), provider, directory)) {
             final String[] choices = disabled ? new String[] {WITHOUT} : new String[0];
             assertSuccess(connect(environment, choices));
             Files.writeString(key, "rotated ordinary key");
@@ -235,6 +236,12 @@ class CliUnusedDefaultFilesTest {
     private static void assertUnreadable(final Path key) {
         assertThat(Files.isRegularFile(key)).isTrue();
         assertThatThrownBy(() -> Files.newInputStream(key)).isInstanceOf(IOException.class);
+    }
+
+    private static SimpleJavaMailConfig runtimeConfig(final Properties source) {
+        final Properties properties = (Properties) source.clone();
+        properties.setProperty("simplejavamail.extraproperties.mail.host", "localhost");
+        return config(properties);
     }
 
     private static SimpleJavaMailConfig config(final Properties properties) {

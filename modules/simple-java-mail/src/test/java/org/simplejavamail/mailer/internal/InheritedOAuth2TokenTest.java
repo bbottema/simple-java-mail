@@ -202,6 +202,7 @@ class InheritedOAuth2TokenTest {
 
     private static void configureConnection(final Properties properties, final String protocol, final int port, final TokenSource source) {
         final String prefix = "mail." + protocol + ".";
+        properties.setProperty("mail.host", "localhost");
         properties.setProperty("mail.transport.protocol", protocol);
         properties.setProperty(prefix + "host", "localhost");
         properties.setProperty(prefix + "port", Integer.toString(port));
@@ -224,6 +225,7 @@ class InheritedOAuth2TokenTest {
     private static Mailer createMailer(final Session supplied, final String protocol, final int port, final TokenSource source) {
         if (source == TokenSource.REGULAR_BUILDER) {
             return factory().mailerBuilder().withSMTPServer("localhost", port, USER, TOKEN)
+                    .withProperty("mail.host", "localhost")
                     .withTransportStrategy(protocol.equals("smtp") ? TransportStrategy.SMTP_OAUTH2 : TransportStrategy.SMTPS_OAUTH2)
                     .withTlsConfig(TlsConfig.builder().withCustomSSLFactoryInstance(tlsFactory).build())
                     .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(5))

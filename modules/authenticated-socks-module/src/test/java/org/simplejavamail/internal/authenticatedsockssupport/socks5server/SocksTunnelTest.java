@@ -187,6 +187,44 @@ class SocksTunnelTest {
     }
 
     @Test
+    void closingDuringAReadPreventsAnotherClientRead() throws Exception {
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        final AtomicInteger reads = new AtomicInteger();
+        final InputStream source = new InputStream() {
+            @Override public int read() { throw new AssertionError("Expected a bulk read"); }
+            @Override public int read(final byte[] bytes, final int offset, final int length) throws IOException {
+                if (reads.incrementAndGet() > 1) { return -1; }
+                entered.countDown();
+                try {
+                    if (!release.await(3, SECONDS)) { throw new IOException("Read was not released"); }
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException(interrupted);
+                }
+                bytes[offset] = 42;
+                return 1;
+            }
+        };
+        final TestSocket local = socket();
+        final AtomicInteger closes = new AtomicInteger();
+        final SocksTunnel tunnel = new SocksTunnel(local, closes::incrementAndGet);
+        try {
+            tunnel.startClientReader(source);
+            assertThat(entered.await(3, SECONDS)).isTrue();
+            tunnel.close();
+            release.countDown();
+            tunnel.awaitClientReader();
+            assertThat(reads).hasValue(1);
+            assertThat(closes).hasValue(1);
+            assertThat(local.closeCalls).hasValue(1);
+        } finally {
+            release.countDown();
+            tunnel.close();
+        }
+    }
+
+    @Test
     void bufferedPendingBytesPrecedeLaterForwardedBytesExactlyOnce() throws Exception {
         final QueueInput client = new QueueInput();
         final RecordingOutput remoteOutput = new RecordingOutput();

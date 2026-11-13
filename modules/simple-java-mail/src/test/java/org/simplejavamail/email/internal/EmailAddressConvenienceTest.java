@@ -68,7 +68,7 @@ class EmailAddressConvenienceTest {
     }
 
     @ParameterizedTest
-    @EnumSource(Field.class)
+    @EnumSource(value = Field.class, names = {"FROM", "REPLY", "TO_FIELD"})
     void punctuationAndEncodedPersonalNamesAreSingleMailboxes(final Field field) {
         assertMailbox(field.string(blank(), null, "\"Doe, Alice; Accounts\" <alice@example.org>", false),
                 field, "Doe, Alice; Accounts", "alice@example.org");

@@ -118,7 +118,8 @@ class DkimDomainCaseTest {
     private static Email email(final String sender, final DkimConfig config) {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).emailBuilder().startingBlank()
                 .from(sender).to("receiver@example.org").withSubject("DKIM domain spelling")
-                .withPlainText("body").signWithDomainKey(config).buildEmail();
+                .withPlainText("body").fixingMessageId("<dkim-domain-case-" + java.util.UUID.randomUUID() + "@example.test>")
+                .signWithDomainKey(config).buildEmail();
     }
 
     private static DkimConfig config(final KeyPair keyPair, final String domain) {

@@ -178,7 +178,7 @@ class CliDaemonProcessTest {
 	@Test
 	void repeatedDaemonSendsReuseTheSameSmtpConnection() throws Exception {
 		final AtomicInteger acceptedSessions = new AtomicInteger();
-		final Wiser smtp = Wiser.create(SMTPServer.port(0).sessionHandler(new SessionHandler() {
+		final Wiser smtp = Wiser.create(SMTPServer.port(0).hostName("localhost").sessionHandler(new SessionHandler() {
 			@Override
 			public SessionAcceptance accept(final Session session) {
 				acceptedSessions.incrementAndGet();
@@ -232,7 +232,7 @@ class CliDaemonProcessTest {
 				throw new AssertionError(interrupted);
 			}
 			return true;
-		}).port(0);
+		}).server(SMTPServer.port(0).hostName("localhost"));
 		final ExecutorService clients = Executors.newFixedThreadPool(2);
 		smtp.start();
 		Invocation start = null;
@@ -271,7 +271,7 @@ class CliDaemonProcessTest {
 
 	@Test
 	void omittedHeaderValuesProduceEmptyFieldsInOneShotAndRequiredDaemonSends() throws Exception {
-		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).server(SMTPServer.port(0).hostName("localhost"));
 		smtp.start();
 		Invocation start = null;
 		try {
@@ -282,7 +282,9 @@ class CliDaemonProcessTest {
 					"--email:from", "sender@example.test", "--email:to", "receiver@example.test",
 					"--email:withHeader", "X-Example", "--email:withPlainText", "body",
 					"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
-					"--mailer:withConnectionPoolCoreSize", "0"
+					"--mailer:withConnectionPoolCoreSize", "0",
+					"--mailer:withSmtpClientHostname", "localhost",
+					"--mailer:withProperty", "mail.host", "localhost"
 			};
 			final Invocation daemon = invoke(true, arguments);
 			assertThat(daemon.exitCode).as(daemon.output).isZero();
@@ -301,7 +303,7 @@ class CliDaemonProcessTest {
 
 	@Test
 	void helpLikeValuesKeepOneShotAndRequiredDaemonSendsComplete() throws Exception {
-		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).server(SMTPServer.port(0).hostName("localhost"));
 		smtp.start();
 		Invocation start = null;
 		try {
@@ -310,7 +312,9 @@ class CliDaemonProcessTest {
 					"--email:from", "sender@example.test", "--email:to", "receiver@example.test",
 					"--email:withSubject", "How to use --help", "--email:withPlainText", "Here are the instructions.",
 					"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
-					"--mailer:withConnectionPoolCoreSize", "0"
+					"--mailer:withConnectionPoolCoreSize", "0",
+					"--mailer:withSmtpClientHostname", "localhost",
+					"--mailer:withProperty", "mail.host", "localhost"
 			};
 			final Invocation absent = invoke(true, arguments);
 			assertThat(absent.exitCode).as(absent.output).isEqualTo(CliExitCode.DAEMON_ABSENT.code());
@@ -348,13 +352,14 @@ class CliDaemonProcessTest {
 
 	@Test
 	void daemonSelectorSpellingsRemainLiteralInOneShotAndDaemonMessages() throws Exception {
-		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).server(SMTPServer.port(0).hostName("localhost"));
 		smtp.start();
 		Invocation start = null;
 		try {
 			start = invoke(true, "daemon", "start", "--daemon-instance=selector-values");
 			assertThat(start.exitCode).as(start.output).isZero();
 			int received = 0;
+			// Message-ID generation needs no machine-host reverse lookup in these payload checks.
 			for (String mode : List.of("--daemon=off", "--daemon=require")) {
 				for (String value : List.of("--daemon=off disables persistence", "--daemon=require", "--daemon-instance=../literal", "-d")) {
 					final Invocation result = invoke(true, "send", mode, "--daemon-instance=selector-values",
@@ -362,6 +367,8 @@ class CliDaemonProcessTest {
 							"--email:withSubject", value, "--email:withPlainText", value,
 							"--email:withHeader", "X-Example", value, "--email:withHeader", "X-Example", "retained",
 							"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+							"--mailer:withProperty", "mail.host", "localhost",
+							"--mailer:withSmtpClientHostname", "localhost",
 							"--mailer:withConnectionPoolCoreSize", "0");
 					assertThat(result.exitCode).as(result.output).isZero();
 					assertThat(smtp.getMessages()).hasSize(++received);
@@ -382,13 +389,14 @@ class CliDaemonProcessTest {
 
 	@Test
 	void retiredOptionSpellingsRemainLiteralInOneShotAndDaemonMessages() throws Exception {
-		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).server(SMTPServer.port(0).hostName("localhost"));
 		smtp.start();
 		Invocation start = null;
 		try {
 			start = invoke(true, "daemon", "start", "--daemon-instance=retired-values");
 			assertThat(start.exitCode).as(start.output).isZero();
 			int received = 0;
+			// Message-ID generation needs no machine-host reverse lookup in these payload checks.
 			for (String mode : List.of("--daemon=off", "--daemon=require")) {
 				for (String value : List.of("--mailer:async", "--mailer:async=true", "--mailer:async=false", "--mailer:async--help")) {
 					final Invocation result = invoke(true, "send", mode, "--daemon-instance=retired-values",
@@ -396,6 +404,8 @@ class CliDaemonProcessTest {
 							"--email:withSubject", value, "--email:withPlainText", value,
 							"--email:withHeader", "X-Example", value, "--email:withHeader", "X-Example", "retained",
 							"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
+							"--mailer:withProperty", "mail.host", "localhost",
+							"--mailer:withSmtpClientHostname", "localhost",
 							"--mailer:withConnectionPoolCoreSize", "0");
 					assertThat(result.exitCode).as(result.output).isZero();
 					assertThat(smtp.getMessages()).hasSize(++received);
@@ -430,7 +440,7 @@ class CliDaemonProcessTest {
 		Files.writeString(daemonDirectory.resolve("literal.txt"), "wrong-daemon-expansion");
 		Files.writeString(daemonDirectory.resolve("caller-missing.txt"), "wrong-daemon-missing-expansion");
 		Files.writeString(daemonDirectory.resolve("request.args"), "--email:withSubject wrong-daemon-request\n");
-		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).port(0);
+		final Wiser smtp = Wiser.accepter((sender, recipient) -> true).server(SMTPServer.port(0).hostName("localhost"));
 		smtp.start();
 		Invocation start = null;
 		try {
@@ -444,7 +454,7 @@ class CliDaemonProcessTest {
 						"--email:startingBlank", "--email:from", "sender@example.test", "--email:to", "receiver@example.test",
 						simplified ? "@simple-request.args" : "@request.args", "--mailer:withSMTPServer", "127.0.0.1",
 						Integer.toString(smtp.getServer().getPortAllocated()), "--mailer:withSmtpClientHostname", "localhost",
-						"--mailer:withConnectionPoolCoreSize", "0"});
+						"--mailer:withConnectionPoolCoreSize", "0", "--mailer:withProperty", "mail.host", "localhost"});
 				if (simplified) {
 					requestCommand.add(1, "-Dpicocli.useSimplifiedAtFiles=true");
 				}
@@ -559,7 +569,8 @@ class CliDaemonProcessTest {
 				"--email:withSubject", "Daemon validation",
 				"--email:withPlainText", "Body",
 				"--email:to", "Recipient", "recipient@example.com",
-				"--mailer:withSMTPServer", smtpHost, "25"
+				"--mailer:withSMTPServer", smtpHost, "25",
+				"--mailer:withProperty", "mail.host", "localhost"
 		};
 	}
 
@@ -604,11 +615,13 @@ class CliDaemonProcessTest {
 				"--email:withSubject", "Secret scan",
 				"--email:withPlainText", body,
 				"--email:to", "Recipient", "recipient@example.com",
-				"--mailer:withSMTPServer", "localhost", "25", "user", password
+				"--mailer:withSMTPServer", "localhost", "25", "user", password,
+				"--mailer:withProperty", "mail.host", "localhost"
 		};
 	}
 
 	private String[] sendArguments(final int smtpPort, final String subject) {
+		// Message-ID and SMTP greeting hostnames are separate fixture inputs; neither needs machine DNS.
 		return new String[] {
 				"send", "--daemon=require", "--daemon-instance=smtp-pool",
 				"--email:startingBlank",
@@ -620,7 +633,9 @@ class CliDaemonProcessTest {
 				"--mailer:withConnectionPoolCoreSize", "1",
 				"--mailer:withConnectionPoolMaxSize", "1",
 				"--mailer:withConnectionPoolExpireAfterMillis", "60000",
-				"--mailer:withSessionTimeout", "30000", "--mailer:withConnectTimeout", "10000", "--mailer:withReadTimeout", "45000"
+				"--mailer:withSessionTimeout", "30000", "--mailer:withConnectTimeout", "10000", "--mailer:withReadTimeout", "45000",
+				"--mailer:withSmtpClientHostname", "localhost",
+				"--mailer:withProperty", "mail.host", "localhost"
 		};
 	}
 
@@ -631,7 +646,9 @@ class CliDaemonProcessTest {
 				"--mailer:withConnectionPoolCoreSize", "1",
 				"--mailer:withConnectionPoolMaxSize", "1",
 				"--mailer:withConnectionPoolExpireAfterMillis", "60000",
-				"--mailer:withSessionTimeout", "30000", "--mailer:withConnectTimeout", "10000", "--mailer:withReadTimeout", "45000"
+				"--mailer:withSessionTimeout", "30000", "--mailer:withConnectTimeout", "10000", "--mailer:withReadTimeout", "45000",
+				"--mailer:withSmtpClientHostname", "localhost",
+				"--mailer:withProperty", "mail.host", "localhost"
 		};
 	}
 

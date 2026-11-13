@@ -77,6 +77,7 @@ class MailerRehearsalConcurrencyTest {
     @Test
     void blockedContentDoesNotRetainTheSendingSessionOrDelayShutdown() throws Exception {
         final Session shared = MailerRehearsalLifetimeTest.session(new Properties());
+        shared.getProperties().setProperty("mail.host", "localhost");
         final Mailer original = MAIL.mailerBuilder(shared).withEmailDefaults(MailerRehearsalLifetimeTest.defaults("original@example.org")).buildMailer();
         final CountDownLatch entered = new CountDownLatch(1);
         final CountDownLatch release = new CountDownLatch(1);
@@ -207,6 +208,7 @@ class MailerRehearsalConcurrencyTest {
     @Test
     void explicitlyUsingAnOwnedWorkerStillRetainsItsExistingCloseSelfWaitGuard() throws Exception {
         final Mailer mailer = MAIL.mailerBuilder().withSMTPServer("unreachable.example.invalid", 25)
+                .withProperty("mail.host", "localhost")
                 .withEmailDefaults(MailerRehearsalLifetimeTest.defaults("sender@example.org")).buildMailer();
         final AtomicBoolean armed = new AtomicBoolean();
         final AtomicReference<IllegalStateException> rejected = new AtomicReference<>();

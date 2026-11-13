@@ -10,12 +10,15 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -94,6 +97,57 @@ class MailSendRetrySchedulingTest {
         } finally { timers.shutdownNow(); }
     }
     @Test
+    void shutdownDuringAnInlineRetryDoesNotInterruptTheExecutingDispatcher() throws Exception {
+        final ScheduledThreadPoolExecutor timers = new ScheduledThreadPoolExecutor(1);
+        final ExecutorService executor = mock(ExecutorService.class);
+        final Thread submittingThread = Thread.currentThread();
+        final CountDownLatch retryEntered = new CountDownLatch(1);
+        final CountDownLatch releaseRetry = new CountDownLatch(1);
+        final CountDownLatch resumedReturned = new CountDownLatch(1);
+        final AtomicBoolean interrupted = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            final boolean resumed = Thread.currentThread() != submittingThread;
+            try { ((Runnable) invocation.getArgument(0)).run(); }
+            finally {
+                if (resumed) {
+                    interrupted.set(Thread.currentThread().isInterrupted());
+                    resumedReturned.countDown();
+                }
+            }
+            return null;
+        }).when(executor).execute(any());
+        final MailSendOperations owner = new MailSendOperations(configuration(executor), timers);
+        final AtomicInteger turns = new AtomicInteger();
+        final MailSendOperation<String> operation = owner.begin(value -> { }, failure -> { throw new AssertionError(failure); });
+        try {
+            operation.schedule(() -> operation.executeRetrying(new MailSendOperation.RetryingWork<>() {
+                @Override public MailSendOperation.RetryResult<String> execute() {
+                    if (turns.incrementAndGet() == 1) { return MailSendOperation.RetryResult.retry(Duration.ofNanos(1)); }
+                    retryEntered.countDown();
+                    await(releaseRetry);
+                    return MailSendOperation.RetryResult.completed("accepted");
+                }
+                @Override public RuntimeException lastFailure() { return new MailerException("temporary refusal"); }
+                @Override public void waiting() { }
+                @Override public void resumed() { }
+                @Override public void close() { }
+            }));
+            assertThat(retryEntered.await(5, SECONDS)).isTrue();
+            final var drained = owner.shutdown();
+            assertThat(drained).isNotDone();
+            releaseRetry.countDown();
+            assertThat(operation.handle().getCompletion().get(5, SECONDS)).isEqualTo("accepted");
+            drained.get(5, SECONDS);
+            assertThat(resumedReturned.await(5, SECONDS)).isTrue();
+            assertThat(interrupted).isFalse();
+        } finally {
+            releaseRetry.countDown();
+            owner.shutdown().get(5, SECONDS);
+            timers.shutdownNow();
+        }
+    }
+
+    @Test
     void cancelledTimerCannotExecuteAgainAndReleasesWaitingCapacity() throws Exception {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         final MailSendOperations owner = new MailSendOperations(configuration(executor));
@@ -128,7 +182,9 @@ class MailSendRetrySchedulingTest {
 
     @Test
     void queuedResumptionKeepsItsPermitUntilExecutionAndCancellationRemovesIt() throws Exception {
-        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final ThreadPoolExecutor worker = new ThreadPoolExecutor(1, 1, 0, MILLISECONDS, new LinkedBlockingQueue<>());
+        // Preserve the delegated user-executor boundary while exposing the queue to this fixture.
+        final ExecutorService executor = Executors.unconfigurableExecutorService(worker);
         final MailSendOperations owner = new MailSendOperations(configuration(executor));
         final CountDownLatch releaseWorker = new CountDownLatch(1);
         final CountDownLatch resumedQueue = new CountDownLatch(1);
@@ -140,7 +196,7 @@ class MailSendRetrySchedulingTest {
                     turns.incrementAndGet();
                     executor.execute(() -> {
                         resumedQueue.countDown();
-                        await(releaseWorker);
+                        awaitExplicitRelease(releaseWorker);
                     });
                     return MailSendOperation.RetryResult.retry(Duration.ofNanos(1));
                 }
@@ -150,6 +206,11 @@ class MailSendRetrySchedulingTest {
                 @Override public void close() { }
             }));
             assertThat(resumedQueue.await(5, SECONDS)).isTrue();
+            final long deadline = System.nanoTime() + SECONDS.toNanos(5);
+            while (!worker.getQueue().contains(operation) && System.nanoTime() < deadline) {
+                Thread.sleep(1);
+            }
+            assertThat(worker.getQueue()).contains(operation);
             operation.handle().requestCancellation();
             assertThat(operation.handle().getCompletion().handle((value, failure) -> failure).get(5, SECONDS)).isInstanceOf(MailSendCancelledException.class);
             releaseWorker.countDown();
@@ -173,6 +234,15 @@ class MailSendRetrySchedulingTest {
     private static void await(final CountDownLatch latch) {
         try {
             assertThat(latch.await(5, SECONDS)).isTrue();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interrupted);
+        }
+    }
+
+    private static void awaitExplicitRelease(final CountDownLatch latch) {
+        try {
+            latch.await();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new AssertionError(interrupted);

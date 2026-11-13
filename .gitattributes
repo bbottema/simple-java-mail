@@ -1,0 +1,5 @@
+# These canonical MIME wire fixtures must not depend on the checkout platform.
+modules/simple-java-mail/src/test/resources/openpgpjs/signed-mixed.eml text eol=crlf
+modules/simple-java-mail/src/test/resources/openpgpjs/encrypted-mixed.eml text eol=crlf
+"modules/simple-java-mail/src/test/resources/pkcs12/test messages/S_MIME test message signed.eml" text eol=crlf
+"modules/simple-java-mail/src/test/resources/pkcs12/test messages/S_MIME test message encrypted.eml" text eol=crlf

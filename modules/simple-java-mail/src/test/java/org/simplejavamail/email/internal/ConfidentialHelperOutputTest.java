@@ -352,6 +352,7 @@ class ConfidentialHelperOutputTest {
         final byte[] publicKey = resource("public-key.asc");
         final Email outgoing = MAIL.emailBuilder().startingBlank().from("author@example.org").to("reader@example.org")
                 .withSubject("Public envelope").withPlainText("confidential document")
+                .fixingMessageId("<confidential-fixture-" + java.util.UUID.randomUUID() + "@example.test>")
                 .encryptWithOpenPgp(OpenPgpEncryptionConfig.builder().addRecipientPublicKeyRing(publicKey).build()).buildEmail();
         final byte[] encrypted = MAIL.converter().fromEmail(outgoing).toEmlBytes();
         receivedFixture = open(encrypted);

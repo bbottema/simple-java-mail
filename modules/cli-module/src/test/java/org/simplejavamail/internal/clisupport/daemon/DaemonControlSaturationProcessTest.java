@@ -6,6 +6,7 @@ import org.junit.jupiter.api.parallel.Resources;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.simplejavamail.internal.clisupport.CliExitCode;
+import org.subethamail.smtp.server.SMTPServer;
 import org.subethamail.wiser.Wiser;
 
 import java.io.IOException;
@@ -207,7 +208,8 @@ class DaemonControlSaturationProcessTest {
                 "--mailer:withConnectionConflictPolicy", "ALLOW_EXPLICIT_OVERRIDES",
                 "--mailer:withSMTPServer", "127.0.0.1", Integer.toString(port),
                 "--mailer:withConnectionPoolCoreSize", "0", "--mailer:withConnectionPoolMaxSize", "4",
-                "--mailer:withConnectTimeout", "5000", "--mailer:withReadTimeout", "90000"};
+                "--mailer:withConnectTimeout", "5000", "--mailer:withReadTimeout", "90000",
+                "--mailer:withProperty", "mail.host", "localhost", "--mailer:withSmtpClientHostname", "localhost"};
     }
 
     private static int statusValue(final String status, final String key) {
@@ -393,7 +395,7 @@ class DaemonControlSaturationProcessTest {
                     throw new AssertionError(interrupted);
                 }
                 return true;
-            }).port(0);
+            }).server(SMTPServer.port(0).hostName("localhost"));
             server.start();
         }
 

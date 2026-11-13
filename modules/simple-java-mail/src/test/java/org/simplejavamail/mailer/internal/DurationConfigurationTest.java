@@ -17,6 +17,7 @@ import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 
 class DurationConfigurationTest {
     @Test
@@ -55,6 +56,7 @@ class DurationConfigurationTest {
             assertThat(mailer.getOperationalConfig().getConnectionPoolClaimTimeout()).isEqualTo(Duration.ofMillis(4));
             assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfter()).isEqualTo(Duration.ofMillis(5));
             assertThat(mailer.getOperationalConfig().getConnectionPoolExpireAfterCreation()).isEqualTo(Duration.ofMillis(6));
+            record("property", "simplejavamail.defaults.sessiontimeoutmillis");
         }
     }
 

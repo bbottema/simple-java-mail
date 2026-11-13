@@ -191,6 +191,7 @@ class SmtpRequireTlsTest {
 
     private MailerRegularBuilder<?> builder(final ScriptedSmtpServer server) {
         return mail.mailerBuilder().withSMTPServer("localhost", server.port()).withTransportStrategy(TransportStrategy.SMTP_TLS)
+                .withProperty("mail.host", "localhost")
                 .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build()).withTlsConfig(TlsConfig.builder().trustingSSLHosts("localhost").build())
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(10000)).build())
                 .withProperty("mail.smtp.ssl.protocols", "TLSv1.2");

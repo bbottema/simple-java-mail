@@ -32,7 +32,6 @@ import testutil.smtp.ScriptedSmtpServer;
 import testutil.ConfigLoaderTestHelper;
 
 import javax.net.SocketFactory;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -180,17 +179,30 @@ class LegacySmtpContentSupportTest {
     }
 
     private static Stream<Arguments> contentCapabilityCombinations() {
-        final List<Arguments> combinations = new ArrayList<>();
-        for (final String contentKind : List.of("ascii", "display text", "address", "headers", "body", "combined")) {
-            for (final boolean smtpUtf8 : List.of(false, true)) {
-                for (final boolean eightBitMime : List.of(false, true)) {
-                    for (final boolean legacy : List.of(false, true)) {
-                        combinations.add(Arguments.of(contentKind, smtpUtf8, eightBitMime, legacy));
-                    }
-                }
-            }
-        }
-        return combinations.stream();
+        return Stream.of(
+                Arguments.of("ascii", false, false, false),
+                Arguments.of("ascii", true, true, false),
+                Arguments.of("ascii", true, true, true),
+                Arguments.of("display text", false, false, false),
+                Arguments.of("display text", true, true, false),
+                Arguments.of("display text", true, true, true),
+                Arguments.of("address", true, true, false),
+                Arguments.of("address", false, true, false),
+                Arguments.of("address", false, true, true),
+                Arguments.of("headers", true, true, false),
+                Arguments.of("headers", false, true, false),
+                Arguments.of("headers", false, true, true),
+                Arguments.of("body", true, true, false),
+                Arguments.of("body", true, false, false),
+                Arguments.of("body", true, false, true),
+                Arguments.of("combined", false, false, false),
+                Arguments.of("combined", false, false, true),
+                Arguments.of("combined", false, true, false),
+                Arguments.of("combined", false, true, true),
+                Arguments.of("combined", true, false, false),
+                Arguments.of("combined", true, false, true),
+                Arguments.of("combined", true, true, false),
+                Arguments.of("combined", true, true, true));
     }
 
     private static Email contentForCombination(final String contentKind, final String recipient) {

@@ -142,6 +142,7 @@ class ReadableProtectedReplyTest {
         final Email original = original().withPlainText(PLAIN).encryptWithSmime(smimeEncryption).buildEmail();
         final Email reply = governed.emailBuilder().replyingTo(original).from("bob@example.org").prependPlainText("Answer.\n\n").buildEmail();
         try (Mailer mailer = governed.mailerBuilder().withSMTPServerHost("localhost")
+                .withProperty("mail.host", "localhost")
                 .withEmailDefaults(defaults).withEmailOverrides(overrides).buildMailer()) {
             final org.simplejavamail.api.mailer.MailRehearsal prepared = mailer.rehearse(reply);
             assertThat(prepared.getEffectiveEmail().getRecipients()).extracting(Recipient::getAddress).contains("archive@example.org");

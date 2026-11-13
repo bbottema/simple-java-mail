@@ -8,6 +8,7 @@ import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -63,6 +64,13 @@ import static org.mockito.Mockito.mockStatic;
 @Timeout(20)
 class MailFailureContractTest {
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+
+    @BeforeAll
+    @Timeout(45)
+    static void initializeMockingFixture() {
+        // Pay one-time mocking initialization before the individual timing guards.
+        mock(ExecutorService.class);
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {false, true})

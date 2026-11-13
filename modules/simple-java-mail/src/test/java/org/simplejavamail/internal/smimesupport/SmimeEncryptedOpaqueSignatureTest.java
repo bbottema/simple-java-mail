@@ -127,7 +127,7 @@ class SmimeEncryptedOpaqueSignatureTest {
         final MimeBodyPart note = new MimeBodyPart(); note.setText("Unrelated note", "UTF-8"); note.setFileName("note.txt");
         final MimeMultipart content = new MimeMultipart();
         content.addBodyPart(body); content.addBodyPart(protectedFile); content.addBodyPart(note);
-        final MimeMessage parent = new MimeMessage(Session.getInstance(new Properties()));
+        final MimeMessage parent = new MimeMessage(fixtureSession());
         parent.setFrom("sender@example.org"); parent.setContent(content); parent.saveChanges();
         final Email email = EmailConverter.mimeMessageToEmail(parent, loadPkcs12KeyStore());
         assertThat(email.getPlainText()).contains("Plain parent body");
@@ -248,12 +248,18 @@ class SmimeEncryptedOpaqueSignatureTest {
         return signed;
     }
 
+    private static Session fixtureSession() {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        return Session.getInstance(properties);
+    }
+
     private static byte[] encrypted(final MimeBodyPart content) throws Exception {
         final Pkcs12Config keys = loadPkcs12KeyStore();
         final X509Certificate certificate = (X509Certificate) store(keys).getCertificate(keys.getKeyAlias());
         final MimeBodyPart encrypted = SmimeCryptoSupport.encrypt(content, certificate,
                 SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM, SmimeCryptoSupport.DEFAULT_CIPHER);
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final MimeMessage message = new MimeMessage(fixtureSession());
         message.setFrom("sender@example.org");
         message.setDataHandler(encrypted.getDataHandler());
         message.saveChanges();

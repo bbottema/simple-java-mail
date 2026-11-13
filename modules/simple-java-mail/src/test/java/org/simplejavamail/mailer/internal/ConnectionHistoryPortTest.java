@@ -18,6 +18,7 @@ import org.simplejavamail.api.mailer.config.ConnectionPoolConfig;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.TlsConfig;
 import org.simplejavamail.config.ConfigLoader;
+import org.subethamail.smtp.server.SMTPServer;
 import org.subethamail.wiser.Wiser;
 
 import javax.net.SocketFactory;
@@ -49,7 +50,7 @@ class ConnectionHistoryPortTest {
         try (ServerSocket reserved = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
             unavailablePort = reserved.getLocalPort();
         }
-        final Wiser backupServer = Wiser.port(0);
+        final Wiser backupServer = Wiser.create(SMTPServer.port(0).hostName("localhost"));
         backupServer.start();
         final RecordingSocketFactory sockets = new RecordingSocketFactory();
         final Properties defaults = new Properties();

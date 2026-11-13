@@ -7,6 +7,7 @@ import jakarta.mail.Provider;
 import jakarta.mail.Session;
 import jakarta.mail.Transport;
 import jakarta.mail.URLName;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -62,6 +63,14 @@ import static org.mockito.Mockito.when;
 @Timeout(20)
 class LateCancellationCleanupFailureTest {
     private static final SimpleJavaMail MAIL = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
+
+    @BeforeAll
+    @Timeout(20)
+    static void initializeMimeAndMockingFixtures() throws Exception {
+        try (MockedStatic<ModuleLoader> ignored = withoutPool()) {
+            MAIL.converter().fromEmail(email()).withSession(session(new State(null))).toMimeMessage();
+        }
+    }
 
     @ParameterizedTest
     @EnumSource(CleanupFailure.class)
@@ -212,6 +221,8 @@ class LateCancellationCleanupFailureTest {
     private static Session session(final State state) throws Exception {
         final Properties properties = new Properties();
         properties.setProperty("mail.transport.protocol", "smtp");
+        // Keep reverse DNS out of the cancellation and cleanup timing boundary.
+        properties.setProperty("mail.host", "localhost");
         properties.setProperty("mail.smtp.host", "fixture");
         properties.setProperty("mail.smtp.port", "25");
         properties.put(State.class.getName(), state);

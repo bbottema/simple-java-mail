@@ -1,6 +1,13 @@
 version: 2.1
 
 parameters:
+  run-root-verification:
+    type: boolean
+    default: false
+  root-verification-scope:
+    type: enum
+    enum: [full, failure-control]
+    default: full
   run-smtp-conformance:
     type: boolean
     default: false
@@ -30,6 +37,37 @@ mvn-deploy-command: &mvn-deploy-command
   context: RELEASE_PROFILE_BBOTTEMA
 
 jobs:
+  root-verification:
+    machine:
+      image: ubuntu-2204:2026.05.1
+    resource_class: large
+    steps:
+      - checkout
+      - run:
+          name: Prepare Java 17 verification runtime
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y openjdk-17-jdk-headless maven python3
+            echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> "$BASH_ENV"
+            echo 'export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH' >> "$BASH_ENV"
+      - restore_cache:
+          keys:
+            - root-verification-jdk17-v1-{{ checksum "pom.xml" }}
+      - run:
+          name: Run requested checks and record Maven duration
+          command: python3 .circleci/record-root-verification.py << pipeline.parameters.root-verification-scope >>
+          no_output_timeout: 40m
+      - store_artifacts:
+          path: target/ci-verification/result.json
+          destination: root-verification-result.json
+      - store_artifacts:
+          path: target/ci-verification/coverage
+          destination: production-coverage
+      - save_cache:
+          key: root-verification-jdk17-v1-{{ checksum "pom.xml" }}
+          paths:
+            - ~/.m2/repository
+
   smtp-conformance:
     machine:
       image: ubuntu-2204:2026.05.1
@@ -73,6 +111,14 @@ jobs:
             - ~/.m2/repository
 
 workflows:
+  root-verification-measurement:
+    when:
+      and:
+        - << pipeline.parameters.run-root-verification >>
+        - equal: [codex/test-reduction-20261113, << pipeline.git.branch >>]
+    jobs:
+      - root-verification
+
   workflow:
     when:
       equal: [master, << pipeline.git.branch >>]

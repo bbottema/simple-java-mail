@@ -96,6 +96,7 @@ class PooledOAuthProtocolUsernameTest {
         final Properties properties = new Properties();
         final String prefix = "mail." + protocol + ".";
         properties.setProperty("mail.transport.protocol", protocol);
+        properties.setProperty("mail.host", "localhost");
         properties.setProperty(prefix + "host", "localhost");
         properties.setProperty(prefix + "port", Integer.toString(port));
         properties.setProperty(prefix + "user", USER);
