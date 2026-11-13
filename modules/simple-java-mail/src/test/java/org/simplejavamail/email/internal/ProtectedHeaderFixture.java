@@ -76,7 +76,9 @@ final class ProtectedHeaderFixture {
     }
 
     private static MimeMessage carrier() throws Exception {
-        final MimeMessage carrier = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage carrier = new MimeMessage(Session.getInstance(properties));
         carrier.setFrom("carrier@example.org");
         carrier.setRecipients(jakarta.mail.Message.RecipientType.TO, "carrier-recipient@example.org");
         carrier.setSubject("Public wrapper");

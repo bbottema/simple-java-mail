@@ -240,11 +240,17 @@ class OpenPgpPlainMimeReadBoundaryTest {
         return part;
     }
 
+    private static Session fixtureSession() {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        return Session.getInstance(properties);
+    }
+
     private static final class CountingMessage extends MimeMessage {
         private int serializations;
 
         private CountingMessage() {
-            super(Session.getInstance(new Properties()));
+            super(fixtureSession());
         }
 
         @Override

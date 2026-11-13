@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 
 /** Each public route is invoked on a distinguishable seed and checked at its concrete immutable value or captured consumer. */
 class ConnectionConfigurationWiringTest {
@@ -197,7 +198,9 @@ class ConnectionConfigurationWiringTest {
                 builder.withProxyConfig(SocksProxyConfig.builder().withHost("127.0.0.1").build());
                 ConfigurationContractCoverage.invoke(builder, method);
                 assertThat(builder.getProxyConfig().getHost()).isNull();
-                assertThat(builder.buildSessionSettings(null).getProxyConfig().getRemoteProxyHost()).isEqualTo("127.0.0.2"); fields("proxyHost"); break;
+                assertThat(builder.buildSessionSettings(null).getProxyConfig().getRemoteProxyHost()).isEqualTo("127.0.0.2");
+                record("property", "simplejavamail.proxy.host");
+                fields("proxyHost"); break;
             case "withTlsConfig":
                 final TlsConfig tls = TlsConfig.builder().verifyingServerIdentity(false).build();
                 ConfigurationContractCoverage.invoke(builder, method, tls);

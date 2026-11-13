@@ -64,7 +64,8 @@ class SmimeMediaTypeCapitalizationTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"application/pkcs7-mime", "Application/PKCS7-Mime", "APPLICATION/X-PKCS7-MIME"})
+    // The lowercase encrypted declaration is covered with the same input and assertions by SmimeParameterCapitalizationTest.
+    @ValueSource(strings = {"Application/PKCS7-Mime", "APPLICATION/X-PKCS7-MIME"})
     void encryptedContentRetainsMissingKeyAndSuccessfulDecryptionResults(final String mediaType) throws Exception {
         final byte[] original = Files.readAllBytes(resource("pkcs12/test messages/S_MIME test message encrypted.eml"));
         final byte[] source = replaceMediaType(original, "application/pkcs7-mime", mediaType);

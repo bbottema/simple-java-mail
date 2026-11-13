@@ -117,7 +117,13 @@ class OutlookOptionalDateImportTest {
     }
 
     static Stream<Arguments> routesAndDates() {
-        return Arrays.stream(Route.values()).flatMap(route -> Arrays.stream(Dates.values()).map(dates -> Arguments.of(route, dates)));
+        // Both metadata routes exercise every native-date state through the shared reader and email builder.
+        // Each direct route still checks submit precedence, header fallback, creation-only and complete absence.
+        return Arrays.stream(Route.values()).flatMap(route -> Arrays.stream(Dates.values())
+                .filter(dates -> route == Route.STATIC_METADATA || route == Route.FLUENT_METADATA
+                        || dates == Dates.ALL_PRESENT || dates == Dates.NO_CLIENT_SUBMIT
+                        || dates == Dates.CREATION_ONLY || dates == Dates.ALL_ABSENT)
+                .map(dates -> Arguments.of(route, dates)));
     }
 
     @Test

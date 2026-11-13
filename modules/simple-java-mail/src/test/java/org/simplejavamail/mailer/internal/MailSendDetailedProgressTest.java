@@ -102,8 +102,10 @@ class MailSendDetailedProgressTest {
     @Test
     void cancellationDuringGreetingRetiresSetupBeforeAReplacementConnection() throws Exception {
         final Stages stages = new Stages();
+        final CountDownLatch firstConversationStarted = new CountDownLatch(1);
         try (RecordingSmtpServer server = new RecordingSmtpServer((peer, connection) -> {
             if (connection.number() == 1) {
+                firstConversationStarted.countDown();
                 stages.await(WAITING_FOR_GREETING);
                 assertThat(peer.readLine()).isNull();
             } else {
@@ -114,6 +116,8 @@ class MailSendDetailedProgressTest {
                 .withSendHandlers(MailSendHandlers.builder().withProgressObserver(stages::record).build()).buildMailer()) {
             final MailSend<MailSubmissionReceipt> cancelled = mailer.async().sendMail(email());
             stages.await(WAITING_FOR_GREETING);
+            // Connection numbers are assigned by server workers; establish the first conversation before cancellation.
+            assertThat(firstConversationStarted.await(15, SECONDS)).isTrue();
             cancelled.requestCancellation();
             assertThat(catchThrowable(() -> cancelled.getCompletion().get(15, SECONDS)))
                     .hasCauseInstanceOf(MailSendCancelledException.class);

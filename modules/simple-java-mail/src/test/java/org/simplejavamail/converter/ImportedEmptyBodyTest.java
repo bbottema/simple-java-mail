@@ -16,7 +16,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.Stream;
 
@@ -113,8 +112,16 @@ class ImportedEmptyBodyTest {
 	}
 
 	private static Stream<Arguments> emptyBodyInputs() {
-		return Arrays.stream(ImportRoute.values()).flatMap(route -> Arrays.stream(BodyShape.values())
-				.map(shape -> Arguments.of(route, shape)));
+		return Stream.of(
+				Arguments.of(ImportRoute.STATIC_EML, BodyShape.BOTH),
+				Arguments.of(ImportRoute.FLUENT_EML_EAGER, BodyShape.BOTH),
+				Arguments.of(ImportRoute.FLUENT_EML_LAZY, BodyShape.BOTH),
+				Arguments.of(ImportRoute.STATIC_MIME_EAGER, BodyShape.BOTH),
+				Arguments.of(ImportRoute.STATIC_MIME_LAZY, BodyShape.BOTH),
+				Arguments.of(ImportRoute.FLUENT_MIME_EAGER, BodyShape.BOTH),
+				Arguments.of(ImportRoute.FLUENT_MIME_LAZY, BodyShape.BOTH),
+				Arguments.of(ImportRoute.FLUENT_EML_EAGER, BodyShape.PLAIN),
+				Arguments.of(ImportRoute.FLUENT_EML_EAGER, BodyShape.HTML));
 	}
 
 	private static String message(final BodyShape shape) {

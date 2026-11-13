@@ -232,7 +232,9 @@ class OpenPgpIndependentSmimeAttachmentTest {
     }
 
     private static EmailPopulatingBuilder composed(final byte[] content, final String smimeType, final boolean note) {
+        // This draft only creates wire input; keep fresh IDs without a machine-host lookup.
         final EmailPopulatingBuilder builder = mail().emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
+                .fixingMessageId("<independent-smime-" + java.util.UUID.randomUUID() + "@example.test>")
                 .withSubject("OpenPGP with an independent S/MIME file").withPlainText(BODY).withHTMLText(HTML)
                 .withCalendarText(CalendarMethod.REQUEST, CALENDAR).withHeader("X-Parent", "retained")
                 .withAttachment(CHILD, content, "application/pkcs7-mime; smime-type=" + smimeType);

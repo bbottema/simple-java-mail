@@ -28,6 +28,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.when;
 /** Exercises real Outlook containers through both public import routes, independently of outgoing convenience parsing. */
 class OutlookAddressImportTest {
     private static final String FIXTURE = "/test-messages/simple email with TO and CC.msg";
+    private static final Set<String> CANONICAL_HEADER_VALUE_CASES = Set.of("Team:first@example.org;", "Undisclosed:;", "(comment only)");
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 
     @ParameterizedTest
@@ -93,7 +95,11 @@ class OutlookAddressImportTest {
                         Arguments.of(header, "(comment only)", null, "Return-Path".equals(header) ? null : "(comment only)"),
                         Arguments.of(header, "<>", null, null),
                         Arguments.of(header, "", null, null),
-                        Arguments.of(header, "   ", null, null)));
+                        Arguments.of(header, "   ", null, null))
+                        // Each spelling still checks single, multiple, malformed and all empty-value forms.
+                        // Group and comment parsing is exercised for both canonical receipt names and Return-Path.
+                        .filter(candidate -> header.equals("Disposition-Notification-To") || header.equals("Return-Receipt-To")
+                                || header.equals("Return-Path") || !CANONICAL_HEADER_VALUE_CASES.contains(candidate.get()[1])));
     }
 
     @Test

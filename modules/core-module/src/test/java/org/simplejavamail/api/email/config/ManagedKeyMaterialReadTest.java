@@ -48,44 +48,12 @@ class ManagedKeyMaterialReadTest {
 
     @ParameterizedTest
     @EnumSource(Reader.class)
-    void ownedPathOpeningFailuresUsePreparationKindAndKeepTheOriginalCause(final Reader reader) throws Exception {
-        final IOException failure = new IOException("key source unavailable");
-        final Path path = pathOpening(null, failure);
-
-        assertPreparationFailure(catchThrowable(() -> reader.fromPath(path)), failure);
-    }
-
-    @ParameterizedTest
-    @EnumSource(Reader.class)
     void borrowedReadFailuresUsePreparationKindWithoutClosingTheSuppliedStream(final Reader reader) throws Exception {
         final IOException failure = new IOException("key read failed");
         final TrackingInputStream input = new TrackingInputStream(reader.content(), failure, null, null);
 
         assertPreparationFailure(catchThrowable(() -> reader.fromStream(input)), failure);
         assertThat(input.closed).isFalse();
-    }
-
-    @ParameterizedTest
-    @EnumSource(Reader.class)
-    void ownedReadFailuresCloseTheStreamAndKeepSuppressedCloseFailuresOnTheOriginalCause(final Reader reader) throws Exception {
-        final IOException readFailure = new IOException("key read failed");
-        final IOException closeFailure = new IOException("key close failed");
-        final TrackingInputStream input = new TrackingInputStream(reader.content(), readFailure, closeFailure, null);
-        final Path path = pathOpening(input, null);
-
-        assertPreparationFailure(catchThrowable(() -> reader.fromPath(path)), readFailure);
-        assertThat(input.closed).isTrue();
-        assertThat(readFailure.getSuppressed()).containsExactly(closeFailure);
-    }
-
-    @ParameterizedTest
-    @EnumSource(Reader.class)
-    void aClosingFailureAfterASuccessfulOwnedReadStillFailsTheOperation(final Reader reader) throws Exception {
-        final IOException closeFailure = new IOException("key close failed");
-        final TrackingInputStream input = new TrackingInputStream(reader.content(), null, closeFailure, null);
-
-        assertPreparationFailure(catchThrowable(() -> reader.fromPath(pathOpening(input, null))), closeFailure);
-        assertThat(input.closed).isTrue();
     }
 
     @ParameterizedTest

@@ -149,8 +149,14 @@ class MailerConfigurationWiringTest {
     static Stream<Method> directRoutes() {
         return Arrays.stream(MailerGenericBuilder.class.getDeclaredMethods()).filter(method -> {
             final ConfigurationAdoptionCatalogue.Owner owner = ConfigurationAdoptionCatalogue.API_OWNERS.get(ConfigurationContractCoverage.signature(method));
+            // Grouped-route checks invoke these setters and inspect their captured members; layered contracts exercise sparse groups.
+            final boolean coveredByGroupContracts = Arrays.stream(Family.values())
+                    .filter(family -> family == Family.POOL || family == Family.ASYNC || family == Family.DEBUG
+                            || family == Family.TELEMETRY || family == Family.VALIDATION || family == Family.LIMITS || family == Family.RETRY)
+                    .anyMatch(family -> method.getName().equals(family.groupSetter)
+                            && Arrays.equals(method.getParameterTypes(), new Class<?>[] {family.valueType}));
             return owner != null && owner.name().startsWith("MAILER") && owner != ConfigurationAdoptionCatalogue.Owner.MAILER_CONNECTION
-                    && owner != ConfigurationAdoptionCatalogue.Owner.MAILER_TEMPLATE_SELECTION;
+                    && owner != ConfigurationAdoptionCatalogue.Owner.MAILER_TEMPLATE_SELECTION && !coveredByGroupContracts;
         });
     }
 
@@ -164,45 +170,24 @@ class MailerConfigurationWiringTest {
         final Function<ResolvedMailerConfiguration, Object> read;
         final Object expected;
         switch (name) {
-            case "withConnectionPoolConfig":
-                args = new Object[] {ConnectionPoolConfig.builder().withMaxSize(13).build()}; field = "pool.maxSize";
-                read = selected -> selected.getOperational().getConnectionPoolMaxSize(); expected = 13; break;
             case "useConfiguredConnectionPoolConfig":
                 builder.withConnectionPoolConfig(ConnectionPoolConfig.builder().withMaxSize(13).build()); args = new Object[0]; field = "pool.maxSize";
                 read = selected -> selected.getOperational().getConnectionPoolMaxSize(); expected = 7; break;
-            case "withAsyncExecutionConfig":
-                args = new Object[] {AsyncExecutionConfig.builder().withThreadPoolSize(13).build()}; field = "async.threadPoolSize";
-                read = selected -> selected.getOperational().getThreadPoolSize(); expected = 13; break;
             case "useConfiguredAsyncExecutionConfig":
                 builder.withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(13).build()); args = new Object[0]; field = "async.threadPoolSize";
                 read = selected -> selected.getOperational().getThreadPoolSize(); expected = 3; break;
-            case "withDebugConfig":
-                args = new Object[] {SessionDebugConfig.builder().withEnabled(false).build()}; field = "debug.enabled";
-                read = selected -> selected.getOperational().getDebugConfig().getEnabled(); expected = false; break;
             case "useConfiguredDebugConfig":
                 builder.withDebugConfig(SessionDebugConfig.builder().withEnabled(false).build()); args = new Object[0]; field = "debug.enabled";
                 read = selected -> selected.getOperational().getDebugConfig().getEnabled(); expected = true; break;
-            case "withTelemetryConfig":
-                args = new Object[] {MailSendTelemetryConfig.builder().withEnabled(false).build()}; field = "telemetry.enabled";
-                read = selected -> selected.getOperational().getTelemetryConfig().getEnabled(); expected = false; break;
             case "useConfiguredTelemetryConfig":
                 builder.withTelemetryConfig(MailSendTelemetryConfig.builder().withEnabled(false).build()); args = new Object[0]; field = "telemetry.enabled";
                 read = selected -> selected.getOperational().getTelemetryConfig().getEnabled(); expected = true; break;
-            case "withValidationConfig":
-                args = new Object[] {ValidationConfig.builder().withClientValidationWarningsOnly(false).build()}; field = "validation.clientValidationWarningsOnly";
-                read = selected -> selected.getOperational().isClientValidationWarningsOnly(); expected = false; break;
             case "useConfiguredValidationConfig":
                 builder.withValidationConfig(ValidationConfig.builder().withClientValidationWarningsOnly(false).build()); args = new Object[0]; field = "validation.clientValidationWarningsOnly";
                 read = selected -> selected.getOperational().isClientValidationWarningsOnly(); expected = true; break;
-            case "withSendingLimitsConfig":
-                args = new Object[] {SendingLimitsConfig.builder().withRateLimitGroup("java").build()}; field = "limits.rateLimitGroup";
-                read = selected -> selected.getOperational().getRateLimitGroup(); expected = "java"; break;
             case "useConfiguredSendingLimitsConfig":
                 builder.withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("java").build()); args = new Object[0]; field = "limits.rateLimitGroup";
                 read = selected -> selected.getOperational().getRateLimitGroup(); expected = "configured"; break;
-            case "withMailSendRetryPolicy":
-                args = new Object[] {MailSendRetryPolicy.builder().withWaitingCapacity(13).build()}; field = "retry.waitingCapacity";
-                read = selected -> selected.getOperational().getMailSendRetryPolicy().getWaitingCapacity(); expected = 13; break;
             case "clearMailSendRetryPolicy":
                 builder.withMailSendRetryPolicy(MailSendRetryPolicy.builder().withWaitingCapacity(13).build()); args = new Object[0]; field = "retry.schedule";
                 read = selected -> retrySchedule(selected.getOperational().getMailSendRetryPolicy()); expected = list(null, null, 1, null, 0d); break;

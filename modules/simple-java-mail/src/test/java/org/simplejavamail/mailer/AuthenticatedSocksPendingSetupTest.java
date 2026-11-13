@@ -264,6 +264,7 @@ class AuthenticatedSocksPendingSetupTest {
         if (readTimeout != null) { connection.withReadTimeout(readTimeout); }
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
                 .withSMTPServer("localhost", 2525)
+                .withProperty("mail.host", "localhost")
                 .withConnectionConfig(connection.build())
                 .withAsyncExecutionConfig(AsyncExecutionConfig.builder().withThreadPoolSize(2).build())
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder()

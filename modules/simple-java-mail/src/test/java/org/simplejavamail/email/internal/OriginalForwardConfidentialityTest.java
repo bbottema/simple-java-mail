@@ -126,6 +126,7 @@ class OriginalForwardConfidentialityTest {
         final BodyPart carrier = content.getBodyPart(content.getCount() - 1);
         try (RecordingSmtpServer server = new RecordingSmtpServer(); Mailer mailer = MAIL.mailerBuilder()
                 .withSMTPServer("localhost", server.port())
+                .withProperty("mail.host", "localhost")
                 .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").build())
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).build()).buildMailer()) {
             mailer.sync().sendMail(draft);

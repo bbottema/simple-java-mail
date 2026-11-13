@@ -51,7 +51,7 @@ public final class ScriptedSmtpServer implements AutoCloseable {
 	public ScriptedSmtpServer(final int connections, final Charset charset, final PeerScript script) throws Exception {
 		acceptsUntilClosed = false;
 		server = new ServerSocket(0, connections, InetAddress.getByName("localhost"));
-		server.setSoTimeout(15000);
+		// Client preparation is outside the conversation deadline; teardown detects missing connections.
 		workers = Executors.newFixedThreadPool(connections + 1);
 		serving = CompletableFuture.runAsync(() -> serveConnections(connections, charset, script), workers);
 	}
@@ -109,6 +109,9 @@ public final class ScriptedSmtpServer implements AutoCloseable {
 				serving.get(5, SECONDS);
 				// Mailers are closed first by the test. Surface every script failure, not just the listener's result.
 				CompletableFuture.allOf(conversations.toArray(new CompletableFuture<?>[0])).get(15, SECONDS);
+			} else {
+				// Closing the listener unblocks accept without closing a conversation already in progress.
+				server.close();
 			}
 			serving.get(25, SECONDS);
 		} finally {

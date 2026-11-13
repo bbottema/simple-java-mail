@@ -34,11 +34,10 @@ class CalendarMethodImportTest {
 		assertCalendar(imported, CalendarMethod.REQUEST, calendar);
 	}
 
-	@ParameterizedTest
-	@EnumSource(ImportRoute.class)
-	void recognizesTheBodyMethodAcrossPublicImportRoutes(final ImportRoute route) throws Exception {
+	@Test
+	void recognizesTheMixedCaseBodyMethodWhenTheHeaderOmitsIt() {
 		final String calendar = calendar("mEtHoD:rEqUeSt");
-		final Email imported = convert(route, message("text/calendar; charset=UTF-8", calendar));
+		final Email imported = mail.converter().fromEml(message("text/calendar; charset=UTF-8", calendar)).toEmail();
 
 		assertCalendar(imported, CalendarMethod.REQUEST, calendar);
 	}

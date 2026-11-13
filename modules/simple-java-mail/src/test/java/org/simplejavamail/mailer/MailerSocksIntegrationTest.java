@@ -15,6 +15,7 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
 import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.internal.moduleloader.ModuleLoader;
 import org.subethamail.smtp.server.SMTPServer;
@@ -75,6 +76,8 @@ public class MailerSocksIntegrationTest {
 		startPlainSmtpServer();
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
+				.withProperty("mail.host", "localhost")
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build())
 				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).build())
 				.buildMailer()) {
 			assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
@@ -88,6 +91,8 @@ public class MailerSocksIntegrationTest {
 		startPlainSmtpServer();
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
+				.withProperty("mail.host", "localhost")
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build())
 				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
 				.buildMailer()) {
 			assertSendingEmail(mailer, EmailHelper.createDummyEmailBuilder(true, true, false, false, false, false), false);
@@ -147,8 +152,10 @@ public class MailerSocksIntegrationTest {
 	public void testAutomaticBridgePortWithCustomSession() throws Exception {
 		startPlainSmtpServer();
 		final Properties properties = new Properties();
+		properties.setProperty("mail.host", "localhost");
 		properties.setProperty("mail.transport.protocol", "smtp");
 		properties.setProperty("mail.smtp.host", "localhost");
+		properties.setProperty("mail.smtp.localhost", "localhost");
 		properties.setProperty("mail.smtp.port", String.valueOf(smtpServer.getServer().getPortAllocated()));
 		final Session session = Session.getInstance(properties);
 
@@ -172,6 +179,8 @@ public class MailerSocksIntegrationTest {
 
 		try (Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
+				.withProperty("mail.host", "localhost")
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build())
 				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").withBridgePort(fixedBridgePort).build())
 				.buildMailer()) {
 			mailer.withOpenConnection(sender -> assertThat(mailer.getSession().getProperty("mail.smtp.socks.port"))
@@ -228,18 +237,22 @@ public class MailerSocksIntegrationTest {
 	}
 
 	private void assertSmtpsPassthrough(final boolean authenticatingProxy) throws Exception {
-		final Wiser smtpsServer = Wiser.create(SMTPServer.port(0)
+		final Wiser smtpsServer = Wiser.create(SMTPServer.port(0).hostName("localhost")
 				.serverSocketFactory(createServerSslContext()));
 		smtpsServer.start();
 		try {
 			final int smtpsPort = smtpsServer.getServer().getPortAllocated();
 			try (Mailer mailer = authenticatingProxy
 					? SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", smtpsPort)
+							.withProperty("mail.host", "localhost")
+							.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build())
 							.withTransportStrategy(TransportStrategy.SMTPS)
 							.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
 							.withTlsConfig(TlsConfig.builder().trustingAllHosts(true).verifyingServerIdentity(false).build())
 							.buildMailer()
 					: SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", smtpsPort)
+							.withProperty("mail.host", "localhost")
+							.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build())
 							.withTransportStrategy(TransportStrategy.SMTPS)
 							.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).build())
 							.withTlsConfig(TlsConfig.builder().trustingAllHosts(true).verifyingServerIdentity(false).build())
@@ -256,13 +269,15 @@ public class MailerSocksIntegrationTest {
 	}
 
 	private void startPlainSmtpServer() {
-		smtpServer = Wiser.port(0);
+		smtpServer = Wiser.create(SMTPServer.port(0).hostName("localhost"));
 		smtpServer.start();
 	}
 
 	private Mailer newAuthenticatedMailer() {
 		return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getServer().getPortAllocated())
+				.withProperty("mail.host", "localhost")
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("localhost").build())
 				.withProxyConfig(SocksProxyConfig.builder().withHost("localhost").withPort(proxyServer.getPort()).withUsername("username").withPassword("password").build())
 				.buildMailer();
 	}

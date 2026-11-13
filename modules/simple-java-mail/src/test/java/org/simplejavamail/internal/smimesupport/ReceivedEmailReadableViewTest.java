@@ -307,5 +307,9 @@ class ReceivedEmailReadableViewTest {
         return (X509Certificate) store.getCertificate(keys.getKeyAlias());
     }
 
-    private static Session session() { return Session.getInstance(new Properties()); }
+    private static Session session() {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        return Session.getInstance(properties);
+    }
 }

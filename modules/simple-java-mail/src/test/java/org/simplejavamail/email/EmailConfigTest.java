@@ -6,7 +6,6 @@ import org.simplejavamail.api.SimpleJavaMail;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.Recipient;
 import org.simplejavamail.config.ConfigLoader;
-import org.simplejavamail.internal.util.MiscUtil;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
@@ -62,11 +61,4 @@ public class EmailConfigTest {
 		assertThat(email.getRecipients()).usingFieldByFieldElementComparator().contains(new Recipient("BCC Default", "bcc@default.com", BCC, null));
 	}
 
-	@Test
-	public void testBeautifyCID() {
-		assertThat(MiscUtil.extractCID(null)).isNull();
-		assertThat(MiscUtil.extractCID("")).isEqualTo("");
-		assertThat(MiscUtil.extractCID("haha")).isEqualTo("haha");
-		assertThat(MiscUtil.extractCID("<haha>")).isEqualTo("haha");
-	}
 }

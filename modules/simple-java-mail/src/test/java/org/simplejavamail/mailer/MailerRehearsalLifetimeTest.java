@@ -49,6 +49,7 @@ class MailerRehearsalLifetimeTest {
     @EnumSource(Preparation.class)
     void preparationRemainsAvailableAfterClosingWithTheOriginalDefaults(final Preparation preparation) throws Exception {
         final Mailer mailer = MAIL.mailerBuilder().withSMTPServer("unreachable.example.invalid", 25)
+                .withProperty("mail.host", "localhost")
                 .withEmailDefaults(defaults("original@example.org")).buildMailer();
         final Email draft = draft();
         mailer.close();
@@ -69,7 +70,9 @@ class MailerRehearsalLifetimeTest {
     @ParameterizedTest
     @ValueSource(booleans = {false, true})
     void reusedSessionCannotReplaceTheOriginalMailersSizePolicy(final boolean originalHasLimit) throws Exception {
-        final Session shared = session(new Properties());
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final Session shared = session(properties);
         final Mailer original = MAIL.mailerBuilder(shared).withEmailDefaults(defaults("original@example.org"))
                 .withValidationConfig(validation(originalHasLimit)).buildMailer();
         original.close();
@@ -146,7 +149,8 @@ class MailerRehearsalLifetimeTest {
         final SmimeSigningConfig signing = SmimeSigningConfig.builder().pkcs12Config(loadPkcs12KeyStore()).build();
         final Email email = governed.emailBuilder().startingBlank().from("sender@example.org").to("recipient@example.org")
                 .withPlainText("Protected after close").signWithSmime(signing).buildEmail();
-        final Mailer mailer = governed.mailerBuilder().withSMTPServer("unreachable.example.invalid", 25).buildMailer();
+        final Mailer mailer = governed.mailerBuilder().withSMTPServer("unreachable.example.invalid", 25)
+                .withProperty("mail.host", "localhost").buildMailer();
         mailer.close();
 
         final MailRehearsal preview = mailer.rehearse(email);
@@ -161,6 +165,7 @@ class MailerRehearsalLifetimeTest {
     void privatePreparationDoesNotAddSessionDebugLogging() throws Exception {
         final Properties properties = new Properties();
         properties.setProperty("mail.debug", "true");
+        properties.setProperty("mail.host", "localhost");
         final Session caller = session(properties);
         final ByteArrayOutputStream debug = new ByteArrayOutputStream();
         caller.setDebugOut(new PrintStream(debug));
@@ -219,6 +224,7 @@ class MailerRehearsalLifetimeTest {
     @Test
     void metadataCaptureFailureDoesNotStrandShutdownOrSwitchToTheNextOwner() throws Exception {
         final FailingProperties properties = new FailingProperties();
+        properties.setProperty("mail.host", "localhost");
         final Session shared = session(properties);
         final Mailer original = MAIL.mailerBuilder(shared).withEmailDefaults(defaults("original@example.org")).buildMailer();
         properties.failure = new IllegalStateException("Metadata snapshot unavailable");

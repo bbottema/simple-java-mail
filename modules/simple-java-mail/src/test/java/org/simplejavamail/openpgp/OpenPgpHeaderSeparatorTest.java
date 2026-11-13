@@ -59,9 +59,11 @@ class OpenPgpHeaderSeparatorTest {
     }
 
     private static Stream<Arguments> protectedImports() {
+        // Both fluent routes cover every separator; the static stream route retains CRLF and all-LF for each payload.
         return Stream.of("signed-mixed.eml", "encrypted-mixed.eml")
                 .flatMap(fixture -> Arrays.stream(LineEndings.values())
                         .flatMap(endings -> Arrays.stream(ImportRoute.values())
+                                .filter(route -> route != ImportRoute.STATIC_STREAM || endings == LineEndings.CRLF || endings == LineEndings.ALL_LF)
                                 .map(route -> Arguments.of(fixture, endings, route))));
     }
 

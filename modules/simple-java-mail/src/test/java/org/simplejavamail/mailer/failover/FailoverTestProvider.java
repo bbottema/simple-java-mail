@@ -23,6 +23,7 @@ public final class FailoverTestProvider implements MailTransportAdapter {
     static MailerFromSessionBuilder<?> builder(final State state) throws Exception {
         final Properties properties = new Properties();
         properties.setProperty("mail.transport.protocol", "smtp");
+        properties.setProperty("mail.host", "localhost");
         properties.setProperty("mail.smtp.host", "contract.example.test");
         properties.setProperty("mail.smtp.port", "25");
         properties.put("test.provider.state", state);

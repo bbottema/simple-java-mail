@@ -105,7 +105,9 @@ class ResourceRepresentationRoundTripTest {
     }
 
     private static byte[] source(final ResourceRepresentationCase representation) throws Exception {
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
         message.setFrom("sender@example.org");
         message.setRecipients(jakarta.mail.Message.RecipientType.TO, "reader@example.org");
         message.setSubject("Resource representations");

@@ -182,6 +182,8 @@ class AuthenticatedSocksCapacityTest {
     private static Mailer mailer(final ProxySmtpFixture fixture) {
         return SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
                 .withSMTPServer("127.0.0.1", SMTP_PORT)
+                // Message-ID generation must not consume the bounded setup budget on reverse DNS.
+                .withProperty("mail.host", "localhost")
                 .withConnectionConfig(ConnectionConfig.builder()
                         .withSmtpClientHostname("capacity-client.example.test")
                         .withConnectTimeout(Duration.ofSeconds(8))

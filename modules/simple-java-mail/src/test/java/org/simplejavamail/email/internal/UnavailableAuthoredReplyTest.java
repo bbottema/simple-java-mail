@@ -157,7 +157,11 @@ class UnavailableAuthoredReplyTest {
         try (InputStream input = UnavailableAuthoredReplyTest.class.getResourceAsStream(name)) { return input.readAllBytes(); }
     }
 
-    private static Session session() { return Session.getInstance(new Properties()); }
+    private static Session session() {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        return Session.getInstance(properties);
+    }
 
     private static Email snapshot(final Email email) throws Exception {
         final ByteArrayOutputStream bytes = new ByteArrayOutputStream();

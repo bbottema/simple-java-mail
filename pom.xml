@@ -603,6 +603,14 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <!-- Collect project and fixture coverage without instrumenting unrelated dependency namespaces. -->
+                            <includes>
+                                <include>org.simplejavamail.*</include>
+                                <include>testutil.*</include>
+                                <include>demo.*</include>
+                            </includes>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

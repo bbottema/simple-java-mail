@@ -128,6 +128,7 @@ class CustomMailerInactiveOAuthTest {
 
         private static Properties credentials(final OAuth2AccessTokenProvider provider) {
             final Properties smtp = new Properties();
+            smtp.setProperty("mail.host", "localhost");
             smtp.setProperty(OAUTH2_TOKEN_PROPERTY, "retained-fixed-token");
             smtp.put(OAUTH2_TOKEN_PROVIDER_PROPERTY, provider);
             return smtp;

@@ -30,14 +30,16 @@ class CliUnusedNamedKeyProcessTest {
     void unusedLockedKeyDoesNotPreventConnectingInEitherProcessMode(final String mode) throws Exception {
         final String instance = "unused-key-" + mode;
         final Path key = Files.writeString(directory.resolve("unused.pem"), "unopened unused key");
-        final Wiser smtp = Wiser.create(SMTPServer.port(0));
+        final Wiser smtp = Wiser.create(SMTPServer.port(0).hostName("localhost"));
         smtp.start();
         boolean daemonStarted = false;
         final Map<String, String> properties = Map.of(
                 "simplejavamail.smtp.host", "localhost",
                 "simplejavamail.smtp.port", Integer.toString(smtp.getServer().getPortAllocated()),
+                "simplejavamail.smtp.clienthostname", "localhost",
                 "simplejavamail.mailers.available.smtp.host", "localhost",
                 "simplejavamail.mailers.available.smtp.port", Integer.toString(smtp.getServer().getPortAllocated()),
+                "simplejavamail.mailers.available.smtp.clienthostname", "localhost",
                 "simplejavamail.mailers.unused.smtp.host", "unused.example.invalid",
                 "simplejavamail.mailers.unused.dkim.signing.private_key_file_or_data", key.toString(),
                 "simplejavamail.mailers.unused.dkim.signing.selector", "mail",

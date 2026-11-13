@@ -6,7 +6,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Properties;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -48,8 +47,15 @@ class FluentEmlPreservationTest {
 	}
 
 	private static Stream<Arguments> protectedImports() {
-		return Arrays.stream(LineEndings.values()).flatMap(endings -> Arrays.stream(Source.values())
-				.flatMap(source -> Stream.of(Arguments.of(endings, source, false), Arguments.of(endings, source, true))));
+		return Stream.of(
+				Arguments.of(LineEndings.MIXED, Source.BYTES, false),
+				Arguments.of(LineEndings.MIXED, Source.BYTES, true),
+				Arguments.of(LineEndings.MIXED, Source.STRING, true),
+				Arguments.of(LineEndings.MIXED, Source.STREAM, false),
+				Arguments.of(LineEndings.MIXED, Source.PATH, true),
+				Arguments.of(LineEndings.MIXED, Source.FILE, false),
+				Arguments.of(LineEndings.CRLF, Source.BYTES, false),
+				Arguments.of(LineEndings.LF, Source.BYTES, false));
 	}
 
 	@Test

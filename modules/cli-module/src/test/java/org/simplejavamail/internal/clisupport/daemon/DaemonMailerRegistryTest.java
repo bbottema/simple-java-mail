@@ -6,8 +6,11 @@ import org.simplejavamail.config.ConfigLoader;
 import org.simplejavamail.internal.clisupport.CliMailerProfile;
 import org.simplejavamail.internal.clisupport.MailerProvider;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -144,6 +147,66 @@ class DaemonMailerRegistryTest {
 	}
 
 	@Test
+	void idleSweepRetiresOnlyExpiredUnleasedMailers() throws Exception {
+		final Mailer expiredMailer = mock(Mailer.class);
+		final Mailer freshMailer = mock(Mailer.class);
+		final Mailer activeMailer = mock(Mailer.class);
+		final CliMailerProfile expired = profile("sweep-expired");
+		final CliMailerProfile fresh = profile("sweep-fresh");
+		final CliMailerProfile active = profile("sweep-active");
+		final DaemonMailerRegistry registry = new DaemonMailerRegistry(3, Duration.ofMinutes(1));
+		try {
+			try (MailerProvider.Lease ignored = registry.acquire(expired, () -> expiredMailer)) { }
+			try (MailerProvider.Lease ignored = registry.acquire(fresh, () -> freshMailer)) { }
+			try (MailerProvider.Lease held = registry.acquire(active, () -> activeMailer)) {
+				final long now = System.nanoTime();
+				setLastUsed(registry, expired, now - Duration.ofHours(1).toNanos());
+				setLastUsed(registry, fresh, now + Duration.ofHours(1).toNanos());
+				setLastUsed(registry, active, now - Duration.ofHours(1).toNanos());
+				runIdleSweep(registry);
+
+				verify(expiredMailer, times(1)).close();
+				verify(freshMailer, never()).close();
+				verify(activeMailer, never()).close();
+				assertThat(registry.entryCount()).isEqualTo(2);
+				assertThat(registry.tryAcquireExisting(expired)).isEmpty();
+				try (MailerProvider.Lease retained = registry.tryAcquireExisting(fresh).orElseThrow()) {
+					assertThat(retained.mailer()).isSameAs(freshMailer);
+				}
+				try (MailerProvider.Lease retained = registry.tryAcquireExisting(active).orElseThrow()) {
+					assertThat(retained.mailer()).isSameAs(activeMailer);
+				}
+				assertThat(held.mailer()).isSameAs(activeMailer);
+			}
+		} finally {
+			registry.close();
+		}
+		verify(expiredMailer, times(1)).close();
+		verify(freshMailer, times(1)).close();
+		verify(activeMailer, times(1)).close();
+	}
+
+	@Test
+	void zeroIdleTimeoutDisablesTheIdleSweep() throws Exception {
+		final Mailer mailer = mock(Mailer.class);
+		final CliMailerProfile profile = profile("sweep-disabled");
+		final DaemonMailerRegistry registry = new DaemonMailerRegistry(1, Duration.ZERO);
+		try {
+			try (MailerProvider.Lease ignored = registry.acquire(profile, () -> mailer)) { }
+			setLastUsed(registry, profile, System.nanoTime() - Duration.ofHours(1).toNanos());
+			runIdleSweep(registry);
+			verify(mailer, never()).close();
+			assertThat(registry.entryCount()).isEqualTo(1);
+			try (MailerProvider.Lease retained = registry.tryAcquireExisting(profile).orElseThrow()) {
+				assertThat(retained.mailer()).isSameAs(mailer);
+			}
+		} finally {
+			registry.close();
+		}
+		verify(mailer, times(1)).close();
+	}
+
+	@Test
 	void failedConstructionDoesNotPoisonAProfile() throws Exception {
 		final Mailer mailer = mock(Mailer.class);
 		final CliMailerProfile profile = profile("retry");
@@ -181,5 +244,23 @@ class DaemonMailerRegistryTest {
 		final Properties properties = new Properties();
 		properties.setProperty(ConfigLoader.Property.SMTP_HOST.key(), "smtp-" + hostSuffix + ".example.test");
 		return CliMailerProfile.create(ConfigLoader.builder().withProperties(properties).load(), List.of(), new byte[32]);
+	}
+
+	/** Drive the exact method registered with the scheduler without waiting for its 30-second cadence. */
+	private static void runIdleSweep(final DaemonMailerRegistry registry) throws Exception {
+		final Method sweep = DaemonMailerRegistry.class.getDeclaredMethod("retireExpiredEntries");
+		sweep.setAccessible(true);
+		sweep.invoke(registry);
+	}
+
+	/** Model elapsed or remaining idle time without sleeping or changing a process-wide clock. */
+	private static void setLastUsed(final DaemonMailerRegistry registry, final CliMailerProfile profile, final long value) throws Exception {
+		final Field entries = DaemonMailerRegistry.class.getDeclaredField("entries");
+		entries.setAccessible(true);
+		final Object entry = ((Map<?, ?>) entries.get(registry)).get(profile);
+		assertThat(entry).isNotNull();
+		final Field lastUsed = entry.getClass().getDeclaredField("lastUsedNanos");
+		lastUsed.setAccessible(true);
+		lastUsed.setLong(entry, value);
 	}
 }

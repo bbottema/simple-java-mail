@@ -43,7 +43,7 @@ class FactorySmimeRuntimeTest {
         final SimpleJavaMail mail = SimpleJavaMail.withConfig(loader.load());
         if (explicit) assertThat(mail.getConfig().get(ConfigKeys.SMIME_KEY_CACHE_CAPACITY)).isEqualTo(-1);
         else assertThat(mail.getConfig().get(ConfigKeys.SMIME_KEY_CACHE_CAPACITY)).isNull();
-        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer()) {
             mailer.rehearse(message(mail, loadPkcs12KeyStore()));
             assertThat(field(field(moduleIfInitialized(mail), "keyCache"), "capacity"))
                     .isEqualTo(ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY);
@@ -57,7 +57,7 @@ class FactorySmimeRuntimeTest {
         final Pkcs12Config second = independentStore(keys);
         final Pkcs12Config third = independentStore(keys);
         assertThat(moduleIfInitialized(mail)).isNull();
-        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer()) {
             final byte[] signed = mailer.rehearse(message(mail, keys)).getEmlBytes();
             assertThat(mail.converter().fromEml(signed).toEmail().getInspection().getPlainText().getSignatureStatus())
                     .isEqualTo(SignatureStatus.VERIFIED);
@@ -82,7 +82,7 @@ class FactorySmimeRuntimeTest {
     void zeroCapacityRetainsNoCompletedKeysAfterRealSigningAndDecryption() throws Exception {
         final SimpleJavaMail mail = factory(0);
         final Pkcs12Config keys = loadPkcs12KeyStore();
-        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer()) {
             mailer.rehearse(message(mail, keys));
             assertThat(entries(moduleIfInitialized(mail))).isEmpty();
             final Email opened = mail.converter().fromEml(encrypted(keys)).withSmimeDecryption(keys).toEmail();
@@ -100,8 +100,8 @@ class FactorySmimeRuntimeTest {
         final SimpleJavaMail second = SimpleJavaMail.withConfig(snapshot);
         final Pkcs12Config keys = loadPkcs12KeyStore();
         final Email builtUnderFirst = message(first, keys);
-        try (Mailer firstMailer = first.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer();
-                Mailer secondMailer = second.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
+        try (Mailer firstMailer = first.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer();
+                Mailer secondMailer = second.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer()) {
             secondMailer.rehearse(builtUnderFirst);
             assertThat(moduleIfInitialized(first)).isNull();
             assertThat(entries(moduleIfInitialized(second))).hasSize(1);
@@ -120,7 +120,7 @@ class FactorySmimeRuntimeTest {
     void invalidCapacityIsInactiveForPlainMailAndRejectedBeforePrivateKeyUse() throws Exception {
         final SimpleJavaMail mail = factory(-2);
         assertThat(mail.getConfig().get(ConfigKeys.SMIME_KEY_CACHE_CAPACITY)).isEqualTo(-2);
-        try (Mailer mailer = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
+        try (Mailer mailer = mail.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer()) {
             mailer.rehearse(mail.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
                     .withPlainText("Plain content").buildEmail());
             assertThat(moduleIfInitialized(mail)).isNull();
@@ -175,7 +175,9 @@ class FactorySmimeRuntimeTest {
         final MimeBodyPart encrypted = SmimeCryptoSupport.encrypt(content,
                 (X509Certificate) store.getCertificate(keys.getKeyAlias()),
                 SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM, SmimeCryptoSupport.DEFAULT_CIPHER);
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
         message.setDataHandler(encrypted.getDataHandler());
         message.saveChanges();
         final ByteArrayOutputStream output = new ByteArrayOutputStream();

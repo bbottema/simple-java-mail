@@ -5,17 +5,27 @@ import org.simplejavamail.api.mailer.MailSendCancelledException;
 import org.simplejavamail.api.mailer.MailSendTimeoutException;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class MailSendControlTest {
     private static final class OwnedFailure extends org.simplejavamail.MailException {
@@ -116,6 +126,34 @@ class MailSendControlTest {
     }
 
     @Test
+    void cancelledAlarmRunningDuringPauseCannotCorruptTheResumedDeadline() {
+        final ScheduledExecutorService watcher = mock(ScheduledExecutorService.class);
+        final ScheduledFuture<?> scheduled = mock(ScheduledFuture.class);
+        final List<Runnable> alarms = new ArrayList<>();
+        when(watcher.schedule(any(Runnable.class), anyLong(), eq(NANOSECONDS))).thenAnswer(invocation -> {
+            alarms.add(invocation.getArgument(0));
+            return scheduled;
+        });
+        final Duration timeout = Duration.ofSeconds(10);
+        final AtomicInteger stops = new AtomicInteger();
+        try (MailSendControl control = new MailSendControl(timeout, watcher)) {
+            control.onStop(stops::incrementAndGet);
+            assertThat(alarms).hasSize(1);
+            try (MailSendControl.DeadlinePause pause = control.pauseDeadline()) {
+                verify(scheduled).cancel(false);
+                alarms.get(0).run(); // A scheduler may already have dispatched a cancelled task.
+                assertThat(stops).hasValue(0);
+                assertThat(control.isStopRequested()).isFalse();
+                assertThat(alarms).hasSize(1);
+            }
+            assertThat(alarms).hasSize(2);
+            assertThat(control.remainingNanos()).isBetween(1L, timeout.toNanos());
+            assertThat(stops).hasValue(0);
+            assertThat(control.isStopRequested()).isFalse();
+        }
+    }
+
+    @Test
     void closingRegistrationFencesAnAlreadyRunningAction() throws Exception {
         final ScheduledExecutorService watcher = Executors.newSingleThreadScheduledExecutor();
         final CountDownLatch release = new CountDownLatch(1);
@@ -142,6 +180,36 @@ class MailSendControlTest {
             }
         } finally {
             release.countDown();
+            watcher.shutdownNow();
+            assertThat(watcher.awaitTermination(2, SECONDS)).isTrue();
+        }
+    }
+
+    @Test
+    void retiringAStopActionAfterCancellationTakesItsSnapshotPreventsInvocation() throws Exception {
+        final ScheduledExecutorService watcher = Executors.newSingleThreadScheduledExecutor();
+        final CountDownLatch firstEntered = new CountDownLatch(1);
+        final CountDownLatch releaseFirst = new CountDownLatch(1);
+        final AtomicInteger retiredCalls = new AtomicInteger();
+        try (MailSendControl control = new MailSendControl(null, watcher)) {
+            control.onStop(() -> { firstEntered.countDown(); await(releaseFirst); });
+            final MailSendControl.Registration retired = control.onStop(retiredCalls::incrementAndGet);
+            final FutureTask<Void> cancelling = new FutureTask<>(() -> { control.requestCancellation(); return null; });
+            final Thread thread = new Thread(cancelling, "stop-snapshot-test");
+            thread.start();
+            try {
+                assertThat(firstEntered.await(2, SECONDS)).isTrue();
+                retired.close();
+                releaseFirst.countDown();
+                cancelling.get(2, SECONDS);
+                assertThat(retiredCalls).hasValue(0);
+            } finally {
+                releaseFirst.countDown();
+                thread.join(SECONDS.toMillis(2));
+                assertThat(thread.isAlive()).isFalse();
+            }
+        } finally {
+            releaseFirst.countDown();
             watcher.shutdownNow();
             assertThat(watcher.awaitTermination(2, SECONDS)).isTrue();
         }

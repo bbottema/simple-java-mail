@@ -535,7 +535,9 @@ class ExactEmailProtectionInspectionTest {
     private static byte[] resource(final String path) throws Exception {
         try (InputStream input = ExactEmailProtectionInspectionTest.class.getClassLoader().getResourceAsStream(path)) {
             if (input == null) throw new AssertionError("Missing fixture: " + path);
-            return input.readAllBytes();
+            // Exact EML requires wire-format CRLF even when Git checks these text fixtures out with LF.
+            return new String(input.readAllBytes(), ISO_8859_1)
+                    .replace("\r\n", "\n").replace("\n", "\r\n").getBytes(ISO_8859_1);
         }
     }
 }

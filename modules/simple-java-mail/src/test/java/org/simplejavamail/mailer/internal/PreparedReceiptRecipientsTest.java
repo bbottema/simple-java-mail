@@ -10,6 +10,7 @@ import jakarta.mail.Transport;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.MimeMessage;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -80,6 +81,19 @@ public class PreparedReceiptRecipientsTest {
             .dkimSigningDomain("example.org").dkimSelector("test").build();
     private static final AtomicInteger TRANSPORTS = new AtomicInteger();
     private static final AtomicInteger FAILED_CONNECTIONS = new AtomicInteger();
+
+    @BeforeAll
+    @Timeout(45)
+    static void initializeMockingAndMailerFixtures() throws Exception {
+        try (MockedStatic<ModuleLoader> modules = Mockito.mockStatic(ModuleLoader.class, Mockito.CALLS_REAL_METHODS)) {
+            modules.when(ModuleLoader::batchModuleAvailable).thenReturn(false);
+            try (Mailer fallback = builder(Mode.CUSTOM, new RecordingCustomMailer()).buildMailer();
+                 Mailer ignored = smtpInitiator().withFailoverMailer(fallback,
+                         FailoverPolicy.builder().withPrimaryConnectionAttempts(1).build()).buildMailer()) {
+                // Initialize one-time mocking and Mailer machinery before individual timing guards.
+            }
+        }
+    }
 
     @BeforeEach
     void resetTransportWitness() {
@@ -384,6 +398,7 @@ public class PreparedReceiptRecipientsTest {
     private static Session sessionFor(final Class<? extends Transport> transportType) throws Exception {
         final Properties properties = new Properties();
         properties.setProperty("mail.transport.protocol", "smtp");
+        properties.setProperty("mail.host", "localhost");
         properties.setProperty("mail.smtp.host", "127.0.0.1");
         final Session session = Session.getInstance(properties);
         session.setProvider(new Provider(Provider.Type.TRANSPORT, "smtp", transportType.getName(), "test", "1"));

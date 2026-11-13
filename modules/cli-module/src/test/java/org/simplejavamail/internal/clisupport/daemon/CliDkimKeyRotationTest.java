@@ -194,6 +194,7 @@ class CliDkimKeyRotationTest {
     private static SimpleJavaMailConfig configuration(final String key) {
         final Properties properties = new Properties();
         properties.setProperty(ConfigLoader.Property.SMTP_HOST.key(), "localhost");
+        properties.setProperty("simplejavamail.extraproperties.mail.host", "localhost");
         properties.setProperty(ConfigLoader.Property.DKIM_PRIVATE_KEY_FILE_OR_DATA.key(), key);
         properties.setProperty(ConfigLoader.Property.DKIM_SIGNING_DOMAIN.key(), "supersecret-testing-domain.com");
         properties.setProperty(ConfigLoader.Property.DKIM_SELECTOR.key(), "mail");

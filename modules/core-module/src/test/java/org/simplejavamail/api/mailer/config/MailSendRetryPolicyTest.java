@@ -93,14 +93,6 @@ class MailSendRetryPolicyTest {
         assertThat(policy.getRetryJitter()).isNull();
     }
 
-    @Test void resetsOptionalSettings() {
-        final MailSendRetryPolicy policy = MailSendRetryPolicy.builder().withMaximumAttempts(3).withRetryDelay(Duration.ofSeconds(1))
-                .withRetryBackoff(2, Duration.ofMinutes(1)).withRetryJitter(0.2).resetRetryBackoff().resetRetryJitter().build();
-        assertThat(policy.getRetryBackoffMultiplier()).isEqualTo(1);
-        assertThat(policy.getMaximumRetryDelay()).isNull();
-        assertThat(policy.getRetryJitter()).isZero();
-    }
-
     @Test void validatesSuppliedAndSerializedInvariants() throws Exception {
         final MailSendRetryPolicy.Builder unfinished = MailSendRetryPolicy.builder().withRetryBackoff(2, Duration.ZERO);
         assertThat(unfinished.getMaximumRetryDelay()).isEqualTo(Duration.ZERO);

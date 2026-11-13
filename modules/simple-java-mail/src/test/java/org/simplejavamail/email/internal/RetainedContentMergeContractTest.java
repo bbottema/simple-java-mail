@@ -333,7 +333,9 @@ class RetainedContentMergeContractTest {
         if (!outer) b.withSmtpDeliveryOptions(b.getSmtpDeliveryOptions().toBuilder().withTlsRequiredForOnwardDelivery().build());
         b.withDispositionNotificationTo(label + "-mdn@example.org");
         b.withReturnReceiptTo(label + "-receipt@example.org");
-        MimeMessage forwarded = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        MimeMessage forwarded = new MimeMessage(Session.getInstance(properties));
         forwarded.setSubject(label + " forward"); forwarded.setText(label + " forward body"); forwarded.saveChanges();
         b.withForward(forwarded);
         if (scheme == Scheme.SMIME) {

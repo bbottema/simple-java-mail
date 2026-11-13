@@ -458,7 +458,10 @@ class DetachedSignedParentAttachmentTest {
     }
 
     private static MimeMessage envelope(final MimeMultipart content) throws Exception {
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        // Message-ID generation is not part of the signed-parent checks.
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
         message.setFrom("sender@example.org");
         message.setRecipients(Message.RecipientType.TO, "reader@example.org");
         message.setSubject("Signed parent with independently encrypted attachment", "UTF-8");

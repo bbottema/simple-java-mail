@@ -17,6 +17,7 @@ import org.simplejavamail.api.mailer.CustomMailer;
 import org.simplejavamail.api.mailer.MailSendOutcome;
 import org.simplejavamail.api.mailer.MailSubmissionReceipt;
 import org.simplejavamail.api.mailer.Mailer;
+import org.simplejavamail.api.mailer.config.ConnectionConfig;
 import org.simplejavamail.api.mailer.config.OperationalConfig;
 import org.simplejavamail.converter.EmailConverter;
 import org.subethamail.wiser.WiserMessage;
@@ -193,6 +194,7 @@ class ExactEmailSendingTest {
 	private Mailer smtpMailer() {
 		return simpleJavaMail.mailerBuilder()
 				.withSMTPServer("localhost", smtpServer.getWiser().getServer().getPortAllocated())
+				.withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").build())
 				.buildMailer();
 	}
 

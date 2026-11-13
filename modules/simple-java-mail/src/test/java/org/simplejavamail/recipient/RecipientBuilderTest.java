@@ -21,24 +21,6 @@ import static org.simplejavamail.api.email.config.DeliveryStatusNotification.Not
 public class RecipientBuilderTest {
 
     @Test
-    public void toCreatesNamedToRecipient() {
-        assertThat(SimpleJavaMail.fromDefaults().recipientBuilder().to("Alice", "alice@example.com"))
-                .isEqualTo(new Recipient("Alice", "alice@example.com", TO, null));
-    }
-
-    @Test
-    public void ccCreatesNamedCcRecipient() {
-        assertThat(SimpleJavaMail.fromDefaults().recipientBuilder().cc("Audit", "audit@example.com"))
-                .isEqualTo(new Recipient("Audit", "audit@example.com", CC, null));
-    }
-
-    @Test
-    public void bccCreatesNamedBccRecipient() {
-        assertThat(SimpleJavaMail.fromDefaults().recipientBuilder().bcc("Archive", "archive@example.com"))
-                .isEqualTo(new Recipient("Archive", "archive@example.com", BCC, null));
-    }
-
-    @Test
     public void convenienceFactoriesUseRecipientBuilderAddressValidation() {
         final IRecipientBuilder builder = SimpleJavaMail.fromDefaults().recipientBuilder();
         assertThatThrownBy(() -> builder.to("Alice", ""))

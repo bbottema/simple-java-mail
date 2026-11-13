@@ -158,9 +158,9 @@ class OpenPgpMimeTest {
                 .buildEmail());
         final Email source = basicEmail("template-protected content").withTemplateOptions(EmailTemplateOptions.builder().ignoringDefaults(false).build()).buildEmail();
 
-        try (Mailer defaultMailer = SimpleJavaMail.fromDefaults().mailerBuilder().withEmailDefaults(defaults).buildMailer();
+        try (Mailer defaultMailer = SimpleJavaMail.fromDefaults().mailerBuilder().withProperty("mail.host", "localhost").withEmailDefaults(defaults).buildMailer();
              Mailer overrideMailer = SimpleJavaMail.fromDefaults().mailerBuilder()
-                     .withEmailDefaults(defaults).withEmailOverrides(overrides).buildMailer()) {
+                     .withProperty("mail.host", "localhost").withEmailDefaults(defaults).withEmailOverrides(overrides).buildMailer()) {
             assertRehearsedProtection(defaultMailer.rehearse(source), firstKey);
             assertRehearsedProtection(overrideMailer.rehearse(source), secondKey);
         }
@@ -792,7 +792,7 @@ class OpenPgpMimeTest {
                         .dkimSelector("selector")
                         .build())
                 .buildEmailCompletedWithDefaultsAndOverrides();
-        final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", 25).buildMailer();
+        final Mailer mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder().withSMTPServer("localhost", 25).withProperty("mail.host", "localhost").buildMailer();
 
         final PreparedMail prepared = SessionBasedEmailToMimeMessageConverter.convertAndLogPreparedMail(
                 mailer.getSession(), email);

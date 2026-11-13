@@ -161,7 +161,7 @@ class DetachedSmimeFilenameCollisionTest {
         entity.setContent(clear);
         final MimeMultipart signed = generator.generate(entity);
         ((MimeBodyPart) signed.getBodyPart(1)).setFileName(SIGNATURE_NAME);
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final MimeMessage message = new MimeMessage(fixtureSession());
         message.setFrom("sender@example.org");
         message.setRecipients(jakarta.mail.Message.RecipientType.TO, "reader@example.org");
         message.setContent(signed);
@@ -175,8 +175,14 @@ class DetachedSmimeFilenameCollisionTest {
         return new Fixture(wire, signature);
     }
 
+    private static Session fixtureSession() {
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        return Session.getInstance(properties);
+    }
+
     private static MimeMessage message(final byte[] wire) throws Exception {
-        return new MimeMessage(Session.getInstance(new Properties()), new ByteArrayInputStream(wire));
+        return new MimeMessage(fixtureSession(), new ByteArrayInputStream(wire));
     }
 
     private static byte[] bytes(final MimeMessage message) throws Exception {

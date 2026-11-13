@@ -33,7 +33,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OutlookMissingSenderTest {
     private static final SimpleJavaMail MAIL = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig());
-    private static final String[] MISSING_SENDER = {"unsent draft.msg", "chinese message.msg", "SMIME (signed and clear text).msg"};
     @TempDir Path directory;
 
     @ParameterizedTest
@@ -73,7 +72,11 @@ class OutlookMissingSenderTest {
     }
 
     static Stream<Arguments> missingSendersAndRoutes() {
-        return Arrays.stream(MISSING_SENDER).flatMap(fixture -> Arrays.stream(Route.values()).map(route -> Arguments.of(fixture, route)));
+        // The draft anchors every route; distinct native metadata uses the shared stream reader.
+        return Stream.concat(
+                Arrays.stream(Route.values()).map(route -> Arguments.of("unsent draft.msg", route)),
+                Stream.of("chinese message.msg", "SMIME (signed and clear text).msg")
+                        .map(fixture -> Arguments.of(fixture, Route.FLUENT_METADATA_STREAM)));
     }
 
     @ParameterizedTest

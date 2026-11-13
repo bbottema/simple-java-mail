@@ -340,6 +340,7 @@ class DeliveryStatusReportTest {
 		final org.simplejavamail.api.email.config.SmimeSigningConfig signing =
 				org.simplejavamail.api.email.config.SmimeSigningConfig.builder().pkcs12Config(keys).build();
 		final MimeMessage clear = message(report(MESSAGE_FIELDS + "\r\n" + FAILED_RECIPIENT.replace("5.1.1", "5.01.001")));
+		clear.getSession().getProperties().setProperty("mail.host", "localhost");
 		final Email identity = SimpleJavaMail.fromDefaults().emailBuilder().startingBlank().from("sender@example.test").buildEmail();
 		final MimeMessage signed = org.simplejavamail.internal.moduleloader.ModuleLoader.loadSmimeModule().createRuntime(org.simplejavamail.config.ConfigLoader.DEFAULT_SMIME_KEY_CACHE_CAPACITY)
 				.signMessageWithSmime(clear.getSession(), identity, clear, signing);
@@ -515,7 +516,9 @@ class DeliveryStatusReportTest {
 		parts.addBodyPart(text);
 		parts.addBodyPart(status);
 		parts.addBodyPart(unrelated);
-		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+		final Properties properties = new Properties();
+		properties.setProperty("mail.host", "localhost");
+		final MimeMessage message = new MimeMessage(Session.getInstance(properties));
 		message.setContent(parts);
 		message.saveChanges();
 		statusReads.set(0);
@@ -676,7 +679,9 @@ class DeliveryStatusReportTest {
 		for (final MimeBodyPart part : parts) {
 			multipart.addBodyPart(part);
 		}
-		final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+		final Properties properties = new Properties();
+		properties.setProperty("mail.host", "localhost");
+		final MimeMessage message = new MimeMessage(Session.getInstance(properties));
 		message.setContent(multipart);
 		message.saveChanges();
 		return message;

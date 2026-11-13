@@ -122,7 +122,9 @@ class NestedSmimeEncryptionInspectionTest {
         final X509Certificate certificate = (X509Certificate) store.getCertificate(keys.getKeyAlias());
         final MimeBodyPart encrypted = SmimeCryptoSupport.encrypt(content, certificate,
                 SmimeCryptoSupport.DEFAULT_KEY_ENCAPSULATION_ALGORITHM, SmimeCryptoSupport.DEFAULT_CIPHER);
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
         message.setFrom("sender@example.org");
         message.setSubject("Nested S/MIME encryption");
         message.setDataHandler(encrypted.getDataHandler());

@@ -74,6 +74,7 @@ class CliPreparationContractTest {
         final Email overrides = MAIL.emailBuilder().startingBlank().withSubject("Forced subject").buildEmail();
         final Email draft = MAIL.emailBuilder().startingBlank().to("reader@example.org").withPlainText("Body").buildEmail();
         final MailerGenericBuilder<?> builder = MAIL.mailerBuilder().withSMTPServer("smtp.example.test", 587, "smtp-user", null)
+                .withProperty("mail.host", "localhost")
                 .withTransportStrategy(TransportStrategy.SMTP_OAUTH2)
                 .withOAuth2AccessTokenProvider(() -> { tokenCalls.incrementAndGet(); return "unused-token"; })
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(2).build())
@@ -114,6 +115,7 @@ class CliPreparationContractTest {
         if (utf8 != null && inherited) { defaults.setProperty("mail.mime.allowutf8", utf8.toString()); }
         final Properties properties = new Properties(defaults);
         properties.setProperty("mail.transport.protocol", "smtp");
+        properties.setProperty("mail.host", "localhost");
         if (utf8 != null && !inherited) { properties.put("mail.mime.allowutf8", utf8); }
         final Session original = Session.getInstance(properties);
         final Properties before = (Properties) properties.clone();
@@ -155,6 +157,7 @@ class CliPreparationContractTest {
                 "simplejavamail.mailers.backup.smtp.ratelimit.group", "child", "simplejavamail.mailers.backup.smtp.ratelimit.messages.limit", 1,
                 "simplejavamail.mailers.backup.smtp.ratelimit.messages.period", "PT1M")).load());
         final MailerGenericBuilder<?> builder = mail.mailerBuilder().withSMTPServer("smtp.example.test", 25)
+                .withProperty("mail.host", "localhost")
                 .withSendingLimitsConfig(SendingLimitsConfig.builder().withRateLimitGroup("primary")
                         .withMessageRateLimit(1, Duration.ofMinutes(1)).build());
         final FactorySendingLimits registry = ((MailerGenericBuilderImpl<?>) builder).getFactorySendingLimits();
@@ -231,7 +234,7 @@ class CliPreparationContractTest {
         };
         final Email email = MAIL.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
                 .withPlainText("Body").withAttachment("content.bin", readable).buildEmail();
-        validate(builder(), email);
+        validate(builder().withProperty("mail.host", "localhost"), email);
         assertThat(opened.get()).isPositive();
         assertThat(closed).hasValue(opened.get());
         final IOException unavailable = new IOException("content unavailable");
@@ -242,7 +245,7 @@ class CliPreparationContractTest {
             @Override public String getName() { return "missing.bin"; }
         };
         final Email unreadable = MAIL.emailBuilder().copying(email).clearAttachments().withAttachment("missing.bin", failing).buildEmail();
-        assertThatThrownBy(() -> validate(builder(), unreadable)).hasRootCause(unavailable);
+        assertThatThrownBy(() -> validate(builder().withProperty("mail.host", "localhost"), unreadable)).hasRootCause(unavailable);
     }
 
     private static MailerGenericBuilder<?> builder() {

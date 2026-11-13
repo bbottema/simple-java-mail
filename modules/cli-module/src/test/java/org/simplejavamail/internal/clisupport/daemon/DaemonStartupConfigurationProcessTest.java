@@ -37,7 +37,7 @@ class DaemonStartupConfigurationProcessTest {
 
 	private void assertLoggingOnlyAcrossStartup(final String instance, final Map<String, String> properties,
 			final Map<String, String> environment, final String entryPoint) throws Exception {
-		final Wiser smtp = Wiser.create(SMTPServer.port(0));
+		final Wiser smtp = Wiser.create(SMTPServer.port(0).hostName("localhost"));
 		smtp.start();
 		try {
 			for (String mode : List.of("off", "acquire")) {
@@ -46,7 +46,8 @@ class DaemonStartupConfigurationProcessTest {
 						"--email:startingBlank", "--email:from", "sender@example.org", "--email:to", "recipient@example.org",
 						"--email:withPlainText", "Logging-only startup",
 						"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(smtp.getServer().getPortAllocated()),
-						"--mailer:withConnectionPoolCoreSize", "0"));
+						"--mailer:withConnectionPoolCoreSize", "0",
+						"--mailer:withProperty", "mail.host", "localhost"));
 				assertThat(smtp.getMessages()).as("%s keeps logging-only enabled", mode).isEmpty();
 			}
 		} finally {
@@ -122,7 +123,8 @@ class DaemonStartupConfigurationProcessTest {
 	private static String[] validation(final String mode, final String instance) {
 		return new String[] {"validate", "--daemon=" + mode, "--daemon-instance=" + instance,
 				"--email:startingBlank", "--email:from", "sender@example.org", "--email:to", "recipient@example.org",
-				"--email:withPlainText", "Startup configuration"};
+				"--email:withPlainText", "Startup configuration",
+				"--mailer:withProperty", "mail.host", "localhost"};
 	}
 
 	private Invocation invoke(final Map<String, String> properties, final String... arguments) throws Exception {

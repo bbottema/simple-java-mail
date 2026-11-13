@@ -367,6 +367,8 @@ class DaemonBoundedShutdownProcessTest {
                 "--email:withPlainText", "This server never replies to RCPT.",
                 "--mailer:withConnectionConflictPolicy", "ALLOW_EXPLICIT_OVERRIDES",
                 "--mailer:withSMTPServer", "127.0.0.1", Integer.toString(port),
+                "--mailer:withProperty", "mail.host", "localhost",
+                "--mailer:withSmtpClientHostname", "localhost",
                 "--mailer:withConnectTimeout", "5000", "--mailer:withReadTimeout", "0");
     }
 

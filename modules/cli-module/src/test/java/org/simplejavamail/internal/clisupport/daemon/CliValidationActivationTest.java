@@ -66,7 +66,8 @@ class CliValidationActivationTest {
         final SimpleJavaMailConfig config = ConfigLoader.builder().withMap(Map.of(
                 "simplejavamail.smtp.host", "smtp.example.test", "simplejavamail.defaults.connectionpool.clusterkey.uuid", cluster,
                 "simplejavamail.defaults.connectionpool.clusters.validation.clusterkey.uuid", cluster,
-                "simplejavamail.defaults.connectionpool.clusters.validation.coresize", 2)).load();
+                "simplejavamail.defaults.connectionpool.clusters.validation.coresize", 2,
+                "simplejavamail.extraproperties.mail.host", "localhost")).load();
         final AtomicInteger registrations = new AtomicInteger();
         try (MockedStatic<ModuleLoader> modules = batchBoundary(registrations);
              CliExecutionEnvironment environment = new CliExecutionEnvironment(config,
@@ -100,7 +101,8 @@ class CliValidationActivationTest {
     @org.junit.jupiter.api.Test
     void aLaterSendStillCreatesItsConfiguredSendingMailer() {
         final SimpleJavaMailConfig config = ConfigLoader.builder().withMap(Map.of("simplejavamail.smtp.host", "smtp.example.test",
-                "simplejavamail.defaults.connectionpool.coresize", 1, "simplejavamail.transport.mode.logging.only", true)).load();
+                "simplejavamail.defaults.connectionpool.coresize", 1, "simplejavamail.transport.mode.logging.only", true,
+                "simplejavamail.extraproperties.mail.host", "localhost")).load();
         final AtomicInteger registrations = new AtomicInteger();
         final DaemonMailerRegistry registry = new DaemonMailerRegistry(2, Duration.ofMinutes(1));
         try (MockedStatic<ModuleLoader> modules = batchBoundary(registrations);
@@ -129,10 +131,12 @@ class CliValidationActivationTest {
     private static SimpleJavaMailConfig configuration(final boolean namedRoute) {
         final Map<String, Object> values = new LinkedHashMap<>();
         values.put("simplejavamail.smtp.host", "smtp.example.test");
+        values.put("simplejavamail.extraproperties.mail.host", "localhost");
         values.put("simplejavamail.defaults.connectionpool.coresize", 1);
         if (namedRoute) {
             values.put("simplejavamail.failover.mailer", "backup");
             values.put("simplejavamail.mailers.backup.smtp.host", "backup.example.test");
+            values.put("simplejavamail.mailers.backup.extraproperties.mail.host", "localhost");
             values.put("simplejavamail.mailers.backup.defaults.connectionpool.coresize", 1);
         }
         return ConfigLoader.builder().withMap(values).load();

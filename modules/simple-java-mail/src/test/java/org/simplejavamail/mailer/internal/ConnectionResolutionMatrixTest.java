@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static testutil.configcontracts.ConfigurationContractCoverage.record;
 
 /** Finite source/authority matrix. The expected outcome is independent of production interpretation and selection. */
 class ConnectionResolutionMatrixTest {
@@ -129,6 +130,11 @@ class ConnectionResolutionMatrixTest {
         // Rules are sampled by category once; this small mapping sweep ensures every adopted field reaches those rules.
         for (Scenario scenario : Scenario.values()) {
             verify(setting, scenario.strategy, scenario.supplied, scenario.policy, scenario.lock, scenario.choices, scenario.ordinal());
+        }
+        // These source bindings are proved above, including the configured-value conflict scenarios.
+        if (EnumSet.of(Setting.CONNECT, Setting.WRITE, Setting.LOCAL_ADDRESS, Setting.LOCAL_PORT,
+                Setting.EHLO, Setting.IDENTITY, Setting.HOST, Setting.USERNAME).contains(setting)) {
+            record("property", "simplejavamail." + setting.property);
         }
     }
 

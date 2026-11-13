@@ -151,7 +151,9 @@ class SmimeFinalizedContentEncodingTest {
 
     @Test
     void encryptingTheSameSourceAgainDoesNotReplaceItsContentHandlers() throws Exception {
-        final Session session = Session.getInstance(new Properties());
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final Session session = Session.getInstance(properties);
         final MimeMessage source = new MimeMessage(session);
         final TrackingDataHandler originalHandler = new TrackingDataHandler();
         source.setFrom("sender@example.org");
