@@ -115,7 +115,9 @@ workflows:
     when:
       and:
         - << pipeline.parameters.run-root-verification >>
-        - equal: [codex/test-reduction-20261113, << pipeline.git.branch >>]
+        - or:
+            - equal: [codex/10.0.0, << pipeline.git.branch >>]
+            - equal: [codex/test-reduction-20261113, << pipeline.git.branch >>]
     jobs:
       - root-verification
 
