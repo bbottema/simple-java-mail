@@ -109,12 +109,15 @@ class PreEncodedReplyResourceTest {
                 .encryptWithOpenPgp(OpenPgpEncryptionConfig.builder().addRecipientPublicKeyRing(new byte[] {1, 2, 3}).build()).buildEmail();
         final Email reply = MAIL.emailBuilder().replyingTo(source, ReplyOptions.builder().withQuotingTemplate(template).build())
                 .clearPlainText().from("bob@example.org").buildEmail();
+        final String expectedHtml = String.format(template, HTML);
+        assertThat(reply.getHTMLText()).isEqualTo(expectedHtml);
         assertThat(reply.getEmbeddedImages()).isEmpty();
         assertThat(borrowed.opens).hasValue(0);
         final Email emitted = MAIL.converter().fromEml(MAIL.converter().fromEmail(reply).toEmlBytes()).toEmail();
         assertThat(emitted.getEmbeddedImages()).isEmpty();
         assertThat(emitted.getAttachments()).isEmpty();
-        assertThat(emitted.getHTMLText()).isEqualTo(String.format(template, HTML));
+        // MIME serialization canonicalizes line endings, including a platform-specific %n quotation.
+        assertThat(emitted.getHTMLText()).isEqualTo(expectedHtml.replace("\r\n", "\n").replace("\n", "\r\n"));
         assertThat(borrowed.opens).hasValue(0);
         assertThat(borrowed.closes).hasValue(0);
     }
