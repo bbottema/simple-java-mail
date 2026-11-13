@@ -1,12 +1,14 @@
-"""Record one complete branch verification without uploading mail fixtures."""
+"""Record explicitly requested branch checks without uploading mail fixtures."""
 
 import datetime
+import hashlib
 import json
 import os
 from pathlib import Path
 import platform
 import re
 import subprocess
+import sys
 import tempfile
 import time
 import xml.etree.ElementTree as ET
@@ -15,10 +17,28 @@ import xml.etree.ElementTree as ET
 def main():
     evidence = Path("target/ci-verification")
     evidence.mkdir(parents=True, exist_ok=True)
-    command = [
-        "mvn", "--batch-mode", "--no-transfer-progress", "verify",
-        "-Ppublish-cli", "-Dlicense.skip=true",
-    ]
+    scope = sys.argv[1] if len(sys.argv) > 1 else "full"
+    if scope not in ("full", "failure-control"):
+        raise ValueError("Unknown verification scope: " + scope)
+    # The four-CPU VM runs one isolated test JVM per CPU; intra-test concurrency is unchanged.
+    command = ["mvn", "--batch-mode", "--no-transfer-progress", "-Dtest.forkCount=4", "-Dlicense.skip=true"]
+    selected = []
+    if scope == "full":
+        command += ["verify", "-Ppublish-cli"]
+    else:
+        # Fixed diagnostic selection from the failed CI run, not an automatic selection framework.
+        selected = [
+            "MailSendExecutionControlTest", "FailoverDirectClasspathTest", "AutomaticImageCidLocaleTest",
+            "InheritedOAuth2TokenTest", "RecipientDsnSubmissionTest", "SmtpConnectionProbePortTest",
+            "SmtpConnectionProbeTest", "SmtpMessageSizeTest", "SmtpProtocolConformanceTest",
+            "OpenPgpHeaderSeparatorTest", "OpenPgpIndependentSmimeAttachmentTest", "OpenPgpTransferEncodingTest",
+            "SmtpRecipientRepliesTest", "FailoverScopeContractTest", "LateCancellationCleanupFailureTest",
+            "MailSendRetrySchedulingTest", "MailerConnectionTestLifecycleTest", "MailerLifecycleTest",
+            "SmtpContentNegotiationCharacterizationTest", "SmtpMessageSizeLifecycleTest",
+            "ExactEmailProtectionInspectionTest", "PreEncodedReplyResourceTest",
+        ]
+        command += ["-pl", "modules/simple-java-mail", "-am", "test",
+                    "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]
     environment = subprocess.run(
         ["mvn", "--version"], capture_output=True, text=True, check=True
     ).stdout.strip()
@@ -52,24 +72,41 @@ def main():
     elapsed = time.monotonic() - clock
     counts = dict(tests=0, failures=0, errors=0, skipped=0)
     report_count = 0
+    executed = set()
+    failed_classes = set()
     for report in Path("modules").glob("*/target/surefire-reports/TEST-*.xml"):
         suite = ET.parse(report).getroot()
+        executed.add(suite.get("name", "").rsplit(".", 1)[-1])
+        if int(suite.get("failures", "0")) + int(suite.get("errors", "0")):
+            failed_classes.add(suite.get("name"))
         for name in counts:
             counts[name] += int(suite.get(name, "0"))
         report_count += 1
+    missing = sorted(set(selected) - executed)
+    if missing:
+        exit_code = exit_code or 1
+    snapshot_artifacts = []
+    repository = Path.home() / ".m2/repository"
+    for artifact in repository.glob("org/eclipse/angus/angus-mail/*SNAPSHOT/*.jar"):
+        snapshot_artifacts.append({"path": str(artifact.relative_to(repository)),
+                                   "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()})
     result = {
         "commit": os.environ.get("CIRCLE_SHA1"),
         "jobUrl": os.environ.get("CIRCLE_BUILD_URL"),
         "command": " ".join(command),
+        "scope": scope,
         "platform": platform.platform(),
         "availableCpuCount": os.cpu_count(),
         "resourceClass": "large",
         "mavenEnvironment": environment,
+        "snapshotArtifacts": snapshot_artifacts,
         "startedAtUtc": started.isoformat(),
         "finishedAtUtc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "wallSeconds": round(elapsed, 3),
         "mavenTotalTime": total_line,
         "exitCode": exit_code,
+        "missingSelectedClasses": missing,
+        "failedClasses": sorted(failed_classes),
         "reportFiles": report_count,
         "reportedCases": counts.pop("tests"),
         **counts,

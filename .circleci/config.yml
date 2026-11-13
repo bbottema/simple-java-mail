@@ -1,6 +1,13 @@
 version: 2.1
 
 parameters:
+  run-root-verification:
+    type: boolean
+    default: false
+  root-verification-scope:
+    type: enum
+    enum: [full, failure-control]
+    default: full
   run-smtp-conformance:
     type: boolean
     default: false
@@ -47,8 +54,8 @@ jobs:
           keys:
             - root-verification-jdk17-v1-{{ checksum "pom.xml" }}
       - run:
-          name: Verify complete reactor and record Maven duration
-          command: python3 .circleci/record-root-verification.py
+          name: Run requested checks and record Maven duration
+          command: python3 .circleci/record-root-verification.py << pipeline.parameters.root-verification-scope >>
           no_output_timeout: 40m
       - store_artifacts:
           path: target/ci-verification/result.json
@@ -103,7 +110,9 @@ jobs:
 workflows:
   root-verification-measurement:
     when:
-      equal: [codex/test-reduction-20261113, << pipeline.git.branch >>]
+      and:
+        - << pipeline.parameters.run-root-verification >>
+        - equal: [codex/test-reduction-20261113, << pipeline.git.branch >>]
     jobs:
       - root-verification
 
