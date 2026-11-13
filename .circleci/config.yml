@@ -30,6 +30,27 @@ mvn-deploy-command: &mvn-deploy-command
   context: RELEASE_PROFILE_BBOTTEMA
 
 jobs:
+  root-verification:
+    docker:
+      - image: cimg/openjdk:17.0
+    resource_class: large
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - root-verification-jdk17-v1-{{ checksum "pom.xml" }}
+      - run:
+          name: Verify complete reactor and record Maven duration
+          command: python3 .circleci/record-root-verification.py
+          no_output_timeout: 40m
+      - store_artifacts:
+          path: target/ci-verification/result.json
+          destination: root-verification-result.json
+      - save_cache:
+          key: root-verification-jdk17-v1-{{ checksum "pom.xml" }}
+          paths:
+            - ~/.m2/repository
+
   smtp-conformance:
     machine:
       image: ubuntu-2204:2026.05.1
@@ -73,6 +94,12 @@ jobs:
             - ~/.m2/repository
 
 workflows:
+  root-verification-measurement:
+    when:
+      equal: [codex/test-reduction-20261113, << pipeline.git.branch >>]
+    jobs:
+      - root-verification
+
   workflow:
     when:
       equal: [master, << pipeline.git.branch >>]
