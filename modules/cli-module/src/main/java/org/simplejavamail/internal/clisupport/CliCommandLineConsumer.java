@@ -2,6 +2,8 @@ package org.simplejavamail.internal.clisupport;
 
 import org.bbottema.javareflection.valueconverter.IncompatibleTypeException;
 import org.bbottema.javareflection.valueconverter.ValueConversionHelper;
+import org.bbottema.javareflection.valueconverter.ValueFunction;
+import org.bbottema.javareflection.valueconverter.converters.FileConverters;
 import org.jetbrains.annotations.NotNull;
 import org.simplejavamail.api.internal.clisupport.model.Cli;
 import org.simplejavamail.api.internal.clisupport.model.CliCommandType;
@@ -15,13 +17,17 @@ import org.simplejavamail.api.email.EmailStartingBuilder;
 import org.simplejavamail.api.SimpleJavaMail;
 import jakarta.mail.internet.MimeMessage;
 import org.simplejavamail.internal.clisupport.valueinterpreters.MessageFilePathToMimeMessageFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.PemFilePathToX509CertificateFunction;
+import org.simplejavamail.internal.clisupport.valueinterpreters.StringToFileFunction;
 import org.simplejavamail.recipient.internal.MailboxInterpretation;
 import org.simplejavamail.internal.util.MiscUtil;
 import org.slf4j.Logger;
 import picocli.CommandLine.ParseResult;
 
 import java.lang.annotation.Annotation;
+import java.io.File;
 import java.lang.reflect.Method;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -117,12 +123,24 @@ class CliCommandLineConsumer {
 			return MiscUtil.extractEmailAddresses(stringValue);
 		}
 		try {
-            if (targetType == MimeMessage.class && factory != null) {
+            if (targetType == MimeMessage.class) {
+                if (factory == null) {
+                    return new MessageFilePathToMimeMessageFunction().convertValue(stringValue);
+                }
                 final boolean importsMime = (owner.getDeclaringClass() == EmailStartingBuilder.class
                         && (owner.getName().startsWith("replying") || owner.getName().equals("copying")))
                         || owner.getDeclaringClass() == CliEmailHelperBuilder.class;
                 return new MessageFilePathToMimeMessageFunction(factory, importsMime).convertValue(stringValue);
             }
+			if (targetType == X509Certificate.class) {
+				return new PemFilePathToX509CertificateFunction().convertValue(stringValue);
+			}
+			// Keep filesystem operations outside the shared graph monitor, including File.exists().
+			for (ValueFunction<File, ?> converter : FileConverters.FILE_CONVERTERS) {
+				if (converter.getTargetType() == targetType) {
+					return converter.convertValue(new StringToFileFunction().convertValue(stringValue));
+				}
+			}
 			// Parse at the declared numeric width; generic conversion can coerce booleans or narrow numbers.
 			if (targetType == int.class || targetType == Integer.class) {
 				return Integer.valueOf(stringValue);
@@ -133,7 +151,10 @@ class CliCommandLineConsumer {
 			if (targetType == double.class || targetType == Double.class) {
 				return Double.valueOf(stringValue);
 			}
-			return ValueConversionHelper.convert(stringValue, targetType);
+			// java-reflection lazily rebuilds its shared conversion graph when an enum is first used.
+			synchronized (ValueConversionHelper.class) {
+				return ValueConversionHelper.convert(stringValue, targetType);
+			}
 		} catch (IncompatibleTypeException | NumberFormatException e) {
 			LOGGER.error("Unable to parse one command-line value as {}", targetType.getName());
 			throw new CliExecutionException("Unable to parse a command-line value as " + targetType.getSimpleName(), e);

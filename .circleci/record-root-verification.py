@@ -52,6 +52,7 @@ def main():
             "CliMetadataBuildCacheTest", "CliMetadataConcurrencyTest", "CliMetadataCacheTest",
             "TherapiJavadocCacheTest", "JavadocCacheSerializationTest", "CliConfigurationInputContractTest",
             "CliArgumentFilesTest", "GenerateCliHelpTest",
+            "CliValueConversionConcurrencyTest",
         ]
         command += ["-pl", "modules/cli-module", "-am", "test", "-Pparallel-cli-tests",
                     "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]

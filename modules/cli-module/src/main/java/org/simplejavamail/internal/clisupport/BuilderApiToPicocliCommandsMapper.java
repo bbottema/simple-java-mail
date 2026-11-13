@@ -111,18 +111,21 @@ public final class BuilderApiToPicocliCommandsMapper {
 	}};
 	
 	static {
-		ValueConversionHelper.registerValueConverter(new StringToFileFunction());
-		ValueConversionHelper.registerValueConverter(new StringToDurationFunction());
-		ValueConversionHelper.registerValueConverter(new StringToDsnNotifyOptionsFunction());
-		ValueConversionHelper.registerValueConverter(new StringToDsnReturnOptionFunction());
-		ValueConversionHelper.registerValueConverter(new MessageFilePathToMimeMessageFunction());
-		ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
-		ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
-		ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());
-		ValueConversionHelper.registerValueConverter(new StringToRecipientTypeFunction());
-		ValueConversionHelper.registerValueConverter(new StringToSessionDebugOutputFunction());
-		ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
-		ValueConversionHelper.registerValueConverter(new StringToContentTransferEncodingFunction());
+		// Coordinate registration with CLI conversions, which can also register enum converters lazily.
+		synchronized (ValueConversionHelper.class) {
+			ValueConversionHelper.registerValueConverter(new StringToFileFunction());
+			ValueConversionHelper.registerValueConverter(new StringToDurationFunction());
+			ValueConversionHelper.registerValueConverter(new StringToDsnNotifyOptionsFunction());
+			ValueConversionHelper.registerValueConverter(new StringToDsnReturnOptionFunction());
+			ValueConversionHelper.registerValueConverter(new MessageFilePathToMimeMessageFunction());
+			ValueConversionHelper.registerValueConverter(new PemFilePathToX509CertificateFunction());
+			ValueConversionHelper.registerValueConverter(new StringToTransportStrategyFunction());
+			ValueConversionHelper.registerValueConverter(new StringToLoadBalancingStrategyFunction());
+			ValueConversionHelper.registerValueConverter(new StringToRecipientTypeFunction());
+			ValueConversionHelper.registerValueConverter(new StringToSessionDebugOutputFunction());
+			ValueConversionHelper.registerValueConverter(new StringToCalendarMethodFunction());
+			ValueConversionHelper.registerValueConverter(new StringToContentTransferEncodingFunction());
+		}
 	}
 	
 	private BuilderApiToPicocliCommandsMapper() {

@@ -136,6 +136,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 
 ### Other corrections
 
+- Concurrent CLI daemon requests retain valid command-line values while converters are initialized; first-use enum conversion no longer observes a partially rebuilt shared conversion registry.
+
 
 - [#976](https://github.com/bbottema/simple-java-mail/issues/976): CLI integer options reject Boolean words, fractions and overflowing values instead of coercing them into different settings. Valid integer input keeps its existing units and option-specific meaning, including explicit zero timeouts.
 
