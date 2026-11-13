@@ -6,7 +6,7 @@ parameters:
     default: false
   root-verification-scope:
     type: enum
-    enum: [full, failure-control]
+    enum: [full, failure-control, cli-fork-control]
     default: full
   run-smtp-conformance:
     type: boolean

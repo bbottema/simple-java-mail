@@ -20,14 +20,15 @@ def main():
     evidence = Path("target/ci-verification")
     evidence.mkdir(parents=True, exist_ok=True)
     scope = sys.argv[1] if len(sys.argv) > 1 else "full"
-    if scope not in ("full", "failure-control"):
+    if scope not in ("full", "failure-control", "cli-fork-control"):
         raise ValueError("Unknown verification scope: " + scope)
-    # The four-CPU VM runs one isolated test JVM per CPU; intra-test concurrency is unchanged.
-    command = ["mvn", "--batch-mode", "--no-transfer-progress", "-Dtest.forkCount=4", "-Dlicense.skip=true"]
+    # The main module uses four isolated JVMs; CLI fork reuse/count is configured separately.
+    command = ["mvn", "--batch-mode", "--no-transfer-progress", "-Dtest.forkCount=4",
+               "-Dcli.test.forkCount=4", "-Dlicense.skip=true"]
     selected = []
     if scope == "full":
-        command += ["verify", "-Ppublish-cli"]
-    else:
+        command += ["verify", "-Ppublish-cli,parallel-cli-tests"]
+    elif scope == "failure-control":
         # Fixed diagnostic selection from the failed CI run, not an automatic selection framework.
         selected = [
             "MailSendExecutionControlTest", "FailoverDirectClasspathTest", "AutomaticImageCidLocaleTest",
@@ -42,6 +43,17 @@ def main():
             "MailSendRateLimiterTest",
         ]
         command += ["-pl", "modules/simple-java-mail", "-am", "test",
+                    "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]
+    else:
+        # Fixed process/cache controls for CLI fork changes; all test methods remain sequential within each JVM.
+        selected = [
+            "DaemonControlSaturationProcessTest", "DaemonStartupConfigurationProcessTest",
+            "DaemonPathNormalizationProcessTest", "CliProcessSmokeTest", "DaemonBoundedShutdownProcessTest",
+            "CliMetadataBuildCacheTest", "CliMetadataConcurrencyTest", "CliMetadataCacheTest",
+            "TherapiJavadocCacheTest", "JavadocCacheSerializationTest", "CliConfigurationInputContractTest",
+            "CliArgumentFilesTest", "GenerateCliHelpTest",
+        ]
+        command += ["-pl", "modules/cli-module", "-am", "test", "-Pparallel-cli-tests",
                     "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]
     environment = subprocess.run(
         ["mvn", "--version"], capture_output=True, text=True, check=True
@@ -81,7 +93,8 @@ def main():
     failed_classes = set()
     for report in Path("modules").glob("*/target/surefire-reports/TEST-*.xml"):
         suite = ET.parse(report).getroot()
-        executed.add(suite.get("name", "").rsplit(".", 1)[-1])
+        if int(suite.get("tests", "0")) > 0:
+            executed.add(suite.get("name", "").rsplit(".", 1)[-1])
         if int(suite.get("failures", "0")) + int(suite.get("errors", "0")):
             failed_classes.add(suite.get("name"))
         for name in counts:
