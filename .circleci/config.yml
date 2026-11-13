@@ -31,11 +31,18 @@ mvn-deploy-command: &mvn-deploy-command
 
 jobs:
   root-verification:
-    docker:
-      - image: cimg/openjdk:17.0
+    machine:
+      image: ubuntu-2204:2026.05.1
     resource_class: large
     steps:
       - checkout
+      - run:
+          name: Prepare Java 17 verification runtime
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y openjdk-17-jdk-headless maven python3
+            echo 'export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64' >> "$BASH_ENV"
+            echo 'export PATH=/usr/lib/jvm/java-17-openjdk-amd64/bin:$PATH' >> "$BASH_ENV"
       - restore_cache:
           keys:
             - root-verification-jdk17-v1-{{ checksum "pom.xml" }}

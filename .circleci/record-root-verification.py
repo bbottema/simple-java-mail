@@ -7,6 +7,7 @@ from pathlib import Path
 import platform
 import re
 import subprocess
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 
@@ -21,6 +22,19 @@ def main():
     environment = subprocess.run(
         ["mvn", "--version"], capture_output=True, text=True, check=True
     ).stdout.strip()
+    # IPv6 socket tests need a real runner capability, not a skipped test group.
+    with tempfile.TemporaryDirectory(prefix="sjm-ipv6-check-") as directory:
+        probe = Path(directory) / "VerifyIpv6.java"
+        probe.write_text(
+            "import java.net.*;\n"
+            "class VerifyIpv6 { public static void main(String[] args) throws Exception {\n"
+            "  try (ServerSocket socket = new ServerSocket()) {\n"
+            "    socket.bind(new InetSocketAddress(InetAddress.getByName(\"::1\"), 0));\n"
+            "    System.out.println(\"Java IPv6 loopback is available\");\n"
+            "  }\n"
+            "}}\n", encoding="utf-8",
+        )
+        subprocess.run(["java", str(probe)], check=True)
     started = datetime.datetime.now(datetime.timezone.utc)
     clock = time.monotonic()
     total_line = None
