@@ -17,6 +17,12 @@ import jakarta.mail.Session;
 import jakarta.mail.URLName;
 import jakarta.mail.internet.MimeMessage;
 import org.eclipse.angus.mail.smtp.SMTPTransport;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.apache.logging.log4j.core.config.Property;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -377,6 +383,25 @@ public class MailerTest {
 		assertThat(mailer.getSession().getDebugOut()).isNotNull();
 		assertThat(mailer.getSession().getDebugOut()).isNotSameAs(System.out);
 		assertThat(mailer.getSession().getDebugOut()).isNotSameAs(System.err);
+		final Logger logger = (Logger) LogManager.getLogger("org.simplejavamail.javamail.debug");
+		final Level previousLevel = logger.getLevel();
+		final List<String> messages = new ArrayList<>();
+		final AbstractAppender capture = new AbstractAppender("mailer-debug-test", null, null, true, Property.EMPTY_ARRAY) {
+			@Override public void append(final LogEvent event) {
+				messages.add(event.getMessage().getFormattedMessage());
+			}
+		};
+		capture.start();
+		logger.addAppender(capture);
+		logger.setLevel(Level.DEBUG);
+		try {
+			mailer.getSession().getDebugOut().print("first\r\nsecond\n");
+			assertThat(messages).containsExactly("first", "second");
+		} finally {
+			logger.setLevel(previousLevel);
+			logger.removeAppender(capture);
+			capture.stop();
+		}
 	}
 
 	@Test
