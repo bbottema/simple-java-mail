@@ -15,6 +15,7 @@ import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.Mailer;
 import org.simplejavamail.api.mailer.config.FailoverPolicy;
 import org.simplejavamail.api.mailer.config.LoadBalancingStrategy;
+import org.simplejavamail.mailer.internal.BackgroundConnectionTestAccess;
 import testutil.smtp.RecordingSmtpServer;
 
 import java.time.Duration;
@@ -178,6 +179,13 @@ class FailoverPoolContractTest {
                 await(initialStarted);
                 releaseInitial.countDown();
                 await(failedConnectionClosed);
+                // The server sees the close before the client necessarily publishes the failure.
+                final long deadline = System.nanoTime() + SECONDS.toNanos(10);
+                while (BackgroundConnectionTestAccess.isAllowed(initiating) && System.nanoTime() < deadline) {
+                    Thread.sleep(10);
+                }
+                assertThat(BackgroundConnectionTestAccess.isAllowed(initiating))
+                        .as("background connection failure was published").isFalse();
                 for (int attempt = 0; attempt < 3; attempt++) {
                     initiating.sync().sendMail(email());
                 }
