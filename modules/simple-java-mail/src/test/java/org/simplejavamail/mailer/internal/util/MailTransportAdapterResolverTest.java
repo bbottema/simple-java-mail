@@ -354,7 +354,9 @@ class MailTransportAdapterResolverTest {
     }
 
     private static PreparedMail preparedMail(final DeliveryEnvelope envelope, final ContentRequirement contentRequirement) throws MessagingException {
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
         message.setText("body");
         message.saveChanges();
         return PreparedMail.builder()

@@ -400,8 +400,14 @@ class MailerHelperSmimeTest {
 		return output.toByteArray();
 	}
 
+	private static Session fixtureSession() {
+		final Properties properties = new Properties();
+		properties.setProperty("mail.host", "localhost");
+		return Session.getInstance(properties);
+	}
+
 	private static MimeMessage rawMessage() throws Exception {
-		final MimeMessage raw = new MimeMessage(Session.getInstance(new Properties()));
+		final MimeMessage raw = new MimeMessage(fixtureSession());
 		raw.setFrom("sender@example.org");
 		raw.setRecipients(TO, "reader@example.org");
 		raw.setSubject("Caller changed the subject");

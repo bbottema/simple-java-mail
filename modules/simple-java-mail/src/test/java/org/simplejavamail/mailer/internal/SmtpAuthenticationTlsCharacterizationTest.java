@@ -516,6 +516,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
         })) {
             final Properties properties = new Properties();
             properties.setProperty("mail.transport.protocol", "smtp");
+            properties.setProperty("mail.host", "localhost");
             properties.setProperty("mail.smtp.host", "localhost");
             properties.setProperty("mail.smtp.port", Integer.toString(server.port()));
             properties.setProperty("mail.smtp.localhost", "probe.example.test");
@@ -547,6 +548,7 @@ class SmtpAuthenticationTlsCharacterizationTest {
 
     private static MailerRegularBuilder<?> builder(final int port) {
         return factory().mailerBuilder().withSMTPServer("localhost", port)
+                .withProperty("mail.host", "localhost")
                 .withConnectionConfig(ConnectionConfig.builder().withSmtpClientHostname("probe.example.test").withSessionTimeout(Duration.ofMillis(5000)).build())
                 .withConnectionPoolConfig(ConnectionPoolConfig.builder().withCoreSize(0).withMaxSize(1).withClaimTimeout(Duration.ofMillis(5000)).build())
                 .withProperty("mail.smtps.ssl.protocols", "TLSv1.2")

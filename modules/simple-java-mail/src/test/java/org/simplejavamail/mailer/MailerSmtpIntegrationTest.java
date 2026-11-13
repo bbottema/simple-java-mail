@@ -123,6 +123,8 @@ public class MailerSmtpIntegrationTest {
 	public void setup() {
 		mailer = SimpleJavaMail.withConfig(ConfigLoaderTestHelper.emptyConfig()).mailerBuilder()
 				.withSMTPServer("localhost", smtpServerExtension.getPort(), USERNAME, PASSWORD)
+				.withProperty("mail.host", "localhost")
+				.withProperty("mail.smtp.localhost", "localhost")
 				.withEmailDefaults(EMAIL_DEFAULTS().buildEmail())
 				.withEmailOverrides(EMAIL_OVERRIDES().buildEmail())
 				.buildMailer();

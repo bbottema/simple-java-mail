@@ -86,8 +86,11 @@ class EmailBootstrapRouteContractTest {
         final String name = method.getName();
         final EmailPopulatingBuilder sourceBuilder = fixture.mail.emailBuilder().startingBlank().from("sender@example.org").to("reader@example.org")
                 .withSubject("Source").withPlainText("Body").withHTMLText("<p>Body</p>").fixingMessageId("<source@example.org>").fixingSentDate(Instant.ofEpochSecond(1));
-        final Email source = fixture.mail.converter().fromEml(fixture.mail.converter().fromEmail(sourceBuilder.buildEmail()).toEmlBytes()).toEmail();
-        final MimeMessage mime = fixture.mail.converter().fromEmail(source).toMimeMessage();
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final Session session = Session.getInstance(properties);
+        final Email source = fixture.mail.converter().fromEml(fixture.mail.converter().fromEmail(sourceBuilder.buildEmail()).withSession(session).toEmlBytes()).toEmail();
+        final MimeMessage mime = fixture.mail.converter().fromEmail(source).withSession(session).toMimeMessage();
         final EmailContractTestSupport.BorrowedInput stream = new EmailContractTestSupport.BorrowedInput(EML);
         final Path path = Files.write(directory.resolve("source.eml"), EML);
         final Object[] args = new Object[method.getParameterCount()];

@@ -109,6 +109,7 @@ class FactorySmimeRoutingTest {
         final Pkcs12Config c = independentStore(a);
         final Properties properties = new Properties();
         properties.setProperty("mail.transport.protocol", "smtp");
+        properties.setProperty("mail.host", "localhost");
         final Session session = Session.getInstance(properties);
         final Mailer closed = first.mailerBuilder(session).withTransportModeLoggingOnly(true).buildMailer();
         closed.rehearse(message(first, a));
@@ -128,8 +129,8 @@ class FactorySmimeRoutingTest {
     void closingOneMailerDoesNotClearAnotherParticipantsFactoryCache() throws Exception {
         final SimpleJavaMail mail = factory(1);
         final Pkcs12Config keys = loadPkcs12KeyStore();
-        final Mailer first = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer();
-        try (Mailer second = mail.mailerBuilder().withTransportModeLoggingOnly(true).buildMailer()) {
+        final Mailer first = mail.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer();
+        try (Mailer second = mail.mailerBuilder().withProperty("mail.host", "localhost").withTransportModeLoggingOnly(true).buildMailer()) {
             first.rehearse(message(mail, keys));
             final Object held = entries(mail).get(keys);
             first.close();
@@ -148,7 +149,9 @@ class FactorySmimeRoutingTest {
         final MimeMessage exported = EmailConverter.emailToMimeMessage(email);
         assertThat(origin.converter().fromMimeMessage(exported).toEmail().getInspection().getPlainText().getSignatureStatus())
                 .isEqualTo(SignatureStatus.VERIFIED);
-        final MimeMessage raw = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage raw = new MimeMessage(Session.getInstance(properties));
         raw.setFrom("sender@example.org");
         raw.setText("Helper body", "UTF-8");
         raw.saveChanges();

@@ -1138,12 +1138,14 @@ public class MailerTest {
 
 	private Mailer getMailerWithCustomMailer(final CustomMailer customMailerMock) {
 		return createConfiguredMailerBuilder(false, "", null)
+				.withProperty("mail.host", "localhost")
 				.withCustomMailer(customMailerMock)
 				.buildMailer();
 	}
 
 	private static Session createCountingTransportSession() throws MessagingException {
 		final Properties properties = new Properties();
+		properties.setProperty("mail.host", "localhost");
 		properties.put(COUNTING_TRANSPORT_STATE_KEY, new CountingTransportState());
 		properties.setProperty("mail.transport.protocol", "smtp");
 		properties.setProperty("mail.smtp.host", "localhost");

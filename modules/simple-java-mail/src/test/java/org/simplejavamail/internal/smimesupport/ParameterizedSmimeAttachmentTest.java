@@ -180,7 +180,9 @@ class ParameterizedSmimeAttachmentTest {
         content.addBodyPart(text);
         content.addBodyPart(protectedFile);
         content.addBodyPart(note);
-        final MimeMessage message = new MimeMessage(Session.getInstance(new Properties()));
+        final Properties properties = new Properties();
+        properties.setProperty("mail.host", "localhost");
+        final MimeMessage message = new MimeMessage(Session.getInstance(properties));
         message.setFrom("sender@example.org");
         message.setRecipients(jakarta.mail.Message.RecipientType.TO, "recipient@example.org");
         message.setContent(content);

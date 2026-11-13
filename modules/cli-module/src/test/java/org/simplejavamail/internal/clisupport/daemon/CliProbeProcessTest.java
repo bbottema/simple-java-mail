@@ -182,7 +182,8 @@ class CliProbeProcessTest {
 				"--mailer:withSMTPServer", "127.0.0.1", Integer.toString(port), USER, PASSWORD,
 				"--mailer:withTransportStrategy", "SMTP", "--mailer:withOpportunisticTLS", "false",
 				"--mailer:withSessionTimeout", "5000", "--mailer:withConnectionPoolCoreSize", "0",
-				"--mailer:withTransportModeLoggingOnly", "true"));
+				"--mailer:withTransportModeLoggingOnly", "true",
+				"--mailer:withSmtpClientHostname", "localhost"));
 		if (authenticate) {
 			arguments.add("--authenticate");
 		}

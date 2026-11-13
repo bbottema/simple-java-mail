@@ -333,6 +333,7 @@ class SmtpsOAuth2Test {
 
     private static MailerRegularBuilder<?> builder(final int port, final String name) {
         return factory().mailerBuilder().withSMTPServer("localhost", port, USER)
+                .withProperty("mail.host", "localhost")
                 .withTransportStrategy(TransportStrategy.valueOf(name))
                 .withConnectionConfig(ConnectionConfig.builder().withSessionTimeout(Duration.ofSeconds(5))
                         .withSmtpClientHostname("probe.example.test").build())
