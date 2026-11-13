@@ -10,12 +10,15 @@ import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -179,7 +182,9 @@ class MailSendRetrySchedulingTest {
 
     @Test
     void queuedResumptionKeepsItsPermitUntilExecutionAndCancellationRemovesIt() throws Exception {
-        final ExecutorService executor = Executors.newSingleThreadExecutor();
+        final ThreadPoolExecutor worker = new ThreadPoolExecutor(1, 1, 0, MILLISECONDS, new LinkedBlockingQueue<>());
+        // Preserve the delegated user-executor boundary while exposing the queue to this fixture.
+        final ExecutorService executor = Executors.unconfigurableExecutorService(worker);
         final MailSendOperations owner = new MailSendOperations(configuration(executor));
         final CountDownLatch releaseWorker = new CountDownLatch(1);
         final CountDownLatch resumedQueue = new CountDownLatch(1);
@@ -191,7 +196,7 @@ class MailSendRetrySchedulingTest {
                     turns.incrementAndGet();
                     executor.execute(() -> {
                         resumedQueue.countDown();
-                        await(releaseWorker);
+                        awaitExplicitRelease(releaseWorker);
                     });
                     return MailSendOperation.RetryResult.retry(Duration.ofNanos(1));
                 }
@@ -201,6 +206,11 @@ class MailSendRetrySchedulingTest {
                 @Override public void close() { }
             }));
             assertThat(resumedQueue.await(5, SECONDS)).isTrue();
+            final long deadline = System.nanoTime() + SECONDS.toNanos(5);
+            while (!worker.getQueue().contains(operation) && System.nanoTime() < deadline) {
+                Thread.sleep(1);
+            }
+            assertThat(worker.getQueue()).contains(operation);
             operation.handle().requestCancellation();
             assertThat(operation.handle().getCompletion().handle((value, failure) -> failure).get(5, SECONDS)).isInstanceOf(MailSendCancelledException.class);
             releaseWorker.countDown();
@@ -224,6 +234,15 @@ class MailSendRetrySchedulingTest {
     private static void await(final CountDownLatch latch) {
         try {
             assertThat(latch.await(5, SECONDS)).isTrue();
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(interrupted);
+        }
+    }
+
+    private static void awaitExplicitRelease(final CountDownLatch latch) {
+        try {
+            latch.await();
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new AssertionError(interrupted);
