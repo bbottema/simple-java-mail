@@ -28,7 +28,13 @@ import java.util.Set;
 @SuppressWarnings("unused") // loaded through reflection
 public final class DKIMSigner implements DKIMModule {
     private static final Logger LOGGER = LoggerFactory.getLogger(DKIMSigner.class);
-    private static final Provider BOUNCY_CASTLE_PROVIDER = new BouncyCastleProvider();
+    // Keep the mandatory provider type check during module discovery without initializing the provider.
+    private static final Class<? extends Provider> BOUNCY_CASTLE_PROVIDER_TYPE = BouncyCastleProvider.class;
+
+    private static final class BouncyCastleProviderHolder {
+        // Provider initialization failures belong to the first Ed25519 use; RSA remains independent.
+        private static final Provider INSTANCE = new BouncyCastleProvider();
+    }
 
     @Override
     public MimeMessage signMessageWithDKIM(@NotNull final Email email,
@@ -87,7 +93,7 @@ public final class DKIMSigner implements DKIMModule {
                     .replaceAll("\\s", ""));
         }
         final KeyFactory keyFactory = algorithm == SigningAlgorithm.SHA256_WITH_ED25519
-                ? KeyFactory.getInstance("Ed25519", BOUNCY_CASTLE_PROVIDER)
+                ? KeyFactory.getInstance("Ed25519", BouncyCastleProviderHolder.INSTANCE)
                 : KeyFactory.getInstance("RSA");
         return keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }

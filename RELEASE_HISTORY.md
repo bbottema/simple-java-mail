@@ -72,6 +72,8 @@ Full Simple Java Mail release history. The [README](https://github.com/bbottema/
 - [#714](https://github.com/bbottema/simple-java-mail/issues/714): added automatic, independently backing-off `SimpleJavaMailConfig`, `SimpleJavaMail`, and `Mailer` beans for Spring Boot 2.7 and 3.x, plus a dependency-only `simple-java-mail-spring-boot-starter` and a permanent compatibility matrix.
 ### Enhancements
 
+- DKIM module discovery and RSA signing defer construction of the private Bouncy Castle provider until Ed25519 key parsing. Bouncy Castle remains a required dependency; provider initialization failures now surface on the first Ed25519 use.
+
 - [#977](https://github.com/bbottema/simple-java-mail/issues/977): added factory-scoped S/MIME key-cache capacity through `simplejavamail.smime.cache.capacity`. The default `-1` retains entries without a count limit, `0` disables completed-entry retention, and positive values apply least-recently-used capacity. Mailers and converters from one factory share reuse; separate factories remain independent. Evicted keys reload when needed without interrupting operations already using them.
 
 - [#975](https://github.com/bbottema/simple-java-mail/issues/975): Outlook imports leave a missing sender absent instead of substituting `donotreply@unknown-from-address.net`. Available sender-name evidence remains inspectable through source data. Supply a real From address before sending, or deliberately enable an applicable defaults template after import; ordinary outgoing validation still requires a sender.
