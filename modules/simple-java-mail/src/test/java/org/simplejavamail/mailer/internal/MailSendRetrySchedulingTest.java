@@ -94,6 +94,57 @@ class MailSendRetrySchedulingTest {
         } finally { timers.shutdownNow(); }
     }
     @Test
+    void shutdownDuringAnInlineRetryDoesNotInterruptTheExecutingDispatcher() throws Exception {
+        final ScheduledThreadPoolExecutor timers = new ScheduledThreadPoolExecutor(1);
+        final ExecutorService executor = mock(ExecutorService.class);
+        final Thread submittingThread = Thread.currentThread();
+        final CountDownLatch retryEntered = new CountDownLatch(1);
+        final CountDownLatch releaseRetry = new CountDownLatch(1);
+        final CountDownLatch resumedReturned = new CountDownLatch(1);
+        final AtomicBoolean interrupted = new AtomicBoolean(true);
+        doAnswer(invocation -> {
+            final boolean resumed = Thread.currentThread() != submittingThread;
+            try { ((Runnable) invocation.getArgument(0)).run(); }
+            finally {
+                if (resumed) {
+                    interrupted.set(Thread.currentThread().isInterrupted());
+                    resumedReturned.countDown();
+                }
+            }
+            return null;
+        }).when(executor).execute(any());
+        final MailSendOperations owner = new MailSendOperations(configuration(executor), timers);
+        final AtomicInteger turns = new AtomicInteger();
+        final MailSendOperation<String> operation = owner.begin(value -> { }, failure -> { throw new AssertionError(failure); });
+        try {
+            operation.schedule(() -> operation.executeRetrying(new MailSendOperation.RetryingWork<>() {
+                @Override public MailSendOperation.RetryResult<String> execute() {
+                    if (turns.incrementAndGet() == 1) { return MailSendOperation.RetryResult.retry(Duration.ofNanos(1)); }
+                    retryEntered.countDown();
+                    await(releaseRetry);
+                    return MailSendOperation.RetryResult.completed("accepted");
+                }
+                @Override public RuntimeException lastFailure() { return new MailerException("temporary refusal"); }
+                @Override public void waiting() { }
+                @Override public void resumed() { }
+                @Override public void close() { }
+            }));
+            assertThat(retryEntered.await(5, SECONDS)).isTrue();
+            final var drained = owner.shutdown();
+            assertThat(drained).isNotDone();
+            releaseRetry.countDown();
+            assertThat(operation.handle().getCompletion().get(5, SECONDS)).isEqualTo("accepted");
+            drained.get(5, SECONDS);
+            assertThat(resumedReturned.await(5, SECONDS)).isTrue();
+            assertThat(interrupted).isFalse();
+        } finally {
+            releaseRetry.countDown();
+            owner.shutdown().get(5, SECONDS);
+            timers.shutdownNow();
+        }
+    }
+
+    @Test
     void cancelledTimerCannotExecuteAgainAndReleasesWaitingCapacity() throws Exception {
         final ExecutorService executor = Executors.newSingleThreadExecutor();
         final MailSendOperations owner = new MailSendOperations(configuration(executor));

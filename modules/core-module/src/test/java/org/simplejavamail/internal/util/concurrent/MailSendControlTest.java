@@ -148,6 +148,36 @@ class MailSendControlTest {
     }
 
     @Test
+    void retiringAStopActionAfterCancellationTakesItsSnapshotPreventsInvocation() throws Exception {
+        final ScheduledExecutorService watcher = Executors.newSingleThreadScheduledExecutor();
+        final CountDownLatch firstEntered = new CountDownLatch(1);
+        final CountDownLatch releaseFirst = new CountDownLatch(1);
+        final AtomicInteger retiredCalls = new AtomicInteger();
+        try (MailSendControl control = new MailSendControl(null, watcher)) {
+            control.onStop(() -> { firstEntered.countDown(); await(releaseFirst); });
+            final MailSendControl.Registration retired = control.onStop(retiredCalls::incrementAndGet);
+            final FutureTask<Void> cancelling = new FutureTask<>(() -> { control.requestCancellation(); return null; });
+            final Thread thread = new Thread(cancelling, "stop-snapshot-test");
+            thread.start();
+            try {
+                assertThat(firstEntered.await(2, SECONDS)).isTrue();
+                retired.close();
+                releaseFirst.countDown();
+                cancelling.get(2, SECONDS);
+                assertThat(retiredCalls).hasValue(0);
+            } finally {
+                releaseFirst.countDown();
+                thread.join(SECONDS.toMillis(2));
+                assertThat(thread.isAlive()).isFalse();
+            }
+        } finally {
+            releaseFirst.countDown();
+            watcher.shutdownNow();
+            assertThat(watcher.awaitTermination(2, SECONDS)).isTrue();
+        }
+    }
+
+    @Test
     void timeoutMustBePositiveAndRepresentable() {
         assertThatThrownBy(() -> MailSendControl.positiveTimeoutNanos(Duration.ZERO)).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> MailSendControl.positiveTimeoutNanos(Duration.ofSeconds(-1))).isInstanceOf(IllegalArgumentException.class);
