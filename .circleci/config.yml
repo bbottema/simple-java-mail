@@ -60,6 +60,9 @@ jobs:
       - store_artifacts:
           path: target/ci-verification/result.json
           destination: root-verification-result.json
+      - store_artifacts:
+          path: target/ci-verification/coverage
+          destination: production-coverage
       - save_cache:
           key: root-verification-jdk17-v1-{{ checksum "pom.xml" }}
           paths:

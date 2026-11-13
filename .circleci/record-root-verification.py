@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -36,6 +37,7 @@ def main():
             "MailSendRetrySchedulingTest", "MailerConnectionTestLifecycleTest", "MailerLifecycleTest",
             "SmtpContentNegotiationCharacterizationTest", "SmtpMessageSizeLifecycleTest",
             "ExactEmailProtectionInspectionTest", "PreEncodedReplyResourceTest",
+            "FailoverPoolContractTest",
         ]
         command += ["-pl", "modules/simple-java-mail", "-am", "test",
                     "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]
@@ -72,6 +74,7 @@ def main():
     elapsed = time.monotonic() - clock
     counts = dict(tests=0, failures=0, errors=0, skipped=0)
     report_count = 0
+    suite_counts = []
     executed = set()
     failed_classes = set()
     for report in Path("modules").glob("*/target/surefire-reports/TEST-*.xml"):
@@ -81,6 +84,8 @@ def main():
             failed_classes.add(suite.get("name"))
         for name in counts:
             counts[name] += int(suite.get(name, "0"))
+        suite_counts.append({"module": report.parts[1], "class": suite.get("name"),
+                             **{name: int(suite.get(name, "0")) for name in counts}})
         report_count += 1
     missing = sorted(set(selected) - executed)
     if missing:
@@ -90,6 +95,14 @@ def main():
     for artifact in repository.glob("org/eclipse/angus/angus-mail/*SNAPSHOT/*.jar"):
         snapshot_artifacts.append({"path": str(artifact.relative_to(repository)),
                                    "sha256": hashlib.sha256(artifact.read_bytes()).hexdigest()})
+    coverage = evidence / "coverage"
+    coverage.mkdir(exist_ok=True)
+    coverage_artifacts = []
+    for pattern in ("*/target/jacoco*.exec", "*/target/site/**/jacoco.xml"):
+        for source in Path("modules").glob(pattern):
+            destination = coverage / (source.parts[1] + "-" + "-".join(source.parts[3:]))
+            shutil.copyfile(source, destination)
+            coverage_artifacts.append(str(destination.relative_to(evidence)))
     result = {
         "commit": os.environ.get("CIRCLE_SHA1"),
         "jobUrl": os.environ.get("CIRCLE_BUILD_URL"),
@@ -108,6 +121,8 @@ def main():
         "missingSelectedClasses": missing,
         "failedClasses": sorted(failed_classes),
         "reportFiles": report_count,
+        "suiteCounts": sorted(suite_counts, key=lambda row: (row["module"], row["class"])),
+        "coverageArtifacts": sorted(coverage_artifacts),
         "reportedCases": counts.pop("tests"),
         **counts,
     }
