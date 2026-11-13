@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** A real SMTP read must not retain the standalone daemon after its complete stop budget expires. */
 @ResourceLock(Resources.SYSTEM_PROPERTIES)
+@Tag("cli-process-pressure")
 class DaemonBoundedShutdownProcessTest {
     private static final String INSTANCE = "bounded-stop";
 

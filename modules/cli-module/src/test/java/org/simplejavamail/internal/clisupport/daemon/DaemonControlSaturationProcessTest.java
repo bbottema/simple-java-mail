@@ -1,5 +1,6 @@
 package org.simplejavamail.internal.clisupport.daemon;
 
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.junit.jupiter.api.parallel.Resources;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /** Actual CLI processes keep slow SMTP commands in flight while authenticated management uses the same endpoint. */
 @ResourceLock(Resources.SYSTEM_PROPERTIES)
+@Tag("cli-process-pressure")
 class DaemonControlSaturationProcessTest {
     private static final String INSTANCE = "control-saturation";
     private static final int CLI_COMMANDS = 8;
@@ -104,6 +106,18 @@ class DaemonControlSaturationProcessTest {
                 assertSuccess(daemon.await(Duration.ofSeconds(35)));
                 assertThat(smtp.recipientCalls).hasValue(CLI_COMMANDS);
                 assertThat(smtp.server.getMessages()).hasSize(CLI_COMMANDS);
+            } catch (Exception | AssertionError failure) {
+                try {
+                    final StringBuilder snapshot = new StringBuilder("Owned process snapshots at saturation failure:");
+                    snapshot.append("\ndaemon: ").append(daemon.snapshot());
+                    for (int index = 0; index < commands.size(); index++) {
+                        snapshot.append("\nclient ").append(index).append(": ").append(commands.get(index).snapshot());
+                    }
+                    failure.addSuppressed(new AssertionError(snapshot.toString()));
+                } catch (RuntimeException | Error diagnosticFailure) {
+                    failure.addSuppressed(diagnosticFailure);
+                }
+                throw failure;
             } finally {
                 smtp.releaseSends.countDown();
                 for (PendingReply reply : queued) { reply.close(); }
@@ -303,6 +317,21 @@ class DaemonControlSaturationProcessTest {
             checkCaptureFailure();
             // A live snapshot may end between UTF-8 bytes; diagnostics must not manufacture a decoding failure.
             return captured.toString(StandardCharsets.UTF_8);
+        }
+
+        /** Captures a bounded output tail without waiting for process completion. */
+        private String snapshot() {
+            final String state;
+            if (process.isAlive()) {
+                state = "alive";
+            } else {
+                state = "exit=" + process.exitValue();
+            }
+            final String text = captured.toString(StandardCharsets.UTF_8);
+            final int limit = 2048;
+            final String tail = text.length() <= limit ? text : "[earlier output omitted]\n" + text.substring(text.length() - limit);
+            return "pid=" + process.pid() + " " + state + " output=" + tail
+                    + (captureFailure == null ? "" : " captureFailure=" + captureFailure.getClass().getName());
         }
 
         private void awaitOutput(final long deadline) throws InterruptedException, IOException {
