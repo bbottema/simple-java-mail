@@ -37,4 +37,6 @@ The pipeline owns the full JDK 17+ checkpoint (`mvn clean verify -Ppublish-cli`)
 
 For performance work, compare the same focused selection before and after on the local JDK. Record actual cases, suite timings and relevant fixture/process starts; Maven wall time can also include compilation and metadata work. Start with one comparison and repeat only when noise or a failure requires it. Obtain the whole-reactor timing from the next normal pipeline run rather than repeatedly running all tests locally.
 
+JaCoCo instruments the project namespaces `org.simplejavamail.*`, `testutil.*`, and `demo.*`. This keeps project and fixture probes while avoiding instrumentation of unrelated libraries. Align the agent filter with any new owned namespace, including generated classes; compare compiled class identities and project probe hits when changing this filter. The aggregate report's module list is a separate scope and does not include every reactor module.
+
 Repeat a completed check if relevant sources, tests, build inputs, dependency artifacts, environment, or scope change, or if a failure or new concern appears. Reuse earlier evidence only when those relevant inputs match. Report the selection and its limits accurately; do not describe a focused run as a full reactor or configuration-gate pass.
