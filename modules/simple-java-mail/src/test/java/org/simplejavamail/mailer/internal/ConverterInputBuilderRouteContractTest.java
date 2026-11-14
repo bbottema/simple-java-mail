@@ -8,6 +8,7 @@ import org.simplejavamail.api.email.EmailPopulatingBuilder;
 import org.simplejavamail.config.ConfigLoader;
 
 import java.lang.reflect.Method;
+import java.io.InputStream;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,7 +30,8 @@ class ConverterInputBuilderRouteContractTest {
         final byte[] before = bytes.clone();
         final EmailContractTestSupport.BorrowedInput input = new EmailContractTestSupport.BorrowedInput(bytes);
         final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
-        final Object conversion = outlook ? mail.converter().fromOutlookMsg(input) : mail.converter().fromEml(input);
+        final Object conversion = invoke(mail.converter(), ConfiguredEmailConverter.class.getDeclaredMethod(
+                outlook ? "fromOutlookMsg" : "fromEml", InputStream.class), input);
         assertThat(input.available()).isEqualTo(bytes.length);
         final EmailPopulatingBuilder builder = (EmailPopulatingBuilder) invoke(conversion, method);
         assertThat(builder.getSubject()).isEqualTo(outlook ? "Test E-Mail" : "Source");

@@ -45,6 +45,7 @@ import static demo.ResourceFolderHelper.determineResourceFolder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static testutil.configcontracts.ConfigurationContractCoverage.invoke;
 
 class FluentEmailConversionTest {
 
@@ -62,13 +63,13 @@ class FluentEmailConversionTest {
 		assertThat(input.reads).isPositive();
 		assertThat(input.closed).isFalse();
 
-		assertThat(converter.fromEml(new String(EML, UTF_8)).toEmail().getSubject()).isEqualTo("Source");
+		assertThat(((EmlConversion) observedInput("fromEml", String.class, new String(EML, UTF_8))).toEmail().getSubject()).isEqualTo("Source");
 		assertThat(converter.fromEml(EML).toEmailBuilder().getSubject()).isEqualTo("Source");
 		final Path file = directory.resolve("source.eml");
 		final EmlConversion lazyPath = converter.fromEml(file);
 		Files.write(file, EML);
 		assertThat(lazyPath.toMimeMessage().getSubject()).isEqualTo("Source");
-		assertThat(converter.fromEml(file.toFile()).toEmail().getSubject()).isEqualTo("Source");
+		assertThat(((EmlConversion) observedInput("fromEml", java.io.File.class, file.toFile())).toEmail().getSubject()).isEqualTo("Source");
 		Files.delete(file);
 	}
 
@@ -78,7 +79,7 @@ class FluentEmailConversionTest {
 		try (FileSystem zip = FileSystems.newFileSystem(URI.create("jar:" + archive.toUri()), Collections.singletonMap("create", "true"))) {
 			final Path eml = zip.getPath("/source.eml");
 			Files.write(eml, EML);
-			assertThat(converter.fromEml(eml).toEmail().getSubject()).isEqualTo("Source");
+			assertThat(((EmlConversion) observedInput("fromEml", Path.class, eml)).toEmail().getSubject()).isEqualTo("Source");
 			assertThat(converter.fromEml(eml).toMimeMessage().getSubject()).isEqualTo("Source");
 			Files.delete(eml);
 		}
@@ -168,7 +169,7 @@ class FluentEmailConversionTest {
 		final Email source = converter.fromEml(EML).toEmail();
 		final Session session = JakartaMailImplementation.createSession(new Properties());
 		assertThat(converter.fromEmail(source).withSession(session).toMimeMessage().getSession()).isSameAs(session);
-		assertThat(converter.fromEmail(source).toEml()).contains("Subject: Source", "Hello");
+		assertThat(((ConfiguredEmailConverter.EmailConversion) observedInput("fromEmail", Email.class, source)).toEml()).contains("Subject: Source", "Hello");
 		assertThat(new String(converter.fromEmail(source).toEmlBytes(), UTF_8)).contains("Subject: Source", "Hello");
 	}
 
@@ -236,7 +237,8 @@ class FluentEmailConversionTest {
 		EmailConverter.mimeMessageToEmailBuilder(message, null, false).buildEmail();
 		final int existingReads = reads.get();
 		reads.set(0);
-		final Email lazy = converter.fromMimeMessage(message).withFetchAttachmentData(false).toEmail();
+		final Email lazy = ((ConfiguredEmailConverter.MimeMessageConversion) observedInput("fromMimeMessage", MimeMessage.class, message))
+				.withFetchAttachmentData(false).toEmail();
 		// Protection inspection can read the original message. The fluent layer must not introduce another read or eager attachment copy.
 		assertThat(reads.get()).isEqualTo(existingReads);
 		assertThat(lazy.getAttachments()).hasSize(1);
@@ -339,6 +341,10 @@ class FluentEmailConversionTest {
 		selected.toMimeMessage();
 		assertThatThrownBy(selected::toEmail).hasMessageContaining("already been used")
 				.hasMessageNotContaining("reset the Session");
+	}
+
+	private Object observedInput(final String method, final Class<?> parameterType, final Object source) throws NoSuchMethodException {
+		return invoke(converter, ConfiguredEmailConverter.class.getMethod(method, parameterType), source);
 	}
 
 	private Email convertNestedAttachment(final NestedAttachmentSource source, final boolean fluent) throws Exception {

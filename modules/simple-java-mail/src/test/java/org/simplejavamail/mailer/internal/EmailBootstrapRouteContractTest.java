@@ -46,7 +46,22 @@ class EmailBootstrapRouteContractTest {
         return EXTRA_SETUP_CONTRACTS.stream().flatMap(contract -> Arrays.stream(contract.getDeclaredMethods()))
                 .filter(method -> method.getReturnType() == EmailPopulatingBuilder.class || method.getReturnType() == ExactEmailBuilder.class
                         || method.getReturnType().getEnclosingClass() == ConfiguredEmailConverter.class)
+                .filter(method -> !hasDedicatedInputWitness(method))
                 .sorted(java.util.Comparator.comparing(testutil.configcontracts.ConfigurationContractCoverage::signature));
+    }
+
+    // Existing behavior tests invoke these exact public signatures and publish their successful API evidence.
+    // Keep byte-array capture and native Outlook file/path/string ownership boundaries in this matrix.
+    private static boolean hasDedicatedInputWitness(final Method method) {
+        if (method.getDeclaringClass() != ConfiguredEmailConverter.class || method.getParameterCount() != 1) { return false; }
+        final Class<?> input = method.getParameterTypes()[0];
+        switch (method.getName()) {
+            case "fromEml": return input == String.class || input == InputStream.class || input == Path.class || input == java.io.File.class;
+            case "fromMimeMessage": return input == MimeMessage.class;
+            case "fromEmail": return input == Email.class;
+            case "fromOutlookMsg": return input == InputStream.class;
+            default: return false;
+        }
     }
 
     static Stream<Method> templateRoutes() {
