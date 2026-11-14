@@ -281,6 +281,8 @@ class AbsentFieldRecoveryTest {
     private static Stream<Arguments> missingAddressCases() {
         final Stream<Arguments> fluentCases = Stream.of("From", "Reply-To", "To", "Cc", "Bcc")
                 .flatMap(field -> Stream.of(false, true).flatMap(captureFails -> Stream.of(false, true)
+                        // Recipient getter failures share one MessagingException catch; From/Reply-To have subtype fallback.
+                        .filter(grammarFailure -> !grammarFailure || field.equals("From") || field.equals("Reply-To"))
                         .map(grammarFailure -> Arguments.of(field, captureFails, false, grammarFailure))));
         return Stream.concat(fluentCases, Stream.of(
                 Arguments.of("From", false, true, false),
