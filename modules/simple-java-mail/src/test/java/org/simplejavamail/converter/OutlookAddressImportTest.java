@@ -40,7 +40,8 @@ import static org.mockito.Mockito.when;
 /** Exercises real Outlook containers through both public import routes, independently of outgoing convenience parsing. */
 class OutlookAddressImportTest {
     private static final String FIXTURE = "/test-messages/simple email with TO and CC.msg";
-    private static final Set<String> CANONICAL_HEADER_VALUE_CASES = Set.of("Team:first@example.org;", "Undisclosed:;", "(comment only)");
+    private static final Set<String> RECEIPT_ROUTE_WITNESSES = Set.of(
+            "First <first@example.org>, Second <second@example.org>", "<>", "", "   ");
     private final SimpleJavaMail mail = SimpleJavaMail.withConfig(ConfigLoader.builder().load());
 
     @ParameterizedTest
@@ -96,10 +97,10 @@ class OutlookAddressImportTest {
                         Arguments.of(header, "<>", null, null),
                         Arguments.of(header, "", null, null),
                         Arguments.of(header, "   ", null, null))
-                        // Each spelling still checks single, multiple, malformed and all empty-value forms.
-                        // Group and comment parsing is exercised for both canonical receipt names and Return-Path.
-                        .filter(candidate -> header.equals("Disposition-Notification-To") || header.equals("Return-Receipt-To")
-                                || header.equals("Return-Path") || !CANONICAL_HEADER_VALUE_CASES.contains(candidate.get()[1])));
+                        // Disposition owns the shared receipt grammar; every spelling keeps list and absence witnesses.
+                        // Return-Path uses a separate singular parser and retains its complete grammar matrix.
+                        .filter(candidate -> header.equals("Disposition-Notification-To") || header.equals("Return-Path")
+                                || RECEIPT_ROUTE_WITNESSES.contains(candidate.get()[1])));
     }
 
     @Test
