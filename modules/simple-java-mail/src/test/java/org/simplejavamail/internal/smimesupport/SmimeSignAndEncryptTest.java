@@ -3,6 +3,7 @@ package org.simplejavamail.internal.smimesupport;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.email.EmailPopulatingBuilder;
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.simplejavamail.util.TestDataHelper.loadPkcs12KeyStore;
 import static testutil.CertificationUtil.extractSignedBy;
 
+@Tag("fresh-parent-jvm") // These tests install a process-global security provider.
 public class SmimeSignAndEncryptTest {
 
     private static final String RESOURCES_PATH = determineResourceFolder("simple-java-mail") + "/test/resources";

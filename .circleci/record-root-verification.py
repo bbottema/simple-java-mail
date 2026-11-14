@@ -20,9 +20,9 @@ def main():
     evidence = Path("target/ci-verification")
     evidence.mkdir(parents=True, exist_ok=True)
     scope = sys.argv[1] if len(sys.argv) > 1 else "full"
-    if scope not in ("full", "failure-control", "cli-fork-control"):
+    if scope not in ("full", "failure-control", "cli-fork-control", "main-reuse-control"):
         raise ValueError("Unknown verification scope: " + scope)
-    # The main module uses four isolated JVMs; CLI fork reuse/count is configured separately.
+    # Reused test JVMs and the explicit fresh-parent exceptions have separate executions.
     command = ["mvn", "--batch-mode", "--no-transfer-progress", "-Dtest.forkCount=4",
                "-Dcli.test.forkCount=4", "-Dlicense.skip=true"]
     selected = []
@@ -41,6 +41,26 @@ def main():
             "ExactEmailProtectionInspectionTest", "PreEncodedReplyResourceTest",
             "FailoverPoolContractTest",
             "MailSendRateLimiterTest",
+        ]
+        command += ["-pl", "modules/simple-java-mail", "-am", "test",
+                    "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]
+    elif scope == "main-reuse-control":
+        # Fixed reuse/order/global-state controls; the full configuration gates remain in full verification.
+        selected = [
+            "ConfigLoaderInstanceTest", "ConfigurationBootstrapContractTest", "SimpleJavaMailFactoryTest",
+            "ConfigurationResolverTest", "SendingRateLimitConfigTest", "FactorySendingLimitsTest",
+            "MailSendRateLimiterTest", "MailerSendingLimitsTest", "RecipientBuilderTest",
+            "EmailSerializationTest", "ClearForwardedEmailTest", "EnvelopeChoiceClearingTest",
+            "FluentEmailConversionTest", "ImportedAddressRecoveryTest", "DeliveryStatusReportTest",
+            "StaticSmimeRuntimeLazinessTest", "FactorySmimeRuntimeTest", "FactorySmimeRoutingTest",
+            "SmimeMediaTypeCapitalizationTest", "DkimProviderInitializationTest", "DkimWireSignerTest",
+            "DkimTransportTest", "OpenPgpPlainMimeReadBoundaryTest", "OpenPgpDeclarationInspectionTest",
+            "ExactEmailProtectionModuleAbsenceTest", "CustomMailerInactiveOAuthTest", "MailerLifecycleTest",
+            "SimpleBatchTransportSetupCleanupTest", "SmtpProtocolConformanceTest", "InheritedOAuth2TokenTest",
+            "MailSendRetrySchedulingTest", "SessionApplicationContractTest", "OpenPgpNestedDeclarationTest",
+            "OpenPgpSignatureResultsTest", "MailerHelperSmimeTest", "ImageMimeTypeTest",
+            "SmimeGlobalStateIsolationTest", "SmimeSignAndEncryptTest", "MimeMessageHelperTest",
+            "MimeMessageHelper2Test", "ModuleLoaderTest", "AutomaticImageCidLocaleTest", "BatchSupportTest",
         ]
         command += ["-pl", "modules/simple-java-mail", "-am", "test",
                     "-Dtest=" + ",".join(selected), "-Dsurefire.failIfNoSpecifiedTests=false"]
@@ -104,7 +124,7 @@ def main():
                              **{name: int(suite.get(name, "0")) for name in counts}})
         report_count += 1
     missing = sorted(set(selected) - executed)
-    if missing:
+    if missing or counts["tests"] == 0:
         exit_code = exit_code or 1
     pom = ET.parse("pom.xml").getroot()
     ns = {"m": "http://maven.apache.org/POM/4.0.0"}

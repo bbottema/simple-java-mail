@@ -21,6 +21,7 @@
         <automaticModuleName>org.simplejavamail</automaticModuleName>
         <spring.version>[4.3.18.RELEASE,)</spring.version>
         <test.forkCount>8</test.forkCount>
+        <test.reuseForks>true</test.reuseForks>
     </properties>
 
     <dependencies>
@@ -160,8 +161,23 @@
                     <useSystemClassLoader>false</useSystemClassLoader>
                     <!-- Conformance CI overrides this for its two-core VM; avoid starving bounded socket fixtures during JVM startup. -->
                     <forkCount>${test.forkCount}</forkCount>
-                    <reuseForks>false</reuseForks>
+                    <reuseForks>${test.reuseForks}</reuseForks>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>default-test</id>
+                        <configuration><excludedGroups>fresh-parent-jvm</excludedGroups></configuration>
+                    </execution>
+                    <execution>
+                        <id>fresh-parent-jvm</id>
+                        <phase>test</phase>
+                        <goals><goal>test</goal></goals>
+                        <configuration>
+                            <groups>fresh-parent-jvm</groups>
+                            <reuseForks>false</reuseForks>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
