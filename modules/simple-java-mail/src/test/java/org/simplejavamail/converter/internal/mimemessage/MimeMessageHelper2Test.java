@@ -1,6 +1,7 @@
 package org.simplejavamail.converter.internal.mimemessage;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -15,6 +16,7 @@ import testutil.EmailHelper;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mockStatic;
 
+@Tag("fresh-parent-jvm") // ModuleLoader's forced-recheck switch is process-global and cannot be reset.
 public class MimeMessageHelper2Test {
 	
 	@BeforeEach

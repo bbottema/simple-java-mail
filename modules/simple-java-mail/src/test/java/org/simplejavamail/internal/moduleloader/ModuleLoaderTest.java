@@ -1,6 +1,7 @@
 package org.simplejavamail.internal.moduleloader;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.simplejavamail.internal.modules.OutlookModule;
 
 import java.lang.reflect.Field;
@@ -18,6 +19,7 @@ import java.util.concurrent.Future;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Tag("fresh-parent-jvm") // This concurrency test clears the process-global module cache.
 public class ModuleLoaderTest {
 
 	@Test

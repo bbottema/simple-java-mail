@@ -4,6 +4,8 @@ Follow [docs/TESTING.md](docs/TESTING.md) when selecting checks. Start with the 
 
 Build required reactor dependencies from the current sources. Confirm that every intended test actually ran; an empty selection is a failure. Report focused results as focused results, without claiming that a partial run passed the configuration gates.
 
+Main-module tests reuse JVMs by default, with a separate execution for the explicit `fresh-parent-jvm` exceptions documented in `docs/TESTING.md`. Preserve deliberate child-process and classloader boundaries; verify selected cases across both executions.
+
 Use one local JDK, normally JDK 17. The pipeline owns full-reactor verification and the JDK/operating-system compatibility matrix. Do not run local full suites or repeat verification across JDKs unless the user explicitly requests it. Reproduce an actual version-specific failure with a focused check on that version.
 
 Repeat checks when relevant inputs change, a failure appears, or a new concern arises. Reuse results only when the relevant sources, tests, build, dependencies, environment, and scope match. For performance changes, start with one focused before/after measurement and repeat only if the result is noisy or inconclusive. Keep release and compatibility gates in CI.

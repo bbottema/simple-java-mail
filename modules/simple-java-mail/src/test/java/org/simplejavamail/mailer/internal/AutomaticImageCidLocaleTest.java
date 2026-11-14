@@ -3,6 +3,7 @@ package org.simplejavamail.mailer.internal;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.parallel.ResourceLock;
@@ -33,6 +34,7 @@ import static org.simplejavamail.mailer.internal.SmtpContentNegotiationCharacter
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.acceptMessageAfterMailFrom;
 import static org.simplejavamail.mailer.internal.SmtpDsnCharacterizationTest.finishConnection;
 
+@Tag("fresh-parent-jvm") // The deterministic CID fixture reseeds the process-global random generator.
 @ResourceLock(LOCALE)
 @ResourceLock("MiscUtil.RANDOM")
 @Timeout(30)
