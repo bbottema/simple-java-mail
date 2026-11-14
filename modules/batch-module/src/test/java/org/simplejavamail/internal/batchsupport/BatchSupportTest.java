@@ -40,6 +40,15 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 class BatchSupportTest {
 
 	@Test
+	void shutdownBeforeAnyRegistrationCompletesWithoutCreatingPoolResources() throws Exception {
+		final BatchSupport batch = new BatchSupport();
+		final Future<Void> shutdown = batch.shutdownConnectionPools(session());
+		assertThat(shutdown).isDone();
+		assertThat(shutdown.get(5, SECONDS)).isNull();
+		assertThat(batch).extracting("batchTransportEngine", "smtpConnectionPool").containsOnlyNulls();
+	}
+
+	@Test
 	void invalidEffectiveSettingsFailBeforeCreatingPoolResources() {
 		final BatchSupport batch = new BatchSupport();
 		final OperationalConfig invalid = operationalConfig(2, 1, 100, 5000, LoadBalancingStrategy.ROUND_ROBIN);
