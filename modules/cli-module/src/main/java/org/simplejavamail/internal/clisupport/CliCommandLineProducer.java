@@ -12,7 +12,9 @@ import picocli.CommandLine.Model.OptionSpec;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.lang.String.format;
 import static org.simplejavamail.internal.clisupport.BuilderApiToPicocliCommandsMapper.colorizeOptionsInText;
@@ -32,6 +34,8 @@ class CliCommandLineProducer {
     
     @SuppressWarnings("SameParameterValue")
     static CommandLine configurePicoCli(List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
+        // Share presentation values within this build; every command still owns its mutable specs and occurrences.
+        final Map<CliDeclaredOptionSpec, OptionPresentation> presentations = new IdentityHashMap<>();
         CommandSpec rootCommandsHolder = createDefaultCommandSpec("SimpleJavaMail",
                 "Simple Java Mail Command Line Interface.%n" +
                         "%n" +
@@ -54,26 +58,27 @@ class CliCommandLineProducer {
                         colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE));
     
         createRootCommand(rootCommandsHolder, "send", "Send an email: starting blank, replying to or forwarding another email.",
-                colorizeOptionsInText("\tsend [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+                colorizeOptionsInText("\tsend [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth, presentations);
         createRootCommand(rootCommandsHolder, "connect", "Test a server connection, including possible authentication and any proxy settings",
-                colorizeOptionsInText("\tconnect [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
-        createProbeCommand(rootCommandsHolder, declaredOptions, maxTextWidth);
+                colorizeOptionsInText("\tconnect [--help -h, --version -V] --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth, presentations);
+        createProbeCommand(rootCommandsHolder, declaredOptions, maxTextWidth, presentations);
         createRootCommand(rootCommandsHolder, "validate", "Rehearse preparing an email with the mailer's defaults, overrides, MIME security and size limit, without connecting to SMTP. "
                         + "Reuses a ready compatible daemon Mailer; otherwise prepares transiently without starting sending pools.",
-                colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth);
+                colorizeOptionsInText("\tvalidate [--help -h, --version -V] --email:options --mailer:options", COMMAND_OPTION_STYLE), declaredOptions, maxTextWidth, presentations);
         
         return new CommandLine(rootCommandsHolder).setUsageHelpWidth(maxTextWidth).setSeparator(" ").setExpandAtFiles(false);
     }
 
     /** Probe authentication is a per-command choice, not a generated builder option or a Mailer default. */
     private static void createProbeCommand(final CommandSpec rootCommandsHolder,
-            final List<CliDeclaredOptionSpec> declaredOptions, final int maxTextWidth) {
+            final List<CliDeclaredOptionSpec> declaredOptions, final int maxTextWidth,
+            final Map<CliDeclaredOptionSpec, OptionPresentation> presentations) {
         final CommandSpec probe = createRootCommand(rootCommandsHolder, "probe",
                 "Inspect SMTP capabilities and TLS without sending an email. The probe does not authenticate unless --authenticate is supplied. "
                         + "Connects even in logging-only mode. Prints the report to stdout, including failures: "
                         + "exit 0 for success, 3 for a failed or unsupported probe, 2 for invalid arguments.",
                 colorizeOptionsInText("\tprobe [--help -h, --version -V] [--authenticate] --mailer:options", COMMAND_OPTION_STYLE),
-                declaredOptions, maxTextWidth);
+                declaredOptions, maxTextWidth, presentations);
         final String authenticationHelp = "Test the configured SMTP credentials as part of this probe. "
                 + "Without this flag, the probe does not use configured SMTP credentials. Proxy authentication still follows the proxy settings. "
                 + "A nonzero connection-pool core size can separately open and authenticate send connections when the Mailer is built; "
@@ -88,28 +93,33 @@ class CliCommandLineProducer {
     }
     
     private static CommandSpec createRootCommand(CommandSpec rootCommandsHolder, String name, String description, String synopsis,
-                                                 List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth) {
+                                                 List<CliDeclaredOptionSpec> declaredOptions, int maxTextWidth,
+                                                 Map<CliDeclaredOptionSpec, OptionPresentation> presentations) {
         final CommandSpec rootCommand = createDefaultCommandSpec(name, description);
 		final Collection<CliBuilderApiType> compatibleBuilderApiTypes = CliBuilderApiType.findForCliSynopsis(synopsis);
         rootCommand.usageMessage().customSynopsis(synopsis);
-		populateRootCommands(rootCommand, declaredOptions, compatibleBuilderApiTypes, maxTextWidth);
+		populateRootCommands(rootCommand, declaredOptions, compatibleBuilderApiTypes, maxTextWidth, presentations);
         rootCommandsHolder.addSubcommand(rootCommand.name(), rootCommand);
         return rootCommand;
     }
     
-    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions, Collection<CliBuilderApiType> compatibleBuilderApiTypes, int maxTextWidth) {
+    private static void populateRootCommands(CommandSpec rootCommand, List<CliDeclaredOptionSpec> declaredOptions,
+            Collection<CliBuilderApiType> compatibleBuilderApiTypes, int maxTextWidth,
+            Map<CliDeclaredOptionSpec, OptionPresentation> presentations) {
 		final CliOptionOccurrences occurrences = (CliOptionOccurrences) rootCommand.userObject();
 		for (CliDeclaredOptionSpec cliDeclaredOptionSpec : declaredOptions) {
             if (cliDeclaredOptionSpec.applicableToRootCommand(compatibleBuilderApiTypes)) {
+                final OptionPresentation presentation = presentations.computeIfAbsent(cliDeclaredOptionSpec,
+                        option -> new OptionPresentation(option, maxTextWidth));
                 rootCommand.addOption(OptionSpec.builder(cliDeclaredOptionSpec.getName())
                         .type(List.class)
                         .auxiliaryTypes(String.class)
                         .arity(format("%s..%s",
                                 cliDeclaredOptionSpec.getMandatoryOptionValues().size(),
                                 cliDeclaredOptionSpec.getPossibleOptionValues().size()))
-                        .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
+                        .paramLabel(presentation.paramLabel)
                         .hideParamSyntax(true)
-                        .description(determineDescription(cliDeclaredOptionSpec, false, maxTextWidth))
+                        .description(presentation.description(false))
                         .getter(occurrences)
                         .setter(occurrences.setterFor(cliDeclaredOptionSpec.getName()))
                         .hasInitialValue(true)
@@ -121,21 +131,29 @@ class CliCommandLineProducer {
                         .arity("*")
                         .hidden(true)
                         .help(true)
-                        .paramLabel(determineParamLabel(cliDeclaredOptionSpec.getPossibleOptionValues()))
+                        .paramLabel(presentation.paramLabel)
                         .hideParamSyntax(true)
-                        .description(determineDescription(cliDeclaredOptionSpec, true, maxTextWidth))
+                        .description(presentation.description(true))
                         .build());
             }
         }
     }
     
-    // hide multi-line descriptions when usage is not focussed on the current option (ie. --current-option--help)
-    private static String[] determineDescription(CliDeclaredOptionSpec cliCommand, boolean fullDescription, int maxTextWidth) {
-        final List<String> descriptions = formatOptionDescription(cliCommand, maxTextWidth);
-        if (!fullDescription && descriptions.size() > 1) {
-            return new String[] {getFirst(descriptions) + " (...more)"};
-        } else {
-            return descriptions.toArray(new String[]{});
+    private static final class OptionPresentation {
+        private final String paramLabel;
+        private final String[] summary;
+        private final String[] details;
+
+        private OptionPresentation(final CliDeclaredOptionSpec option, final int maxTextWidth) {
+            paramLabel = determineParamLabel(option.getPossibleOptionValues());
+            final List<String> descriptions = formatOptionDescription(option, maxTextWidth);
+            details = descriptions.toArray(new String[]{});
+            // Hide multi-line descriptions except for the option-specific help variation.
+            summary = descriptions.size() > 1 ? new String[]{getFirst(descriptions) + " (...more)"} : details;
+        }
+
+        private String[] description(final boolean fullDescription) {
+            return (fullDescription ? details : summary).clone();
         }
     }
     
