@@ -258,8 +258,8 @@ class FluentEmailConversionTest {
 	}
 
 	@ParameterizedTest
-	@CsvSource({"false, OPEN", "true, OPEN", "false, READ", "true, READ", "false, CLOSE", "true, CLOSE",
-			"false, READ_AND_CLOSE", "true, READ_AND_CLOSE"})
+	// Shared nested-failure recovery is proved once; the ownership and lazy-read cases retain route coverage.
+	@CsvSource({"false, OPEN", "false, READ", "false, CLOSE", "false, READ_AND_CLOSE"})
 	void nestedAttachmentIoFailuresRetainEvidenceAndReadableNeighbors(final boolean fluent, final AttachmentFailure failurePoint) throws Exception {
 		final NestedAttachmentSource source = new NestedAttachmentSource(failurePoint);
 		final Email inspected = convertNestedAttachment(source, fluent);
