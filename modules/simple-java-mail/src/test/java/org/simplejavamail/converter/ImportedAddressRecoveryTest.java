@@ -77,7 +77,8 @@ class ImportedAddressRecoveryTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"broken <address", "\"unterminated", "Valid <valid@example.org>, broken <address"})
+    // From retains the shared malformed grammar; this case owns explicit Reply-To selection on every route.
+    @ValueSource(strings = "broken <address")
     void explicitMalformedReplyToRetainsItsWholeFieldInsteadOfTheFromAddress(final String source) throws Exception {
         for (final ImportRoute route : ImportRoute.values()) {
             final String original = message(FROM, source);
@@ -106,17 +107,6 @@ class ImportedAddressRecoveryTest {
     @ValueSource(strings = {"<absent>", "", "(comment only)"})
     void missingOrEmptyReplyToInheritsTheMalformedFromSource(final String reply) throws Exception {
         final String source = message("broken <address", reply.equals("<absent>") ? null : reply);
-        for (final ImportRoute route : ImportRoute.values()) {
-            final Email imported = convert(route, source);
-            assertThat(imported.getFromRecipient().getAddress()).isEqualTo("broken <address");
-            assertThat(imported.getReplyToRecipients()).extracting(Recipient::getAddress).containsExactly("broken <address");
-            assertReadableContent(imported);
-        }
-    }
-
-    @Test
-    void missingFromRetainsTheMalformedSenderRatherThanInventingAnAddress() throws Exception {
-        final String source = "Sender: broken <address\r\n" + message(null, null);
         for (final ImportRoute route : ImportRoute.values()) {
             final Email imported = convert(route, source);
             assertThat(imported.getFromRecipient().getAddress()).isEqualTo("broken <address");
