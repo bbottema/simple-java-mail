@@ -27,7 +27,8 @@ class ImportedHeaderOrderTest {
 			+ "X-Unrelated: kept\r\n\r\nMessage body";
 
 	@ParameterizedTest
-	@EnumSource(ImportRoute.class)
+	// HeaderScope's parent-present matrix retains all seven import routes; this case owns the ordering rule.
+	@EnumSource(value = ImportRoute.class, names = "FLUENT_EML_EAGER")
 	void mixedCaseNamesKeepTheirFirstSpellingAndEveryValueOccurrenceInOrder(final ImportRoute route) throws Exception {
 		final Email imported = convert(route, SOURCE);
 

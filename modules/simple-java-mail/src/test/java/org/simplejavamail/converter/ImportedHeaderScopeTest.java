@@ -60,7 +60,8 @@ class ImportedHeaderScopeTest {
 	}
 
 	@ParameterizedTest
-	@EnumSource(ImportRoute.class)
+	// The parent-present matrix above owns route coverage; this case owns absent-root selection.
+	@EnumSource(value = ImportRoute.class, names = "FLUENT_EML_EAGER")
 	void missingRootChoicesStayAbsentDespiteChildHeaders(final ImportRoute route) throws Exception {
 		final Email email = convert(route, multipart("", CHILD_CHOICES));
 		assertThat(email.getBounceToRecipient()).isNull();

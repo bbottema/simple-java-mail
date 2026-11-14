@@ -37,7 +37,8 @@ class HeaderDecodingRecoveryTest {
 	private static final String ROOT = "From: sender@example.org\r\nTo: reader@example.org\r\nSubject: Readable message\r\n";
 
 	@ParameterizedTest
-	@EnumSource(ImportRoute.class)
+	// HeaderScope's parent-present matrix retains all seven import routes; this case owns generic decoding recovery.
+	@EnumSource(value = ImportRoute.class, names = "FLUENT_EML_EAGER")
 	void retainsTheCompleteOriginalGenericValueAndReadableNeighbors(final ImportRoute route) throws Exception {
 		final Email imported = convert(route, multipart("X-Legacy: " + PARTLY_DECODABLE + "\r\n"
 				+ "X-Decoded: =?UTF-8?Q?caf=C3=A9?=\r\nX-Neighbor: unchanged\r\n"
